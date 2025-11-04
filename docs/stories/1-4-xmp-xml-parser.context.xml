@@ -1,0 +1,396 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>4</storyId>
+    <title>XMP XML Parser</title>
+    <status>Draft</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-4-xmp-xml-parser.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer implementing the Recipe conversion engine</asA>
+    <iWant>a robust XMP XML parser that extracts all Lightroom CC preset parameters from .xmp files</iWant>
+    <soThat>users can convert Adobe Lightroom CC presets to other formats with 95%+ accuracy</soThat>
+    <tasks>
+- Analyze 10 sample XMP files to understand structure
+- Create parameter mapping reference table
+- Implement Parse() function in `parse.go`
+- Implement table-driven tests in `xmp_test.go`
+- Validate all 913 sample files parse successfully
+- Performance benchmark <30ms achieved
+- Test coverage ≥90% achieved
+</tasks>
+  </story>
+
+  <acceptanceCriteria>
+**Functional Requirements:**
+
+**FR-1: XMP File Validation**
+- Verify file is valid XML before parsing
+- Validate required Adobe XMP namespace declarations present (xmlns:x, xmlns:crs, xmlns:rdf)
+- Reject files missing camera-raw-settings namespace with clear error message
+- Handle both sidecar XMP and embedded XMP structures
+
+**FR-2: Core Parameter Extraction (Basic Adjustments)**
+- Extract crs:Exposure2012 → UniversalRecipe.Exposure (-5.0 to +5.0)
+- Extract crs:Contrast2012 → UniversalRecipe.Contrast (-100 to +100)
+- Extract crs:Highlights2012, Shadows2012, Whites2012, Blacks2012 (all -100 to +100)
+
+**FR-3: Color Parameter Extraction**
+- Extract Saturation, Vibrance, Clarity2012, Sharpness, Temperature, Tint
+
+**FR-4: HSL Color Adjustments Extraction**
+- Extract HSL adjustments for all 8 colors (Red, Orange, Yellow, Green, Aqua, Blue, Purple, Magenta)
+- For each color: Hue, Saturation, Luminance (-100 to +100)
+
+**FR-5: Advanced Features Extraction**
+- Extract ToneCurve (array of Point{X, Y} coordinates)
+- Extract Split Toning parameters (Shadow/Highlight Hue and Saturation)
+
+**FR-6: Data Type Handling**
+- Parse floating-point values correctly (Exposure uses float64)
+- Parse integer values correctly
+- Handle quoted strings in XML attributes
+- Handle missing/optional fields gracefully (use zero values)
+- Validate all numeric values within expected ranges
+
+**FR-7: Error Handling**
+- Clear errors for invalid XML, missing namespaces, out-of-range parameters
+- Wrap all errors in ConversionError with context
+- Include file position information when possible
+
+**Non-Functional Requirements:**
+
+**NFR-1: Performance**
+- Parse single XMP file in <30ms
+
+**NFR-2: Test Coverage**
+- Parse all 913 sample XMP files from testdata/xmp/ without errors
+- Test coverage ≥90% for xmp package
+- Table-driven tests following Pattern 7
+- Validate extracted parameters within expected ranges
+
+**NFR-3: Code Quality**
+- Follow Pattern 4: File structure (parse.go, xmp_test.go)
+- Follow Pattern 5: Error handling with ConversionError wrapper
+- Follow Pattern 6: Inline validation, fail fast
+- Use stdlib encoding/xml package only (zero external dependencies)
+- Code passes gofmt and go vet without warnings
+</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Module: internal/formats/xmp</section>
+        <snippet>XMP format uses XML/RDF structure with Adobe XMP namespaces. Parse() validates namespace declarations, uses encoding/xml Unmarshal to struct, converts string values to appropriate types, maps to UniversalRecipe fields. Must extract 50+ parameters including Exposure, Contrast, Highlights, Shadows, HSL colors, tone curves, split toning.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Module: internal/model (UniversalRecipe)</section>
+        <snippet>UniversalRecipe struct with 50+ fields: Exposure (float64, -5.0 to +5.0), Contrast (int, -100 to +100), Highlights/Shadows/Whites/Blacks (int, -100 to +100), HSL ColorAdjustment (8 colors × 3 properties), ToneCurve ([]Point), Split Toning parameters. Zero values are meaningful (no adjustment). Extensible via Metadata map.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Performance Requirements</section>
+        <snippet>Parse single XMP file in <30ms target. Use encoding/xml (stdlib), pre-compile regex patterns, avoid unnecessary allocations. Validated via Go benchmarks (go test -bench).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Pattern 4: File Structure for Format Packages</section>
+        <snippet>Every format package has identical structure: parse.go (Parse function), generate.go (Generate function), {format}_test.go (table-driven tests). Identical structure across formats makes it easy to add new formats.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Pattern 5: Error Handling</section>
+        <snippet>Always return wrapped ConversionError for conversion failures. Provides Operation, Format, Cause fields. Implements Error() and Unwrap() for type-safe error checking.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Pattern 6: Validation Strategy</section>
+        <snippet>Validate inline in parsers, fail fast with descriptive errors. Validate magic bytes FIRST, then file size, then parameter ranges during extraction. Clear error messages aid debugging.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Pattern 7: Testing Strategy</section>
+        <snippet>Table-driven tests using real sample files from testdata/. Use filepath.Glob to discover all test files, run subtest for each file with t.Run(). Validate recipe fields are within expected ranges.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>36-122</lines>
+        <reason>Target data structure for XMP parser. Must populate 50+ fields including Exposure, Contrast, Highlights, Shadows, HSL ColorAdjustments (8 colors), ToneCurve points, Split Toning parameters. Note: package is "models" not "model".</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>ColorAdjustment</symbol>
+        <lines>5-9</lines>
+        <reason>Used for HSL color adjustments (Red, Orange, Yellow, Green, Aqua, Blue, Purple, Magenta). Each color has Hue (-180 to +180), Saturation (-100 to +100), Luminance (-100 to +100).</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>ToneCurvePoint</symbol>
+        <lines>12-15</lines>
+        <reason>Used for tone curve array. Input/Output values both 0-255 range. Store as array in UniversalRecipe.PointCurve field.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>53-77</lines>
+        <reason>Reference implementation showing parser pattern: validateFileStructure → extractParameters → validateParameters → buildRecipe. Use same pattern for XMP parser.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/builder.go</path>
+        <kind>builder</kind>
+        <symbol>RecipeBuilder</symbol>
+        <lines>1-50</lines>
+        <reason>Builder pattern for constructing UniversalRecipe. Use builder.WithExposure(), WithContrast(), etc. to set fields, then builder.Build() to validate and return recipe.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/validation.go</path>
+        <kind>validation</kind>
+        <symbol>ValidateNP3*</symbol>
+        <lines>1-100</lines>
+        <reason>Validation functions for parameter ranges. May need to create ValidateXMP* functions for XMP-specific validations (Exposure: -5.0 to +5.0, Contrast: -100 to +100, etc.).</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <framework>
+        <name>Go</name>
+        <version>1.25.1</version>
+        <module>github.com/justin/recipe</module>
+      </framework>
+      <stdlib>
+        <package>encoding/xml</package>
+        <usage>Core XML parsing and unmarshaling for XMP file structure</usage>
+        <reason>Required for parsing XML/RDF structure. Use encoding/xml.Unmarshal with struct tags to map XMP attributes to Go fields.</reason>
+      </stdlib>
+      <stdlib>
+        <package>fmt</package>
+        <usage>Error formatting and string formatting</usage>
+        <reason>Used for error wrapping with fmt.Errorf() and string formatting</reason>
+      </stdlib>
+      <stdlib>
+        <package>strconv</package>
+        <usage>String to numeric conversions</usage>
+        <reason>Convert XML string attributes to float64/int values (e.g., crs:Exposure2012="1.5" → float64)</reason>
+      </stdlib>
+      <stdlib>
+        <package>strings</package>
+        <usage>String manipulation and trimming</usage>
+        <reason>May be needed for cleaning XML attribute values</reason>
+      </stdlib>
+      <stdlib>
+        <package>bytes</package>
+        <usage>Byte slice operations</usage>
+        <reason>May be needed for XML namespace validation and byte manipulation</reason>
+      </stdlib>
+      <constraint>Zero external dependencies - only Go stdlib packages allowed per NFR-3</constraint>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Follow Pattern 4: File structure must be internal/formats/xmp/{parse.go, generate.go, xmp_test.go}
+- Follow Pattern 5: Wrap all errors in ConversionError type (to be created in Story 1-9, or use fmt.Errorf for now)
+- Follow Pattern 6: Validate inline in parser - fail fast with descriptive errors
+- Follow Pattern 7: Table-driven tests with filepath.Glob to discover all 913 test files
+- Use builder pattern: models.NewRecipeBuilder() to construct UniversalRecipe
+- Package name: internal/models (not internal/model as in tech spec)
+- Zero external dependencies: Use only stdlib encoding/xml
+- Must extract ALL 50+ parameters listed in acceptance criteria
+- Validate namespace declarations before parsing (required: xmlns:x, xmlns:crs, xmlns:rdf)
+- Handle missing optional fields gracefully (use zero values, no crashes)
+- Performance target: Parse <30ms (validate with benchmarks)
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>Parse function signature</name>
+      <kind>function</kind>
+      <signature>func Parse(data []byte) (*models.UniversalRecipe, error)</signature>
+      <path>internal/formats/xmp/parse.go</path>
+    </interface>
+    <interface>
+      <name>UniversalRecipe Builder</name>
+      <kind>builder</kind>
+      <signature>builder := models.NewRecipeBuilder()
+builder.WithSourceFormat("xmp")
+builder.WithExposure(exposure)
+builder.WithContrast(contrast)
+// ... set all fields
+recipe, err := builder.Build()</signature>
+      <path>internal/models/builder.go</path>
+    </interface>
+    <interface>
+      <name>XMP struct for encoding/xml</name>
+      <kind>struct</kind>
+      <signature>type XMPDocument struct {
+    XMLName xml.Name `xml:"x:xmpmeta"`
+    RDF     RDFDescription
+}
+
+type RDFDescription struct {
+    XMLName   xml.Name `xml:"rdf:Description"`
+    Exposure  string   `xml:"crs:Exposure2012,attr"`
+    Contrast  string   `xml:"crs:Contrast2012,attr"`
+    // ... 50+ more fields
+}</signature>
+      <path>internal/formats/xmp/parse.go (to be created)</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+**Testing Approach (Pattern 7):**
+
+1. **Table-Driven Tests**: Use filepath.Glob("testdata/xmp/**/*.xmp") to discover all 913 sample files. Run each file as a t.Run() subtest with descriptive name.
+
+2. **Test Organization**:
+   - TestParse: Main parsing validation with all 913 sample files
+   - TestParseInvalid*: Error handling tests (invalid XML, missing namespaces, corrupted data)
+   - TestExtractParameters: Unit tests for parameter extraction logic
+   - TestValidateParameters: Edge case validation tests
+   - BenchmarkParse: Performance benchmarks (<30ms target)
+
+3. **Validation Strategy**:
+   - Verify Parse() succeeds for all 913 sample files
+   - Validate SourceFormat == "xmp"
+   - Validate all numeric parameters within expected ranges
+   - Validate HSL colors extracted for all 8 colors (Red, Orange, Yellow, Green, Aqua, Blue, Purple, Magenta)
+   - Validate tone curve points (if present) are valid
+   - Log warnings for missing optional fields (acceptable)
+
+4. **Coverage Target**: ≥90% code coverage for xmp package verified via `go test -cover`
+
+5. **Performance Testing**: Use `go test -bench=. -benchtime=10s` to validate <30ms parse time per file
+</standards>
+    <locations>
+**Test Files:**
+- internal/formats/xmp/xmp_test.go - All XMP parser tests following Pattern 7
+
+**Test Data:**
+- testdata/xmp/ - 913 sample XMP files from various Lightroom CC versions
+- testdata/xmp/basic/ - Simple XMP files with minimal adjustments
+- testdata/xmp/complex/ - Files with HSL colors, tone curves, split toning
+- testdata/xmp/edge-cases/ - Invalid files, missing namespaces, corrupted XML
+
+**Test Commands:**
+- go test ./internal/formats/xmp/ - Run all tests
+- go test ./internal/formats/xmp/ -v - Verbose output
+- go test ./internal/formats/xmp/ -cover - Coverage report
+- go test ./internal/formats/xmp/ -bench=. - Performance benchmarks
+- go test ./internal/formats/xmp/ -run=TestParse/specific_file.xmp - Run single file test
+</locations>
+    <ideas>
+**Test Scenarios (organized by Acceptance Criteria):**
+
+**FR-1: XMP File Validation**
+- TestParseValidXML: Parse valid XMP with all required namespaces
+- TestParseInvalidXML: Reject malformed XML with descriptive error
+- TestParseMissingNamespaces: Reject files missing xmlns:x, xmlns:crs, or xmlns:rdf
+- TestParseMissingCRSNamespace: Specific error for missing camera-raw-settings namespace
+- TestParseSidecarXMP: Parse sidecar .xmp file structure
+- TestParseEmbeddedXMP: Parse embedded XMP structure (if applicable)
+
+**FR-2: Core Parameter Extraction (Basic Adjustments)**
+- TestExtractExposure: Verify crs:Exposure2012 → Exposure (-5.0 to +5.0)
+- TestExtractContrast: Verify crs:Contrast2012 → Contrast (-100 to +100)
+- TestExtractHighlights: Verify crs:Highlights2012 extraction (-100 to +100)
+- TestExtractShadows: Verify crs:Shadows2012 extraction (-100 to +100)
+- TestExtractWhites: Verify crs:Whites2012 extraction (-100 to +100)
+- TestExtractBlacks: Verify crs:Blacks2012 extraction (-100 to +100)
+
+**FR-3: Color Parameter Extraction**
+- TestExtractSaturation: Verify Saturation extraction
+- TestExtractVibrance: Verify Vibrance extraction
+- TestExtractClarity: Verify Clarity2012 extraction
+- TestExtractSharpness: Verify Sharpness extraction
+- TestExtractTemperature: Verify Temperature extraction
+- TestExtractTint: Verify Tint extraction
+
+**FR-4: HSL Color Adjustments Extraction**
+- TestExtractHSLRed: Verify Red Hue, Saturation, Luminance (-100 to +100 each)
+- TestExtractHSLOrange: Verify Orange HSL adjustments
+- TestExtractHSLYellow: Verify Yellow HSL adjustments
+- TestExtractHSLGreen: Verify Green HSL adjustments
+- TestExtractHSLAqua: Verify Aqua HSL adjustments
+- TestExtractHSLBlue: Verify Blue HSL adjustments
+- TestExtractHSLPurple: Verify Purple HSL adjustments
+- TestExtractHSLMagenta: Verify Magenta HSL adjustments
+- TestExtractAllHSLColors: Verify all 8 colors × 3 properties = 24 HSL parameters
+
+**FR-5: Advanced Features Extraction**
+- TestExtractToneCurve: Verify ToneCurve array of Point{X, Y} coordinates
+- TestExtractToneCurveEmpty: Handle files without tone curves (zero value)
+- TestExtractSplitToningShadowHue: Verify shadow hue extraction
+- TestExtractSplitToningShadowSaturation: Verify shadow saturation extraction
+- TestExtractSplitToningHighlightHue: Verify highlight hue extraction
+- TestExtractSplitToningHighlightSaturation: Verify highlight saturation extraction
+
+**FR-6: Data Type Handling**
+- TestParseFloat64: Verify crs:Exposure2012="1.5" → float64(1.5)
+- TestParseInteger: Verify crs:Contrast2012="50" → int(50)
+- TestParseQuotedStrings: Handle XML attribute quoting correctly
+- TestParseMissingOptionalFields: Verify zero values for missing fields (no crashes)
+- TestParseOutOfRangeExposure: Reject Exposure > 5.0 or < -5.0
+- TestParseOutOfRangeContrast: Reject Contrast > 100 or < -100
+- TestParseNegativeValues: Correctly parse negative values (e.g., Shadows=-50)
+
+**FR-7: Error Handling**
+- TestParseInvalidXMLSyntax: Clear error for malformed XML
+- TestParseMissingRequiredNamespace: Specific error message for each missing namespace
+- TestParseInvalidParameterValue: Error for non-numeric value in numeric field
+- TestParseExposureOutOfRange: Descriptive error with context
+- TestErrorIncludesFilePosition: Verify XML position info in error (if possible)
+
+**NFR-1: Performance**
+- BenchmarkParseSingleFile: Verify <30ms per file
+- BenchmarkParseAllSampleFiles: Average parse time across all 913 files
+- BenchmarkParseComplexFile: Verify performance with HSL+ToneCurve+SplitToning
+
+**NFR-2: Test Coverage**
+- TestParseAll913SampleFiles: Parse all 913 files without errors (main validation)
+- TestCoverageReport: Verify ≥90% coverage via `go test -cover`
+- TestParameterRangeValidation: Validate all extracted values within expected ranges
+
+**NFR-3: Code Quality**
+- TestGoFmt: Verify `gofmt` produces no changes
+- TestGoVet: Verify `go vet` produces no warnings
+- TestBuildRecipeBuilder: Verify builder.WithExposure(), WithContrast(), etc. work correctly
+- TestZeroDependencies: Verify only stdlib packages imported (encoding/xml, fmt, strconv, strings)
+
+**Edge Cases and Robustness:**
+- TestParseEmptyXMPFile: Minimal valid XMP with no adjustments
+- TestParseOnlyBasicAdjustments: File with only Exposure/Contrast
+- TestParseOnlyHSLAdjustments: File with only HSL colors
+- TestParseOnlyToneCurve: File with only tone curve
+- TestParseAllParametersMaximized: All parameters at maximum values
+- TestParseAllParametersMinimized: All parameters at minimum values
+- TestParseUTF8Names: Handle UTF-8 characters in preset names (if applicable)
+- TestParseWindowsLineEndings: Handle CRLF line endings
+- TestParseUnixLineEndings: Handle LF line endings
+- TestParseNamespaceVariations: Handle different namespace prefix orders
+- TestParseLightroomCCVariousVersions: Validate files from different Lightroom CC versions
+- TestParseParameterDiversity: Verify meaningful differences extracted across different presets
+
+**Reference Implementation Tests (from NP3):**
+- Follow TestParse pattern: filepath.Glob + t.Run subtests
+- Follow TestParseInvalid* pattern for error handling
+- Follow TestValidateParametersEdgeCases pattern for boundary testing
+- Add TestParameterDiversity to ensure meaningful extraction (not all identical)
+</ideas>
+  </tests>
+</story-context>

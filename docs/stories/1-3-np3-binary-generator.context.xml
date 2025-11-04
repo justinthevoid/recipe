@@ -1,0 +1,271 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>3</storyId>
+    <title>NP3 Binary Generator</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-04 15:57:41</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-3-np3-binary-generator.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>a generator that can write Nikon .np3 Picture Control binary files from UniversalRecipe</iWant>
+    <soThat>I can convert other formats to .np3 for use with Nikon cameras</soThat>
+    <tasks>
+- Task 1: Create Generate() function signature (AC: #1, #5)
+  - Add Generate(*models.UniversalRecipe) ([]byte, error) to parse.go or new generate.go
+  - Import encoding/binary for binary writing
+  - Add function documentation
+
+- Task 2: Implement file header generation (AC: #1)
+  - Write magic bytes "NCP" (0x4E 0x43 0x50) at offset 0-2
+  - Write version bytes at offset 3-6
+  - Write preset name at offset 0x14-0x28 (null-terminated, 20 bytes max)
+  - Initialize byte buffer with minimum size of 300 bytes
+
+- Task 3: Implement parameter conversion (AC: #2)
+  - Convert UniversalRecipe.Sharpness (0-150) to NP3 sharpening (0-9)
+  - Convert UniversalRecipe.Contrast (-100/+100) to NP3 contrast (-3/+3)
+  - Convert UniversalRecipe brightness to NP3 brightness (-1.0/+1.0)
+  - Convert UniversalRecipe.Saturation (-100/+100) to NP3 saturation (-3/+3)
+  - Convert UniversalRecipe hue to NP3 hue (-9/+9)
+  - Document conversion formulas in code comments
+
+- Task 4: Implement TLV chunk generation (AC: #3)
+  - Create encodeChunk() helper function
+  - Write chunk ID (4 bytes, little-endian uint32)
+  - Write reserved bytes (4 bytes, zeros)
+  - Write value length (2 bytes, little-endian uint16)
+  - Write value data (N bytes)
+  - Generate chunks for all parameters starting at offset 0x2C
+
+- Task 5: Implement Generate() main logic (AC: #1-5)
+  - Validate input UniversalRecipe is not nil
+  - Convert parameters (Task 3 logic)
+  - Generate file header (Task 2 logic)
+  - Generate TLV chunks (Task 4 logic)
+  - Return byte slice or error
+
+- Task 6: Write comprehensive tests (AC: #6)
+  - Create generator_test.go or extend np3_test.go
+  - Implement TestGenerate() with table-driven pattern
+  - Test round-trip: Parse() → Generate() → Parse()
+  - Verify generated files have correct magic bytes
+  - Verify generated files parse without error
+  - Test edge cases: empty name, min/max parameter values
+  - Run go test -cover and verify 95%+ coverage
+
+- Task 7: Validate round-trip accuracy (AC: #4)
+  - Load all 73 sample NP3 files
+  - For each: Parse() → Generate() → Parse()
+  - Compare original vs round-trip parameters
+  - Verify parameters match within tolerance
+  - Document any systematic differences
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. NP3 File Structure Generation
+   - Generate valid NP3 files with correct magic bytes "NCP" (0x4E 0x43 0x50)
+   - Write minimum file size of 300 bytes minimum (based on actual file analysis)
+   - Generate correct file header with version information
+   - Files must be loadable in Nikon NX Studio without errors
+
+2. Parameter Conversion
+   - Convert Sharpness from UniversalRecipe (0-150 range) to NP3 (0-9 range)
+   - Convert Contrast from UniversalRecipe (-100 to +100) to NP3 (-3 to +3)
+   - Convert Brightness from UniversalRecipe to NP3 (-1.0 to +1.0)
+   - Convert Saturation from UniversalRecipe (-100 to +100) to NP3 (-3 to +3)
+   - Convert Hue from UniversalRecipe to NP3 (-9° to +9° range)
+   - All parameters mapped correctly from UniversalRecipe fields
+
+3. Binary Encoding
+   - Write preset name at offset 0x14-0x28 (null-terminated ASCII, 20 bytes)
+   - Generate TLV (Type-Length-Value) chunks starting at offset 0x2C
+   - Use little-endian encoding for all multi-byte values
+   - Chunk structure: 4-byte ID, 4-byte reserved, 2-byte length, N-byte value
+
+4. Round-Trip Validation
+   - Parse(Generate(recipe)) should produce equivalent UniversalRecipe
+   - Parameter values should match within acceptable tolerance
+   - File structure must match original NP3 format
+   - Binary output should be loadable in Nikon NX Studio
+
+5. Error Handling
+   - Follow Pattern 5 (Error Handling) from architecture.md
+   - Wrap errors with format-specific context
+   - Include operation context ("generate NP3" vs "encode parameter")
+   - Preserve underlying error for debugging with error wrapping
+   - No panics - all errors returned via error return value
+
+6. Test Coverage
+   - Generate NP3 files from all 73 sample files (parse → generate roundtrip)
+   - Table-driven tests following architecture Pattern 7
+   - Verify generated files parse successfully
+   - Achieve 95%+ code coverage for generate.go
+   - Test edge cases: empty name, boundary parameter values
+   - Validate binary structure of generated files
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-1.1 NP3 Format Support</section>
+        <snippet>Recipe is a universal photo preset converter with bidirectional conversion goal of 95%+ accuracy. NP3 is Nikon's proprietary binary format (undocumented, reverse-engineered). Core requirement: Generate valid NP3 files that open in Nikon NX Studio.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Pattern 5: Error Handling</section>
+        <snippet>Always return wrapped ConversionError for conversion failures with Operation, Format, and Cause fields. All format packages must wrap errors with format-specific context using fmt.Errorf with %w verb.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Pattern 7: Testing Strategy</section>
+        <snippet>Table-driven tests using real sample files from testdata/. For NP3: 22 sample files (updated to 73 during Story 1-2). Run subtest for each file, validate parse succeeds, verify round-trip conversions produce identical output (±1 tolerance for rounding).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>NP3 Format Specification</section>
+        <snippet>NP3 binary format: Magic bytes "NCP" (0x4E 0x43 0x50), minimum 300 bytes (actual files 392+ bytes). TLV chunks start at offset 0x2C. Parameters: Sharpening (0-9), Contrast (-3 to +3), Brightness (-1.0 to +1.0), Saturation (-3 to +3), Hue (-9° to +9°).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Project Structure - internal/formats/np3/</section>
+        <snippet>Each format package contains parse.go, generate.go, and {format}_test.go. NP3 package located at internal/formats/np3/. Must follow hub-and-spoke pattern with UniversalRecipe as intermediate representation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Acceptance Criteria FR-1.1</section>
+        <snippet>Generate NP3 files that open in Nikon NX Studio without errors. Round-trip conversion (NP3 → UniversalRecipe → NP3) produces binary-identical output (±1 tolerance). Validate with all sample files from testdata/np3/ (73 files discovered in Story 1-2).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>36-80</lines>
+        <reason>Core data structure for hub-and-spoke conversion. Contains all parameters that NP3 generator must map to binary format. Key fields: Name, Contrast, Saturation, Sharpness (relevant to NP3 5-parameter format).</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>53-60</lines>
+        <reason>Parser function that converts NP3 binary to UniversalRecipe. Generator must produce output that this parser can successfully parse (round-trip validation). Validates magic bytes, file size, and parameter ranges.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/generate.go</path>
+        <kind>generator</kind>
+        <symbol>Generate</symbol>
+        <lines>31-55</lines>
+        <reason>NP3 generator implementation (Story 1-3, already implemented). Converts UniversalRecipe to NP3 binary format. Includes parameter conversion formulas, validation, and binary encoding logic.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/generate.go</path>
+        <kind>generator</kind>
+        <symbol>convertToNP3Parameters</symbol>
+        <lines>65-80</lines>
+        <reason>Parameter conversion logic showing formula implementations: Sharpness (÷10), Contrast (÷33), Saturation (÷33). Critical for understanding inverse of parser formulas.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/np3_test.go</path>
+        <kind>test</kind>
+        <symbol>TestRoundTrip</symbol>
+        <lines>N/A</lines>
+        <reason>Round-trip test validating 73 sample files: Parse → Generate → Parse. Validates binary-identical output within ±1 tolerance. Test framework for validation strategy.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <version>1.25.1</version>
+        <stdlib>
+          <package>encoding/binary</package>
+          <package>bytes</package>
+          <package>fmt</package>
+          <package>os</package>
+          <package>testing</package>
+          <package>path/filepath</package>
+        </stdlib>
+      </go>
+      <external>None - Standard library only per architecture constraints</external>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Architecture Pattern 4 (File Structure): Generator must be in internal/formats/np3/generate.go following identical structure to parser
+- Architecture Pattern 5 (Error Handling): All errors must be wrapped with "generate NP3" context using fmt.Errorf with %w verb. No panics allowed.
+- Architecture Pattern 6 (Validation): Fail-fast with descriptive errors. Validate input recipe is not nil before processing.
+- Architecture Pattern 7 (Testing): Table-driven tests with 73 real NP3 sample files from testdata/np3/ (discovered in Story 1-2, originally 22)
+- Standard Library Only: Must use only encoding/binary, bytes.Buffer, fmt - no external dependencies
+- Binary Format Constraints: Magic bytes "NCP", minimum 300 bytes, little-endian encoding, TLV chunk structure at offset 0x2C
+- Parameter Range Constraints: Sharpness (0-9), Contrast (-3 to +3), Saturation (-3 to +3), Brightness (-1.0 to +1.0), Hue (-9 to +9)
+- Round-Trip Requirement: Parse(Generate(recipe)) must produce equivalent UniversalRecipe within ±1 tolerance for rounding
+- Conversion Formula Accuracy: Must use inverse of parser formulas (Sharpness: ÷10, Contrast: ÷33, Saturation: ÷33)
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>Generate</name>
+      <kind>function</kind>
+      <signature>func Generate(recipe *models.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/np3/generate.go</path>
+    </interface>
+    <interface>
+      <name>Parse</name>
+      <kind>function</kind>
+      <signature>func Parse(data []byte) (*models.UniversalRecipe, error)</signature>
+      <path>internal/formats/np3/parse.go</path>
+    </interface>
+    <interface>
+      <name>UniversalRecipe</name>
+      <kind>struct</kind>
+      <signature>type UniversalRecipe struct { Name string; Contrast int; Saturation int; Sharpness int; ... }</signature>
+      <path>internal/models/recipe.go</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Go standard library testing package (testing). Table-driven pattern with filepath.Glob to discover all sample files. Each file becomes a subtest via t.Run(fileName). Tests validate: (1) function succeeds, (2) parameters in valid ranges, (3) round-trip accuracy (Parse → Generate → Parse produces equivalent output within ±1 tolerance). Error tests verify graceful failure for invalid inputs (nil recipe, invalid parameters). Coverage goal: 95%+ achieved via go test -cover.
+    </standards>
+    <locations>
+      <location>internal/formats/np3/np3_test.go</location>
+      <location>examples/np3/**/*.np3</location>
+      <location>examples/np3/**/*.NP3</location>
+    </locations>
+    <ideas>
+      <test ac="1,3" priority="high">
+        <name>TestGenerate - Basic generation validation</name>
+        <description>Validate Generate() creates valid NP3 binary with magic bytes "NCP", minimum 300 bytes, correct header structure. Verify generated file can be parsed successfully by Parse().</description>
+      </test>
+      <test ac="5" priority="high">
+        <name>TestGenerateNilRecipe - Error handling</name>
+        <description>Verify Generate() returns descriptive error when recipe is nil. Validates Pattern 5 (Error Handling) compliance with wrapped errors.</description>
+      </test>
+      <test ac="2,4,6" priority="critical">
+        <name>TestRoundTrip - Validate all 73 sample files</name>
+        <description>For each of 73 NP3 files: Parse → Generate → Parse. Compare original vs round-trip parameters. Verify Sharpness, Contrast, Saturation match within ±10, ±5, ±5 tolerance respectively. 100% success rate required.</description>
+      </test>
+      <test ac="6" priority="high">
+        <name>TestGenerateEmptyName - Edge case validation</name>
+        <description>Verify Generate() handles empty recipe name gracefully. Should succeed with empty or default name in generated file.</description>
+      </test>
+      <test ac="2,6" priority="medium">
+        <name>TestGenerateBoundaryValues - Parameter range validation</name>
+        <description>Test boundary cases: Sharpness at 0 and 150, Contrast at -100 and +100, Saturation at -100 and +100. Verify conversion to NP3 ranges handles clamping correctly (Sharpness 0-9, Contrast/Saturation -3 to +3).</description>
+      </test>
+      <test ac="3" priority="high">
+        <name>TestBinaryStructure - TLV chunk validation</name>
+        <description>Verify generated binary has correct TLV structure: chunks start at 0x2C, correct chunk ID (4 bytes little-endian), reserved bytes (4 zeros), length (2 bytes little-endian), value data.</description>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,303 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>5</storyId>
+    <title>XMP XML Generator</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-5-xmp-xml-generator.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer implementing the Recipe conversion engine</asA>
+    <iWant>a robust XMP XML generator that creates valid Adobe Lightroom CC preset files from UniversalRecipe data</iWant>
+    <soThat>users can convert presets from other formats (NP3, lrtemplate) to XMP with 95%+ accuracy</soThat>
+    <tasks>
+- Task 1: Design XMP XML structure and marshaling strategy (AC: FR-1)
+  - 1.1: Define XMP document struct types for XML marshaling
+  - 1.2: Determine namespace declaration strategy
+  - 1.3: Plan XML formatting approach (indentation, whitespace)
+  - 1.4: Review Adobe XMP specification for compliance
+
+- Task 2: Implement core Generate() function (AC: FR-1, FR-2, FR-3)
+  - 2.1: Create function signature matching Tech Spec
+  - 2.2: Validate UniversalRecipe is not nil
+  - 2.3: Build XMP structure with namespace declarations
+  - 2.4: Map core parameters (Exposure, Contrast, Highlights, Shadows, Whites, Blacks)
+  - 2.5: Map color parameters (Saturation, Vibrance, Clarity, Sharpness, Temperature, Tint)
+  - 2.6: Implement inline range validation for all parameters
+
+- Task 3: Implement HSL color generation (AC: FR-4)
+  - 3.1: Map Red, Orange, Yellow, Green color adjustments
+  - 3.2: Map Aqua, Blue, Purple, Magenta color adjustments
+  - 3.3: Validate HSL ranges for all colors
+
+- Task 4: Implement advanced features generation (AC: FR-5)
+  - 4.1: Generate Split Toning parameters (Shadow/Highlight Hue and Saturation)
+  - 4.2: Generate Tone Curve array if present
+  - 4.3: Handle optional/missing fields gracefully
+
+- Task 5: Implement error handling with ConversionError (AC: FR-7, NFR-3)
+  - 5.1: Reuse ConversionError type from parse.go
+  - 5.2: Wrap all errors with Operation="generate", Format="xmp"
+  - 5.3: Include field names in error context
+
+- Task 6: Implement XML marshaling and formatting (AC: FR-1, FR-6)
+  - 6.1: Use encoding/xml.MarshalIndent for proper formatting
+  - 6.2: Add XML declaration header
+  - 6.3: Validate output is well-formed XML
+  - 6.4: Test output loads in Lightroom CC
+
+- Task 7: Write comprehensive tests (AC: NFR-2)
+  - 7.1: Create table-driven tests using testdata/xmp/ samples
+  - 7.2: Implement round-trip tests (XMP → parse → generate → compare)
+  - 7.3: Add edge case tests (nil recipe, invalid ranges, missing fields)
+  - 7.4: Create performance benchmarks targeting <30ms
+  - 7.5: Validate test coverage ≥90%
+
+- Task 8: Documentation and code quality (AC: NFR-3)
+  - 8.1: Add GoDoc comments to Generate() function
+  - 8.2: Document XMP structure mapping in code comments
+  - 8.3: Run gofmt and go vet
+  - 8.4: Verify code follows all architectural patterns
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+**Functional Requirements**
+
+**FR-1: XMP File Generation**
+- Generate valid XML structure with proper indentation and formatting
+- Include required Adobe XMP namespace declarations (xmlns:x, xmlns:crs, xmlns:rdf)
+- Output XML declaration: <?xml version="1.0" encoding="UTF-8"?>
+- Generated files open in Lightroom CC without errors or warnings
+
+**FR-2: Core Parameter Generation (Basic Adjustments)**
+- Generate crs:Exposure2012 from UniversalRecipe.Exposure (-5.0 to +5.0)
+- Generate crs:Contrast2012 from UniversalRecipe.Contrast (-100 to +100)
+- Generate crs:Highlights2012, Shadows2012, Whites2012, Blacks2012 (-100 to +100 each)
+
+**FR-3: Color Parameter Generation**
+- Generate crs:Saturation, Vibrance, Clarity2012, Sharpness, Temperature, Tint
+- Ranges: Saturation/Vibrance/Clarity (-100 to +100), Sharpness (0 to 150), Temperature/Tint (-100 to +100)
+
+**FR-4: HSL Color Adjustments Generation**
+- Generate HSL adjustments for all 8 colors (Red, Orange, Yellow, Green, Aqua, Blue, Purple, Magenta)
+- For each color: crs:Hue{Color}, crs:Saturation{Color}, crs:Luminance{Color} (-100 to +100)
+
+**FR-5: Advanced Features Generation**
+- Generate crs:ToneCurve from UniversalRecipe.ToneCurve (array of Point{X, Y})
+- Generate Split Toning parameters (Shadow/Highlight Hue 0-360, Saturation 0-100)
+
+**FR-6: Data Type Handling**
+- Format floating-point values correctly (Exposure: float64, 2 decimals)
+- Format integer values correctly
+- Handle zero values gracefully (omit or include based on XMP spec)
+- Validate all numeric values are within expected ranges before generation
+
+**FR-7: Error Handling**
+- Return clear error if UniversalRecipe is nil
+- Return clear error for parameters outside valid ranges
+- Wrap all errors in ConversionError with context (Operation="generate", Format="xmp")
+- Include field name in error messages for debugging
+
+**Non-Functional Requirements**
+
+**NFR-1: Performance**
+- Generate single XMP file in <30ms
+- Validation via Go benchmarks
+
+**NFR-2: Test Coverage**
+- Generate XMP from all 913 UniversalRecipe samples
+- Test coverage ≥90% for xmp package
+- Table-driven tests following Pattern 7
+- Round-trip validation: XMP → parse → generate → compare (±1 tolerance)
+
+**NFR-3: Code Quality**
+- Follow Pattern 4: File structure (generate.go in xmp package)
+- Follow Pattern 5: Error handling with ConversionError wrapper
+- Follow Pattern 6: Inline validation, fail fast
+- Use stdlib encoding/xml package only (zero external dependencies)
+- Code passes gofmt and go vet without warnings
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Core Conversion Engine</title>
+        <section>Module: internal/formats/xmp (lines 268-350)</section>
+        <snippet>XMP Format: XML/RDF structure with Adobe XMP namespaces. Parameters: 50+ including Exposure, Contrast, HSL (8 colors × 3 properties), Tone Curves, Split Toning. Generate function signature: func Generate(recipe *model.UniversalRecipe) ([]byte, error). Uses encoding/xml.MarshalIndent for XML generation with namespace declarations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Core Conversion Engine</title>
+        <section>FR-1.2: XMP Format Support (lines 922-930)</section>
+        <snippet>Acceptance criteria: Generate XMP files that load in Lightroom CC without errors. Preserve namespace declarations (xmlns:crs, xmlns:rdf, xmlns:x). Round-trip conversion produces semantically identical output (±1 tolerance). Test with 913 sample XMP files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Core Conversion Engine</title>
+        <section>Testing Strategy Summary (lines 1056-1159)</section>
+        <snippet>Table-driven tests with 913 XMP sample files from testdata/xmp/. Coverage target: ≥90% for all format packages. Round-trip testing validates ≥95% accuracy for bidirectional conversions using Pattern 7 table-driven test structure.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Core Conversion Engine</title>
+        <section>Performance Budget (lines 739-770)</section>
+        <snippet>XMP generate: &lt;20ms target using encoding/xml stdlib. Optimization: avoid unnecessary allocations, no goroutines for sub-100ms operations. Use xml.MarshalIndent for formatted output.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture - Design Patterns and Standards</title>
+        <section>Pattern 5: Error Handling (lines 387-440)</section>
+        <snippet>All conversion errors wrapped in ConversionError type with Operation, Format, Field, and Cause fields. Generator must use Operation="generate", Format="xmp". Type-safe error checking with Unwrap() support for errors.Is/As.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture - Design Patterns and Standards</title>
+        <section>Pattern 7: Testing Strategy (lines 474-574)</section>
+        <snippet>Table-driven tests using filepath.Glob to iterate testdata samples. Each test validates critical fields with range checks. Run tests with: go test -cover ./... for coverage reporting.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>NFR-6: Maintainability (lines 1459-1495)</section>
+        <snippet>Code quality: gofmt, golint, go vet must pass. Test coverage: 90%+ for core conversion logic. Self-documenting names, comments for complex logic. Modular design with pluggable format adapters.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>ConversionError</symbol>
+        <lines>43-61</lines>
+        <reason>Generator MUST reuse this exact error type for consistency. Wrap all errors with Operation="generate", Format="xmp".</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Description struct</symbol>
+        <lines>75-144</lines>
+        <reason>Generator should mirror this struct for XML marshaling. Contains all 50+ XMP attributes with xml tags. Reference for namespace declarations and structure.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe struct</symbol>
+        <lines>42-122</lines>
+        <reason>This is the INPUT to Generate() function. Map these fields to XMP attributes. Note: Temperature is *int (nullable pointer).</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>ColorAdjustment struct</symbol>
+        <lines>4-9</lines>
+        <reason>HSL color adjustments structure. Generator extracts Hue, Saturation, Luminance for each of 8 colors and maps to crs:Hue{Color}, crs:Saturation{Color}, crs:Luminance{Color}.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/validation.go</path>
+        <kind>validation</kind>
+        <symbol>ValidateExposure, ValidatePercentage, ValidateHSL</symbol>
+        <lines>7-123</lines>
+        <reason>Generator should validate UniversalRecipe input before generating XMP. Use these functions for range checking: Exposure (-5.0 to +5.0), percentages (-100 to +100), HSL ranges.</reason>
+      </artifact>
+      <artifact>
+        <path>testdata/xmp/sample.xmp</path>
+        <kind>test data</kind>
+        <symbol>Minimal valid XMP</symbol>
+        <lines>1-50</lines>
+        <reason>Reference template for generator output. Shows decimal precision (floats: "1.50"), integer formatting ("25"), namespace declarations, and complete XMP structure.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/xmp_test.go</path>
+        <kind>test</kind>
+        <symbol>TestParse, TestConversionError</symbol>
+        <lines>14-855</lines>
+        <reason>Generator tests should mirror these patterns. Round-trip tests will use Parse() to validate generated XMP. Reference for table-driven test structure and error handling tests.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go version="1.25.1">
+        <stdlib>
+          <package>encoding/xml</package>
+          <package>fmt</package>
+          <package>strconv</package>
+          <package>os</package>
+          <package>path/filepath</package>
+        </stdlib>
+        <internal>
+          <package>github.com/justin/recipe/internal/models</package>
+        </internal>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use stdlib encoding/xml package only - zero external dependencies required</constraint>
+    <constraint>Reuse ConversionError type from parse.go (lines 43-61) for all error handling</constraint>
+    <constraint>Follow Pattern 4: generate.go must be in internal/formats/xmp/ package</constraint>
+    <constraint>Follow Pattern 5: Wrap all errors with Operation="generate", Format="xmp", include Field name</constraint>
+    <constraint>Follow Pattern 6: Inline validation, fail fast on invalid UniversalRecipe input</constraint>
+    <constraint>Follow Pattern 7: Table-driven tests using testdata/xmp/ samples</constraint>
+    <constraint>Handle Temperature as *int (nullable) - omit if nil or use default value</constraint>
+    <constraint>Output minimal XMP format matching testdata/xmp/sample.xmp, not full Adobe metadata</constraint>
+    <constraint>Decimal precision: float64 values formatted with 2 decimal places (%.2f)</constraint>
+    <constraint>Integer formatting: no decimal places (%d)</constraint>
+    <constraint>Required namespaces: xmlns:x="adobe:ns:meta/", xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/", xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"</constraint>
+    <constraint>XML declaration required: &lt;?xml version="1.0" encoding="UTF-8"?&gt;</constraint>
+    <constraint>Code must pass gofmt and go vet without warnings</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>Generate</name>
+      <kind>function signature</kind>
+      <signature>func Generate(recipe *model.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/xmp/generate.go</path>
+    </interface>
+    <interface>
+      <name>Parse</name>
+      <kind>function signature</kind>
+      <signature>func Parse(data []byte) (*models.UniversalRecipe, error)</signature>
+      <path>internal/formats/xmp/parse.go</path>
+    </interface>
+    <interface>
+      <name>UniversalRecipe to XMP Mapping</name>
+      <kind>data mapping</kind>
+      <signature>Exposure → crs:Exposure2012, Contrast → crs:Contrast2012, Red.Hue → crs:HueRed, Temperature(*int) → crs:Temperature (handle nil)</signature>
+      <path>internal/formats/xmp/generate.go</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Testing follows Pattern 7 (table-driven tests with real samples). Framework: Go's built-in testing package. Coverage target: ≥90% for xmp package. Benchmark target: &lt;30ms for single Generate() call. Test structure: TestGenerate(), TestGenerateRoundTrip(), TestGenerateInvalidInput(), BenchmarkGenerate(). Use filepath.Glob("../../../testdata/xmp/*.xmp") to iterate all samples. Validation: Parse generated XMP and compare to original UniversalRecipe (±1 tolerance for rounding). Error tests: validate ConversionError wrapping with correct Operation/Format/Field values.
+    </standards>
+    <locations>
+      <location>internal/formats/xmp/xmp_test.go</location>
+      <location>testdata/xmp/*.xmp</location>
+    </locations>
+    <ideas>
+      <idea ac="FR-1">Test 1: Generate valid XMP with all namespace declarations - verify xml.Unmarshal succeeds and namespaces present</idea>
+      <idea ac="FR-1">Test 2: Validate XML declaration header is present: &lt;?xml version="1.0" encoding="UTF-8"?&gt;</idea>
+      <idea ac="FR-1">Test 3: Verify proper indentation and formatting using xml.MarshalIndent with two-space indent</idea>
+      <idea ac="FR-2, FR-3">Test 4: Generate core parameters - validate Exposure2012, Contrast2012, Highlights2012, Shadows2012, Whites2012, Blacks2012, Saturation, Vibrance, Clarity, Sharpness, Temperature, Tint all present in output</idea>
+      <idea ac="FR-4">Test 5: Generate HSL adjustments for all 8 colors - verify crs:HueRed, crs:SaturationRed, crs:LuminanceRed (and similar for Orange, Yellow, Green, Aqua, Blue, Purple, Magenta)</idea>
+      <idea ac="FR-5">Test 6: Generate Split Toning parameters - validate Shadow/Highlight Hue (0-360) and Saturation (0-100)</idea>
+      <idea ac="FR-6">Test 7: Validate float formatting - Exposure should be "1.50" (2 decimals), not "1.5"</idea>
+      <idea ac="FR-6">Test 8: Validate integer formatting - Contrast should be "25", not "25.00"</idea>
+      <idea ac="FR-6">Test 9: Test zero value handling - verify zeros are included or omitted correctly per XMP spec</idea>
+      <idea ac="FR-6">Test 10: Validate range checking before generation - out-of-range Exposure (-6.0) should error</idea>
+      <idea ac="FR-7">Test 11: Test nil UniversalRecipe input - should return ConversionError with Operation="generate", Format="xmp"</idea>
+      <idea ac="FR-7">Test 12: Test out-of-range parameters - Contrast=150 should return error with Field="Contrast"</idea>
+      <idea ac="FR-7">Test 13: Validate ConversionError wrapping - all errors include Operation, Format, Field (when applicable), and Cause</idea>
+      <idea ac="NFR-1">Test 14: Benchmark Generate() performance - should complete in &lt;30ms for single file</idea>
+      <idea ac="NFR-2">Test 15: Round-trip test - Parse XMP → Generate XMP → Parse again → compare recipes (±1 tolerance)</idea>
+      <idea ac="NFR-2">Test 16: Test all 913 samples from testdata/xmp/ - generate XMP from parsed recipe and validate output</idea>
+      <idea ac="NFR-2">Test 17: Table-driven tests for edge cases: nil Temperature (nullable), missing optional fields, all zeros</idea>
+      <idea ac="NFR-3">Test 18: Verify generate.go in correct location (internal/formats/xmp/)</idea>
+      <idea ac="NFR-3">Test 19: Run gofmt on generate.go - should produce no changes</idea>
+      <idea ac="NFR-3">Test 20: Run go vet on xmp package - should produce no warnings</idea>
+    </ideas>
+  </tests>
+</story-context>
