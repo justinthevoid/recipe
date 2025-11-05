@@ -1,0 +1,329 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>7</storyId>
+    <title>lrtemplate Lua Generator</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-7-lrtemplate-lua-generator.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer implementing the Recipe conversion engine</asA>
+    <iWant>a robust lrtemplate Lua generator that converts UniversalRecipe data into valid Lightroom Classic preset files</iWant>
+    <soThat>users can convert presets from other formats (NP3, XMP) to lrtemplate with 95%+ accuracy and proper Lua syntax</soThat>
+    <tasks>- Task 1: Design Lua generation strategy with proper formatting (AC: FR-1)
+  - 1.1: Research lrtemplate output format from sample files (field order, spacing, syntax)
+  - 1.2: Design string building strategy using bytes.Buffer for performance
+  - 1.3: Plan handling of escaped characters and quoted strings
+  - 1.4: Determine strategy for nested tables (ToneCurve array)
+  - 1.5: Document Lua syntax requirements and field order conventions
+
+- Task 2: Implement core Generate() function (AC: FR-1, FR-2, FR-3)
+  - 2.1: Create function signature matching Tech Spec: `Generate(*model.UniversalRecipe) ([]byte, error)`
+  - 2.2: Initialize bytes.Buffer and write `s = {` prefix
+  - 2.3: Generate core parameters (Exposure, Contrast, Highlights, Shadows, Whites, Blacks)
+  - 2.4: Generate color parameters (Saturation, Vibrance, Clarity, Sharpness, Temperature, Tint)
+  - 2.5: Implement inline validation for value ranges
+  - 2.6: Write closing `}` and return buffer bytes
+
+- Task 3: Implement HSL color generation (AC: FR-4)
+  - 3.1: Generate HSL field names (HueAdjustmentRed, etc.)
+  - 3.2: Generate Red, Orange, Yellow, Green color adjustments
+  - 3.3: Generate Aqua, Blue, Purple, Magenta color adjustments
+  - 3.4: Clamp HSL values to valid ranges (-100 to +100)
+  - 3.5: Format HSL values with proper Lua syntax
+
+- Task 4: Implement advanced features generation (AC: FR-5)
+  - 4.1: Generate ToneCurvePV2012 array syntax with nested coordinate pairs
+  - 4.2: Format nested coordinate pairs `{ {0,0}, {255,255} }`
+  - 4.3: Generate Split Toning parameters (Shadow/Highlight Hue and Saturation)
+  - 4.4: Handle optional/missing fields gracefully (skip if zero)
+  - 4.5: Validate array formats and coordinate ranges
+
+- Task 5: Implement error handling with ConversionError (AC: FR-7, NFR-3)
+  - 5.1: Reuse ConversionError type from parse.go (same package)
+  - 5.2: Wrap all errors with Operation="generate", Format="lrtemplate"
+  - 5.3: Include field names in error context for debugging
+  - 5.4: Add validation for nil recipe and invalid values
+  - 5.5: Handle edge cases (empty recipe, out-of-range values)
+
+- Task 6: Implement string escaping and formatting (AC: FR-1, FR-6)
+  - 6.1: Escape special characters in quoted strings (\\, \", \n, \r, \t)
+  - 6.2: Format floating-point values with proper precision (Exposure)
+  - 6.3: Format integer values (Contrast, Saturation, etc.)
+  - 6.4: Handle negative numbers correctly in Lua syntax
+  - 6.5: Test with edge cases (zero values, extreme values, special characters)
+
+- Task 7: Write comprehensive tests (AC: NFR-2)
+  - 7.1: Create table-driven tests using examples/lrtemplate/ samples (17 files)
+  - 7.2: Implement round-trip tests (parse → generate → parse → compare)
+  - 7.3: Add edge case tests (nil recipe, zero values, extreme values)
+  - 7.4: Create performance benchmarks targeting <10ms
+  - 7.5: Validate test coverage ≥90%
+
+- Task 8: Documentation and code quality (AC: NFR-3)
+  - 8.1: Add GoDoc comments to Generate() function
+  - 8.2: Document field generation order and syntax in code comments
+  - 8.3: Run gofmt and go vet
+  - 8.4: Verify code follows all architectural patterns</tasks>
+  </story>
+
+  <acceptanceCriteria>### Functional Requirements
+
+**FR-1: Lua Table Generation**
+- Generate valid lrtemplate files starting with `s = {`
+- Handle quoted strings and escaped characters correctly (backslashes, quotes, newlines)
+- Generate all 50+ parameters using proper Lua syntax
+- Produce syntactically valid Lua that Lightroom Classic can parse
+- Support both single-line and multi-line Lua table formats (prefer multi-line for readability)
+
+**FR-2: Core Parameter Generation (Basic Adjustments)**
+- Generate `Exposure2012` field from Exposure (-5.0 to +5.0, float)
+- Generate `Contrast2012` field (-100 to +100, integer)
+- Generate `Highlights2012` field (-100 to +100, integer)
+- Generate `Shadows2012` field (-100 to +100, integer)
+- Generate `Whites2012` field (-100 to +100, integer)
+- Generate `Blacks2012` field (-100 to +100, integer)
+
+**FR-3: Color Parameter Generation**
+- Generate `Saturation` field (-100 to +100, integer)
+- Generate `Vibrance` field (-100 to +100, integer)
+- Generate `Clarity2012` field (-100 to +100, integer)
+- Generate `Sharpness` field (0 to 150, integer)
+- Generate `Temperature` field (2000 to 50000 Kelvin, integer)
+- Generate `Tint` field (-150 to +150, integer)
+
+**FR-4: HSL Color Adjustments Generation**
+- Generate HSL adjustments for all 8 colors (Red, Orange, Yellow, Green, Aqua, Blue, Purple, Magenta)
+- For each color, generate:
+  - `Hue{Color}` field (-100 to +100, integer)
+  - `Saturation{Color}` field (-100 to +100, integer)
+  - `Luminance{Color}` field (-100 to +100, integer)
+- Example fields: `HueAdjustmentRed`, `SaturationAdjustmentRed`, `LuminanceAdjustmentRed`
+- Use consistent field naming matching Lightroom Classic format
+
+**FR-5: Advanced Features Generation**
+- Generate `ToneCurvePV2012` array if present (array of {x, y} coordinate pairs)
+- Generate ToneCurve array syntax: `ToneCurvePV2012 = { { 0, 0 }, { 255, 255 } }`
+- Generate Split Toning parameters:
+  - `SplitToningShadowHue` (0 to 360, integer)
+  - `SplitToningShadowSaturation` (0 to 100, integer)
+  - `SplitToningHighlightHue` (0 to 360, integer)
+  - `SplitToningHighlightSaturation` (0 to 100, integer)
+
+**FR-6: Data Type Handling**
+- Generate floating-point values correctly (Exposure uses Lua number format)
+- Generate integer values correctly (Contrast, Saturation, etc.)
+- Handle zero values gracefully (omit or include based on Lightroom Classic conventions)
+- Clamp all numeric values to expected ranges during generation
+- Handle negative numbers in Lua syntax (e.g., `Exposure = -1.5`)
+
+**FR-7: Error Handling**
+- Return clear error if recipe is nil
+- Wrap all errors in ConversionError with context (following pattern from Story 1-4/1-5)
+- Include field name in error messages for debugging
+- Handle edge cases: empty recipe, invalid values, out-of-range parameters
+
+### Non-Functional Requirements
+
+**NFR-1: Performance**
+- Generate single lrtemplate file in <10ms (target from tech spec)
+- Use efficient string concatenation (bytes.Buffer)
+- Validation via Go benchmarks
+
+**NFR-2: Test Coverage**
+- Generate all 17 lrtemplate samples from examples/lrtemplate/ without errors
+- Test coverage ≥90% for lrtemplate package (matching parser coverage)
+- Table-driven tests following Pattern 7 (Architecture doc)
+- Round-trip validation: parse → generate → parse produces identical output (±1 tolerance)
+
+**NFR-3: Code Quality**
+- Follow Pattern 4: File structure (generate.go in lrtemplate package)
+- Follow Pattern 5: Error handling with ConversionError wrapper (reuse type from parse.go)
+- Follow Pattern 6: Inline validation, fail fast
+- Use stdlib only (zero external dependencies)
+- Code passes gofmt and go vet without warnings
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Format Support</section>
+        <snippet>Recipe supports bidirectional conversion between NP3, XMP, and lrtemplate formats. lrtemplate uses Lua table syntax for Lightroom Classic preset files with 50+ parameters. The tool targets 95%+ accuracy for color science translation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1: Core Conversion Engine</title>
+        <section>lrtemplate Format Support</section>
+        <snippet>lrtemplate parser/generator uses Lua table format with same parameters as XMP. Generator must produce valid Lua syntax compatible with Lightroom Classic. Uses hub-and-spoke architecture via UniversalRecipe intermediate representation. Target performance: <10ms for single file generation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Technical Specification - Epic 1</title>
+        <section>Module: internal/formats/lrtemplate</section>
+        <snippet>Generate() function signature: Generate(*model.UniversalRecipe) ([]byte, error). Must handle 50+ parameters including Exposure2012, Contrast2012, HSL color adjustments, ToneCurvePV2012 arrays, and Split Toning parameters. Use bytes.Buffer for efficient string building.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Pattern 4: File Structure</section>
+        <snippet>Format packages follow identical structure: parse.go, generate.go, {format}_test.go. Generator implementation goes in internal/formats/lrtemplate/generate.go following established patterns.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Pattern 5: Error Handling</section>
+        <snippet>All conversion errors MUST be wrapped in ConversionError with Operation, Format, and Cause fields. For generators, set Operation="generate" and Format="lrtemplate". ConversionError type is already defined in parse.go - MUST reuse it.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Pattern 6: Validation Strategy</section>
+        <snippet>Validate inline in generators, fail fast with descriptive errors. Clamp numeric values to expected ranges during generation. Handle nil recipe and invalid values gracefully.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Pattern 7: Testing Strategy</section>
+        <snippet>Table-driven tests using real sample files from examples/lrtemplate/ directory. Round-trip tests validate accuracy: parse → generate → parse produces identical output (±1 tolerance). Target test coverage ≥90%.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/formats/lrtemplate/parse.go</path>
+        <kind>parser</kind>
+        <symbol>ConversionError</symbol>
+        <lines>36-54</lines>
+        <reason>MUST reuse this ConversionError type definition for generator. Already implements Operation, Format, Field, Cause pattern required by Pattern 5.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/lrtemplate/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse()</symbol>
+        <lines>1-100</lines>
+        <reason>Reference implementation showing parameter extraction patterns, field naming conventions (Exposure2012, Contrast2012, HSL field names), and regex-based approach. Generator must match these parameter names exactly for round-trip accuracy.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/lrtemplate/lrtemplate_test.go</path>
+        <kind>test</kind>
+        <symbol>TestRoundTrip</symbol>
+        <lines>772-892</lines>
+        <reason>Round-trip test framework already exists - currently blocked waiting for Generate() implementation. THIS STORY UNBLOCKS this test. Test validates parse → generate → parse accuracy.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>36-122</lines>
+        <reason>Input data structure for Generate() function. Contains all 50+ parameters that must be generated: Exposure (float64), Contrast/Highlights/Shadows/Whites/Blacks (int), HSL adjustments (8 colors × 3 properties), ToneCurve arrays, Split Toning parameters. Generator must handle all these fields.</reason>
+      </artifact>
+      <artifact>
+        <path>examples/lrtemplate/</path>
+        <kind>samples</kind>
+        <symbol>17 lrtemplate files</symbol>
+        <lines>N/A</lines>
+        <reason>17 real Lightroom Classic preset files for testing. Use for table-driven tests and round-trip validation. Study several files to understand actual format conventions, field order, spacing, and Lua syntax.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <package name="bytes" purpose="bytes.Buffer for efficient string concatenation during Lua table generation" />
+        <package name="fmt" purpose="Formatted string output for field values and error messages" />
+        <package name="github.com/justin/recipe/internal/models" purpose="UniversalRecipe struct - input data for generation" />
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use stdlib only - zero external dependencies for WASM compatibility</constraint>
+    <constraint>Follow Pattern 4 (File Structure): Implement in internal/formats/lrtemplate/generate.go</constraint>
+    <constraint>Follow Pattern 5 (Error Handling): MUST reuse ConversionError type from parse.go (lines 36-54)</constraint>
+    <constraint>Follow Pattern 6 (Validation): Inline validation, fail fast on nil recipe or invalid values</constraint>
+    <constraint>Follow Pattern 7 (Testing): Table-driven tests using examples/lrtemplate/ samples, ≥90% coverage</constraint>
+    <constraint>Use bytes.Buffer for string building (performance optimization for <10ms target)</constraint>
+    <constraint>Parameter naming MUST match parser exactly: Exposure2012, Contrast2012, HueAdjustmentRed, etc.</constraint>
+    <constraint>Round-trip accuracy: parse → generate → parse must produce identical output (±1 tolerance)</constraint>
+    <constraint>Generated Lua syntax MUST be valid and parseable by Lightroom Classic</constraint>
+    <constraint>Handle escaped characters correctly: backslashes, quotes, newlines in Lua strings</constraint>
+    <constraint>All wrap errors with Operation="generate", Format="lrtemplate", include Field names for debugging</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Generate Function</name>
+      <kind>function signature</kind>
+      <signature>func Generate(recipe *models.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/lrtemplate/generate.go</path>
+    </interface>
+    <interface>
+      <name>ConversionError Type</name>
+      <kind>error interface</kind>
+      <signature>type ConversionError struct { Operation, Format, Field string; Cause error }</signature>
+      <path>internal/formats/lrtemplate/parse.go:36-54</path>
+    </interface>
+    <interface>
+      <name>UniversalRecipe Input</name>
+      <kind>data structure</kind>
+      <signature>Struct with 50+ fields: Exposure (float64), Contrast/Highlights/etc (int), HSL adjustments (8 ColorAdjustment structs), ToneCurve arrays, Split Toning parameters</signature>
+      <path>internal/models/recipe.go:36-122</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Testing follows Pattern 7 (Architecture doc): table-driven tests using real sample files from examples/lrtemplate/ directory. Test framework uses Go's testing package with t.Run() subtests for clear reporting. Round-trip testing is the PRIMARY validation strategy: parse existing lrtemplate → generate new lrtemplate → parse again → compare results (tolerance ±1 for rounding). Performance validated via Go benchmarks targeting <10ms generation time. Test coverage goal ≥90% measured with go test -cover. All tests use stdlib only for WASM compatibility.
+    </standards>
+    <locations>
+      <location>internal/formats/lrtemplate/lrtemplate_test.go - Extend existing test file with generator tests</location>
+      <location>examples/lrtemplate/*.lrtemplate - 17 real sample files for table-driven tests</location>
+    </locations>
+    <ideas>
+      <test ac="FR-1">
+        <name>TestGenerate_ValidLuaSyntax</name>
+        <description>Verify generated output starts with `s = {` and ends with `}`, contains valid Lua table syntax with proper key-value pairs and commas</description>
+      </test>
+      <test ac="FR-1">
+        <name>TestGenerate_EscapedCharacters</name>
+        <description>Test handling of special characters in strings: backslashes, quotes, newlines, tabs. Verify Lua escape sequences are correct.</description>
+      </test>
+      <test ac="FR-2,FR-3">
+        <name>TestGenerate_CoreParameters</name>
+        <description>Table-driven test for Exposure2012 (float), Contrast2012/Highlights2012/Shadows2012/Whites2012/Blacks2012 (int), Saturation/Vibrance/Clarity2012/Sharpness/Temperature/Tint (int). Verify field names and value formats match parser exactly.</description>
+      </test>
+      <test ac="FR-4">
+        <name>TestGenerate_HSLAdjustments</name>
+        <description>Test all 8 HSL colors (Red, Orange, Yellow, Green, Aqua, Blue, Purple, Magenta) with 3 properties each (Hue, Saturation, Luminance). Verify field naming: HueAdjustmentRed, SaturationAdjustmentOrange, LuminanceAdjustmentYellow, etc.</description>
+      </test>
+      <test ac="FR-5">
+        <name>TestGenerate_ToneCurveArray</name>
+        <description>Test ToneCurvePV2012 array generation with nested coordinate pairs: `{ {0,0}, {64,64}, {128,128}, {192,192}, {255,255} }`. Verify array syntax and coordinate formatting.</description>
+      </test>
+      <test ac="FR-5">
+        <name>TestGenerate_SplitToning</name>
+        <description>Test Split Toning parameter generation: SplitToningShadowHue, SplitToningShadowSaturation, SplitToningHighlightHue, SplitToningHighlightSaturation. Verify value ranges (hue: 0-360, saturation: 0-100).</description>
+      </test>
+      <test ac="FR-6">
+        <name>TestGenerate_DataTypes</name>
+        <description>Test floating-point formatting (Exposure with 2 decimal places), integer formatting (all other fields), negative numbers (-1.5, -25), zero values (decide omit vs include strategy).</description>
+      </test>
+      <test ac="FR-7">
+        <name>TestGenerate_ErrorHandling</name>
+        <description>Test nil recipe error, invalid values, out-of-range parameters. Verify ConversionError wrapper with Operation="generate", Format="lrtemplate", Field names included for debugging.</description>
+      </test>
+      <test ac="NFR-1">
+        <name>BenchmarkGenerate</name>
+        <description>Performance benchmark targeting <10ms for single file generation. Test with multiple sample files to ensure consistent performance across different parameter sets.</description>
+      </test>
+      <test ac="NFR-2">
+        <name>TestRoundTrip_AllSamples</name>
+        <description>CRITICAL: Round-trip test using all 17 sample files from examples/lrtemplate/. For each file: parse → generate → parse → compare. Tolerance ±1 for rounding. This test is currently BLOCKED - THIS STORY UNBLOCKS IT. This is the PRIMARY validation strategy.</description>
+      </test>
+      <test ac="NFR-2">
+        <name>TestGenerate_AllSamples</name>
+        <description>Table-driven test generating all 17 sample files without errors. Verify no panics, no generation failures, all files produce valid Lua syntax.</description>
+      </test>
+    </ideas>
+  </tests>
+</story-context>
