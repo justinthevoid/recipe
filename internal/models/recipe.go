@@ -119,4 +119,7 @@ type UniversalRecipe struct {
 	NP3ColorData    []map[string]interface{} `json:"np3ColorData,omitempty" xml:"np3ColorData,omitempty"`       // NP3 color data (raw)
 	NP3RawParams    []map[string]interface{} `json:"np3RawParams,omitempty" xml:"np3RawParams,omitempty"`       // NP3 raw parameters
 	NP3ToneCurveRaw []map[string]interface{} `json:"np3ToneCurveRaw,omitempty" xml:"np3ToneCurveRaw,omitempty"` // NP3 tone curve raw data
+
+	// Generic metadata for unmappable parameters
+	Metadata map[string]interface{} `json:"metadata,omitempty" xml:"-"` // Generic metadata for format-specific unmappable parameters
 }
