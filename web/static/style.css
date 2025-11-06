@@ -1,0 +1,680 @@
+/* ========================================
+   Recipe - Web Interface Styling
+   Epic 2, Story 2-1: HTML Drag-Drop UI
+   ======================================== */
+
+/* ========================================
+   Global Reset & Typography
+   ======================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: #2d3748;
+    background: #f7fafc;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================================
+   Header / Hero Section
+   ======================================== */
+header {
+    text-align: center;
+    padding: 3rem 1.5rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+header h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.tagline {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+    opacity: 0.95;
+}
+
+.formats {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+.privacy {
+    font-size: 0.95rem;
+    opacity: 0.85;
+    font-weight: 300;
+}
+
+/* ========================================
+   Main Content Area
+   ======================================== */
+main {
+    flex: 1;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+/* ========================================
+   Status Banner
+   ======================================== */
+.status {
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.status.loading {
+    background: #fef5e7;
+    border: 1px solid #f39c12;
+    color: #dc7633;
+}
+
+.status.ready {
+    background: #d5f4e6;
+    border: 1px solid #48bb78;
+    color: #2d6a4f;
+}
+
+.status.error {
+    background: #fdd;
+    border: 1px solid #f56565;
+    color: #c53030;
+}
+
+/* ========================================
+   Drop Zone - Core Styling
+   ======================================== */
+.drop-zone {
+    border: 2px dashed #cbd5e0;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.drop-zone-content {
+    pointer-events: none;
+}
+
+.drop-zone .icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.drop-zone .primary-text {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.drop-zone .secondary-text {
+    font-size: 1rem;
+    color: #718096;
+    margin-bottom: 1rem;
+}
+
+.drop-zone .formats-text {
+    font-size: 0.875rem;
+    color: #a0aec0;
+    font-family: 'Courier New', monospace;
+}
+
+/* ========================================
+   Drop Zone - Interactive States
+   ======================================== */
+
+/* Hover state (when cursor over drop zone) */
+.drop-zone:hover,
+.drop-zone:focus {
+    border-color: #4299e1;
+    background: #ebf8ff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* Drag-over state (when file being dragged over) */
+.drop-zone.drag-over {
+    border-color: #3182ce;
+    border-style: solid;
+    background: #bee3f8;
+    box-shadow: 0 4px 12px rgba(49, 130, 206, 0.15);
+}
+
+.drop-zone.drag-over .icon {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+/* Success state (file accepted) */
+.drop-zone.success {
+    border-color: #48bb78;
+    border-style: solid;
+    background: #c6f6d5;
+}
+
+.drop-zone.success .icon {
+    opacity: 1;
+}
+
+/* Error state (invalid file) */
+.drop-zone.error {
+    border-color: #f56565;
+    border-style: solid;
+    background: #fed7d7;
+    animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+/* Focus indicator for keyboard accessibility */
+.drop-zone:focus-visible {
+    outline: 3px solid #4299e1;
+    outline-offset: 2px;
+}
+
+/* ========================================
+   Error Message Display
+   ======================================== */
+.error-message {
+    margin-top: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: #fed7d7;
+    border: 1px solid #f56565;
+    border-radius: 8px;
+    color: #c53030;
+    font-size: 0.95rem;
+    text-align: center;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   File Info Display (Story 2-2)
+   ======================================== */
+.file-info {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #edf2f7;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+/* ========================================
+   Format Badge (Story 2-3)
+   ======================================== */
+.format-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px; /* Pill shape */
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: white;
+    animation: fadeIn 0.3s ease;
+}
+
+.badge-blue {
+    background: #3182ce; /* Nikon blue */
+}
+
+.badge-purple {
+    background: #805ad5; /* Adobe purple */
+}
+
+.badge-teal {
+    background: #319795; /* Lightroom teal */
+}
+
+.badge-gray {
+    background: #718096; /* Fallback */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ========================================
+   Conversion Controls (Stories 2-5, 2-6, 2-7)
+   ======================================== */
+.conversion-controls {
+    margin-top: 1.5rem;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+footer {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: #edf2f7;
+    color: #718096;
+    font-size: 0.875rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+footer p {
+    margin: 0.25rem 0;
+}
+
+footer a {
+    color: #4299e1;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+footer a:hover {
+    color: #2b6cb0;
+    text-decoration: underline;
+}
+
+.disclaimer {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+/* Desktop (≥1024px) - Default styles above */
+@media (min-width: 1024px) {
+    main {
+        max-width: 600px;
+    }
+}
+
+/* Tablet (768-1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+    main {
+        max-width: 90%;
+        min-width: 400px;
+    }
+
+    header h1 {
+        font-size: 2.5rem;
+    }
+
+    .drop-zone {
+        padding: 2.5rem 1.5rem;
+        min-height: 280px;
+    }
+}
+
+/* Mobile (<768px) */
+@media (max-width: 767px) {
+    header {
+        padding: 2rem 1rem 1.5rem;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    .tagline {
+        font-size: 1.2rem;
+    }
+
+    .formats {
+        font-size: 1rem;
+    }
+
+    .privacy {
+        font-size: 0.875rem;
+    }
+
+    main {
+        padding: 1.5rem 1rem;
+    }
+
+    .drop-zone {
+        padding: 2rem 1rem;
+        min-height: 250px;
+    }
+
+    .drop-zone .icon {
+        font-size: 3rem;
+    }
+
+    .drop-zone .primary-text {
+        font-size: 1.25rem;
+    }
+
+    .drop-zone .secondary-text {
+        font-size: 0.9rem;
+    }
+
+    .drop-zone .formats-text {
+        font-size: 0.8rem;
+    }
+
+    footer {
+        padding: 1.5rem 1rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* ========================================
+   Parameter Panel (Story 2-4)
+   ======================================== */
+.parameter-panel {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.3s ease;
+}
+
+.parameter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.parameter-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.toggle-button {
+    padding: 0.5rem 1rem;
+    background: #edf2f7;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggle-button:hover {
+    background: #e2e8f0;
+    border-color: #a0aec0;
+}
+
+.parameter-section {
+    margin-bottom: 1.5rem;
+}
+
+.parameter-section:last-child {
+    margin-bottom: 0;
+}
+
+.parameter-section h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.parameter-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+.parameter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: #f7fafc;
+    border-radius: 4px;
+}
+
+.parameter-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.parameter-value {
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+/* Collapsed state */
+.parameter-panel.collapsed .parameter-section {
+    display: none;
+}
+
+/* Responsive: Single column on mobile */
+@media (max-width: 768px) {
+    .parameter-panel {
+        padding: 1rem;
+    }
+
+    .parameter-header h3 {
+        font-size: 1.125rem;
+    }
+
+    .parameter-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+
+/* ========================================
+   Format Selector (Story 2-5)
+   ======================================== */
+.format-selector {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.3s ease;
+}
+
+.format-selector h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.format-options {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.format-option {
+    position: relative;
+    padding: 1.25rem;
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.format-option:not(.disabled):hover {
+    background: #edf2f7;
+    border-color: #cbd5e0;
+}
+
+.format-option.selected {
+    background: #ebf8ff;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.format-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f7fafc;
+}
+
+.format-radio {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.format-label {
+    display: block;
+    cursor: pointer;
+}
+
+.format-option.disabled .format-label {
+    cursor: not-allowed;
+}
+
+.format-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.format-extension {
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #4a5568;
+    background: #edf2f7;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.format-software {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4a5568;
+    margin-bottom: 0.25rem;
+}
+
+.format-description {
+    font-size: 0.875rem;
+    color: #718096;
+    line-height: 1.5;
+}
+
+/* Convert button */
+.convert-button {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: #3182ce;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.convert-button:hover {
+    background: #2c5aa0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.convert-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.convert-button:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Responsive: Stack format options on mobile */
+@media (max-width: 768px) {
+    .format-selector {
+        padding: 1rem;
+    }
+
+    .format-option {
+        padding: 1rem;
+    }
+
+    .format-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+/* ========================================
+   Print Styles (minimal)
+   ======================================== */
+@media print {
+    header {
+        background: none;
+        color: black;
+    }
+
+    .drop-zone,
+    .status,
+    footer {
+        display: none;
+    }
+}

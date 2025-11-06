@@ -47,21 +47,21 @@ development_status:
   1-7-lrtemplate-lua-generator: done  # Code review: APPROVED (2025-11-04) - exceptional implementation, 447x faster than target
   1-8-parameter-mapping-rules: done  # Code review: APPROVED (2025-11-04 re-review) - All ACs verified, blocking issue resolved by 1-9a, 100% formula accuracy
   1-9a-metadata-field-implementation: done  # Code review: APPROVED (2025-11-04) - Exemplary implementation, successfully unblocked story 1-8
-  1-9-bidirectional-conversion-api: drafted
-  epic-1-retrospective: optional
+  1-9-bidirectional-conversion-api: done  # Code review: APPROVED (2025-11-04) - Fixed glob pattern bug, all 1,479 sample files now tested, production ready
+  epic-1-retrospective: completed  # Retrospective completed: 2025-11-04 - Documented in docs/epic-1-retrospective.md
 
   # Epic 2: Web Interface (FR-2)
-  epic-2: backlog
-  2-1-html-drag-drop-ui: backlog
-  2-2-file-upload-handling: backlog
-  2-3-format-detection: backlog
-  2-4-parameter-preview-display: backlog
-  2-5-target-format-selection: backlog
-  2-6-wasm-conversion-execution: backlog
-  2-7-file-download-trigger: backlog
-  2-8-error-handling-ui: backlog
-  2-9-privacy-messaging: backlog
-  2-10-responsive-design: backlog
+  epic-2: contexted  # Tech spec created: docs/tech-spec-epic-2.md
+  2-1-html-drag-drop-ui: done  # Code review: APPROVED (2025-11-04) - Exemplary implementation, all 7 ACs verified, zero blocking issues
+  2-2-file-upload-handling: done  # Code review: APPROVED (2025-11-04) - Exceptional implementation, all 6 ACs and 18 subtasks verified, production ready, zero issues
+  2-3-format-detection: done  # Code review: APPROVED (2025-11-05) - All manual testing complete, all 6 ACs verified PASS, exceptional performance (1.60ms avg detection time)
+  2-4-parameter-preview-display: done  # Code review: APPROVED (2025-11-05 re-review) - All 6 action items resolved, exceptional implementation, production ready
+  2-5-target-format-selection: review  # Code review: APPROVED (2025-11-05) - All 7 ACs verified, exceptional vanilla JavaScript implementation, ready for manual browser testing (5-10 min)
+  2-6-wasm-conversion-execution: drafted  # Story created: docs/stories/2-6-wasm-conversion-execution.md (2025-11-04)
+  2-7-file-download-trigger: drafted  # Story created: docs/stories/2-7-file-download-trigger.md (2025-11-04)
+  2-8-error-handling-ui: drafted  # Story created: docs/stories/2-8-error-handling-ui.md (2025-11-04)
+  2-9-privacy-messaging: drafted  # Story created: docs/stories/2-9-privacy-messaging.md (2025-11-04)
+  2-10-responsive-design: drafted  # Story created: docs/stories/2-10-responsive-design.md (2025-11-04)
   epic-2-retrospective: optional
 
   # Epic 3: CLI Interface (FR-3)
