@@ -1,0 +1,408 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2-1</storyId>
+    <title>HTML Drag-Drop UI</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-1-html-drag-drop-ui.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>to drag-and-drop my preset file onto a web page</iWant>
+    <soThat>I can quickly start the conversion process without hunting for a file picker button</soThat>
+    <tasks>
+      <!-- Derived from story file structure and technical approach -->
+      <task id="1">Create HTML page structure with header, main drop zone, and footer</task>
+      <task id="2">Implement CSS styling for drop zone states (default, hover, dragover, success, error)</task>
+      <task id="3">Add drag-drop event handlers in JavaScript (file-handler.js)</task>
+      <task id="4">Implement file picker fallback with keyboard accessibility</task>
+      <task id="5">Add basic file validation (extension check)</task>
+      <task id="6">Implement responsive layout for desktop, tablet, mobile</task>
+      <task id="7">Add WASM loader boilerplate (loads but doesn't execute conversion)</task>
+      <task id="8">Test across browsers (Chrome, Firefox, Safari)</task>
+      <task id="9">Verify keyboard accessibility (Tab, Enter, Space)</task>
+      <task id="10">Manual testing of all acceptance criteria</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1">
+      <title>Page Structure and Branding</title>
+      <requirements>
+        <requirement>HTML page loads with Recipe branding ("🍳 Recipe" title)</requirement>
+        <requirement>Hero section with 3-sentence description: Convert photo presets between formats, Nikon NP3 ↔ Lightroom XMP ↔ lrtemplate, 100% privacy - your files never leave your device</requirement>
+        <requirement>Footer with version number and GitHub link</requirement>
+      </requirements>
+      <test>Open http://localhost:8080 → see branded page with clear purpose</test>
+    </criterion>
+
+    <criterion id="AC-2">
+      <title>Drag-Drop Zone Visual Design</title>
+      <requirements>
+        <requirement>Large, centered drop zone (minimum 400×300px)</requirement>
+        <requirement>Border: dashed, 2px, neutral color</requirement>
+        <requirement>Icon: 📁 or upload icon (large, centered)</requirement>
+        <requirement>Text: "Drop your preset file here"</requirement>
+        <requirement>Subtext: "or click to browse"</requirement>
+        <requirement>Supported formats: ".np3, .xmp, .lrtemplate"</requirement>
+        <requirement>Desktop-first design (mobile secondary)</requirement>
+      </requirements>
+      <test>Visual inspection - drop zone is immediately obvious on page load</test>
+    </criterion>
+
+    <criterion id="AC-3">
+      <title>Drag-Drop Interaction States</title>
+      <requirements>
+        <requirement>Default state: Dashed border, neutral background</requirement>
+        <requirement>Hover state (dragover): Solid border, highlighted background (e.g., light blue)</requirement>
+        <requirement>Active state (file dropped): Border changes to success color (green)</requirement>
+        <requirement>Error state: Border changes to error color (red) with error message</requirement>
+      </requirements>
+      <test>
+        1. Drag file over page → hover state activates
+        2. Drag file over drop zone → hover state intensifies
+        3. Drop valid file → success state
+        4. Drop invalid file (e.g., .jpg) → error state
+      </test>
+    </criterion>
+
+    <criterion id="AC-4">
+      <title>File Picker Fallback</title>
+      <requirements>
+        <requirement>Click anywhere on drop zone → native file picker opens</requirement>
+        <requirement>File picker accepts .np3, .xmp, .lrtemplate extensions</requirement>
+        <requirement>Hidden &lt;input type="file"&gt; element (accessible label)</requirement>
+        <requirement>Selected file triggers same upload flow as drag-drop</requirement>
+      </requirements>
+      <test>
+        1. Click drop zone → file picker opens
+        2. Select .xmp file → file uploaded
+        3. Select .jpg file → error message (handled in Story 2-2)
+      </test>
+    </criterion>
+
+    <criterion id="AC-5">
+      <title>Keyboard Accessibility</title>
+      <requirements>
+        <requirement>Drop zone is focusable via Tab key</requirement>
+        <requirement>Enter/Space key opens file picker</requirement>
+        <requirement>Clear focus indicator (outline)</requirement>
+        <requirement>ARIA labels for screen readers</requirement>
+      </requirements>
+      <test>Tab to drop zone, press Enter → file picker opens</test>
+    </criterion>
+
+    <criterion id="AC-6">
+      <title>File Validation (Basic)</title>
+      <requirements>
+        <requirement>Accept only .np3, .xmp, .lrtemplate files</requirement>
+        <requirement>Display error for other file types: "Please upload a preset file (.np3, .xmp, or .lrtemplate)"</requirement>
+        <requirement>Error message is dismissible (click to close)</requirement>
+      </requirements>
+      <test>
+        1. Drop image.jpg → error: "Please upload a preset file"
+        2. Drop preset.xmp → no error (passes to Story 2-2)
+      </test>
+    </criterion>
+
+    <criterion id="AC-7">
+      <title>Responsive Layout (Desktop/Tablet)</title>
+      <requirements>
+        <requirement>Desktop (≥1024px): Drop zone centered, 600px wide</requirement>
+        <requirement>Tablet (768-1023px): Drop zone 90% width, min 400px</requirement>
+        <requirement>Mobile (&lt;768px): Drop zone full width, smaller text</requirement>
+      </requirements>
+      <test>Resize browser window → layout adapts without breaking</test>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Story 2-1: HTML Drag-Drop UI</section>
+        <snippet>Story 2-1 delivers basic page structure with drag-drop zone. Deliverables: web/index.html (replace test version), web/static/style.css, Drag-drop visual feedback, File picker fallback. Complexity: Simple (1-2 days).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Decision 1: Frontend Framework</section>
+        <snippet>Decision: Vanilla JavaScript (zero dependencies). Epic 2 UI is simple (10 stories, minimal state). Zero framework overhead (target: &lt;100KB total JS). Faster initial load time. Can refactor to framework in Epic 2+ if complexity grows.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Decision 2: WASM Loading Strategy</section>
+        <snippet>Decision: Eager loading + Service Worker caching. Users come to site to convert (not to browse). Loading WASM upfront sets expectation. Implementation: Load WASM on page load with Go runtime, status message "Loading converter..."</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>File Structure</section>
+        <snippet>Proposed structure: web/index.html (Story 2-1), web/static/style.css (Story 2-1, 2-10), web/static/main.js, web/static/file-handler.js (Story 2-2), web/static/recipe.wasm (1.03MB compressed), web/static/wasm_exec.js (~16KB). Code organization: ES6 modules (import/export), no bundler for MVP.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Decision 6: Browser Compatibility Target</section>
+        <snippet>Support Matrix: Chrome/Firefox/Safari/Edge (Latest 2) - Full support. Required features: WebAssembly (2017+), File API (FileReader, Blob, URL.createObjectURL), Drag-and-drop events, Promises/async-await. IE11: Not supported (no WASM).</snippet>
+      </doc>
+      <doc>
+        <path>docs/wasm-preparation-report.md</path>
+        <title>WASM Preparation Report - Epic 2 Readiness</title>
+        <section>1. WASM Build Validation</section>
+        <snippet>Successfully compiled Recipe to WebAssembly. Binary size: Uncompressed 3.7MB, Compressed (gzip) 1.03MB (66% under 3MB target). WASM entry point: cmd/wasm/main.go exposes convert(), detectFormat(), getVersion() functions. Build scripts ready.</snippet>
+      </doc>
+      <doc>
+        <path>docs/wasm-preparation-report.md</path>
+        <title>WASM Preparation Report - Epic 2 Readiness</title>
+        <section>Testing Infrastructure</section>
+        <snippet>Sample files available: 22 NP3, 913 XMP, 544 lrtemplate (1,479 total). Test workflow: Start server (python web/serve.py or node web/serve.js), open http://localhost:8080, upload file, convert, download, observe timing.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>recipe - Product Requirements Document</title>
+        <section>Executive Summary</section>
+        <snippet>Recipe is a universal photo preset converter solving a critical gap for Nikon Z-series users. Browser-based conversion tool powered by WebAssembly with bidirectional conversion and 95%+ accuracy. Privacy-first: all processing happens in-browser, files never leave user's device.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Decision Summary - Frontend Language</section>
+        <snippet>Frontend Language: Vanilla JavaScript (ES6+), No frameworks. Rationale: Zero build step, simple deployment, &lt;100ms WASM goal achievable. Project Structure: cmd/{cli,tui,wasm}/ + internal/ + web/. Frontend uses FileReader API → ArrayBuffer pattern.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>cmd/wasm/main.go</path>
+        <kind>wasm-entry-point</kind>
+        <symbol>main, convertWrapper, detectFormatWrapper, getVersionWrapper</symbol>
+        <lines>1-160</lines>
+        <reason>WASM entry point exposing Recipe conversion engine to JavaScript. Story 2-1 needs to load this WASM module on page load and call getVersion() to display in footer.</reason>
+      </artifact>
+      <artifact>
+        <path>web/index.html</path>
+        <kind>test-interface</kind>
+        <symbol>N/A</symbol>
+        <lines>1-100+</lines>
+        <reason>Existing minimal test interface. Story 2-1 will replace this with production-quality HTML structure including drag-drop zone, proper branding, and accessibility features.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/wasm_exec.js</path>
+        <kind>wasm-runtime</kind>
+        <symbol>Go, WebAssembly</symbol>
+        <lines>N/A</lines>
+        <reason>Go WASM runtime glue code (~16KB). Required for loading recipe.wasm. Must be included in HTML before main.js.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/build-wasm.sh</path>
+        <kind>build-script</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>WASM build script. Developers need to run this to compile recipe.wasm before testing Story 2-1 implementation. Builds cmd/wasm/main.go → web/static/recipe.wasm</reason>
+      </artifact>
+      <artifact>
+        <path>web/serve.py</path>
+        <kind>dev-server</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>Python development server for local testing. Story 2-1 acceptance criteria require testing at http://localhost:8080. Alternative to serve.js.</reason>
+      </artifact>
+      <artifact>
+        <path>web/serve.js</path>
+        <kind>dev-server</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>Node.js development server for local testing. Alternative to serve.py for developers who prefer Node.js.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <version>1.25.1</version>
+        <note>Required for WASM compilation (go build -o recipe.wasm). Story 2-1 doesn't modify Go code but needs WASM module loaded.</note>
+        <packages>
+          <package>syscall/js</package>
+          <package>github.com/justin/recipe/internal/converter</package>
+        </packages>
+      </go>
+      <javascript>
+        <note>Zero npm dependencies - Vanilla JavaScript with browser built-in APIs</note>
+        <browser-apis>
+          <api>File API (FileReader, Blob, File)</api>
+          <api>Drag and Drop API (dragenter, dragover, dragleave, drop events)</api>
+          <api>WebAssembly API (WebAssembly.instantiateStreaming)</api>
+          <api>URL API (URL.createObjectURL for downloads in future stories)</api>
+          <api>Custom Events (wasmReady event from WASM module)</api>
+        </browser-apis>
+      </javascript>
+      <build-tools>
+        <tool>GOOS=js GOARCH=wasm (Go WASM compiler)</tool>
+        <tool>Python 3.x or Node.js (for dev server: serve.py or serve.js)</tool>
+        <tool>scripts/build-wasm.sh (builds WASM binary)</tool>
+      </build-tools>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>
+      <category>Frontend Framework</category>
+      <rule>Use Vanilla JavaScript only - NO frameworks (React, Vue, Svelte, etc.)</rule>
+      <rationale>Epic 2 UI is simple (10 stories), zero framework overhead keeps total JS &lt;100KB, faster initial load, easier to understand for contributors</rationale>
+    </constraint>
+    <constraint>
+      <category>Code Organization</category>
+      <rule>ES6 modules with import/export. NO bundler for MVP (native browser support)</rule>
+      <rationale>Simple deployment, can add webpack/rollup later if needed. Files: main.js imports from file-handler.js, wasm-loader.js, etc.</rationale>
+    </constraint>
+    <constraint>
+      <category>Browser Compatibility</category>
+      <rule>Support Chrome, Firefox, Safari, Edge (latest 2 versions). NO IE11 support.</rule>
+      <rationale>Required features: WebAssembly (2017+), File API, drag-drop events, Promises/async-await. IE11 lacks WASM.</rationale>
+    </constraint>
+    <constraint>
+      <category>Design Priority</category>
+      <rule>Desktop-first design (≥1024px primary). Tablet secondary (768-1023px). Mobile minimal (&lt;768px).</rule>
+      <rationale>Target users are photographers working on desktops/laptops. Mobile is not primary use case per PRD.</rationale>
+    </constraint>
+    <constraint>
+      <category>Privacy Architecture</category>
+      <rule>Zero network requests during conversion. All processing client-side. No analytics or tracking.</rule>
+      <rationale>Core value proposition: "Your files never leave your device." Must be verifiable via browser DevTools Network tab.</rationale>
+    </constraint>
+    <constraint>
+      <category>Accessibility</category>
+      <rule>Keyboard navigation required. Tab to drop zone, Enter/Space opens file picker. ARIA labels for screen readers.</rule>
+      <rationale>AC-5 requires keyboard accessibility. Focus indicators, proper semantic HTML, role attributes.</rationale>
+    </constraint>
+    <constraint>
+      <category>File Validation</category>
+      <rule>Accept only .np3, .xmp, .lrtemplate file extensions. Display user-friendly error for other files.</rule>
+      <rationale>AC-6 requires basic validation in Story 2-1. Story 2-3 will add format detection via WASM.</rationale>
+    </constraint>
+    <constraint>
+      <category>WASM Loading</category>
+      <rule>Eager loading on page load. Display "Loading converter..." status message. Load before user can interact.</rule>
+      <rationale>Users come to site to convert. Loading WASM upfront sets expectation. Service Worker caching for subsequent visits.</rationale>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>convert</name>
+      <kind>WASM function (JavaScript API)</kind>
+      <signature>convert(inputBytes: Uint8Array, fromFormat: string, toFormat: string): Promise&lt;Uint8Array&gt;</signature>
+      <path>cmd/wasm/main.go</path>
+      <description>Performs format conversion. Story 2-1 does NOT call this function - it's loaded but not used until Story 2-6. However, WASM module must load successfully for getVersion() to work.</description>
+    </interface>
+    <interface>
+      <name>detectFormat</name>
+      <kind>WASM function (JavaScript API)</kind>
+      <signature>detectFormat(inputBytes: Uint8Array): Promise&lt;string&gt;</signature>
+      <path>cmd/wasm/main.go</path>
+      <description>Auto-detects file format (returns "np3", "xmp", or "lrtemplate"). Story 2-1 does NOT call this - it's used in Story 2-3.</description>
+    </interface>
+    <interface>
+      <name>getVersion</name>
+      <kind>WASM function (JavaScript API)</kind>
+      <signature>getVersion(): string</signature>
+      <path>cmd/wasm/main.go</path>
+      <description>Returns Recipe version string (e.g., "1.0.0-wasm"). Story 2-1 MUST call this to display version in footer per AC-1. Non-async, returns immediately.</description>
+    </interface>
+    <interface>
+      <name>wasmReady event</name>
+      <kind>JavaScript custom event</kind>
+      <signature>window.addEventListener('wasmReady', callback)</signature>
+      <path>cmd/wasm/main.go</path>
+      <description>Fired when WASM module loads successfully. Story 2-1 should listen for this event to update status banner from "Loading..." to "Ready" and enable drop zone.</description>
+    </interface>
+    <interface>
+      <name>File API</name>
+      <kind>Browser Web API</kind>
+      <signature>FileReader.readAsArrayBuffer(file: File): void</signature>
+      <path>Browser built-in</path>
+      <description>Story 2-1 uses File API for file picker and drag-drop but does NOT read file contents yet. Story 2-2 will implement FileReader to convert File → Uint8Array.</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Epic 2 uses manual testing with browser DevTools. Automated E2E tests are deferred to Epic 6 (Validation &amp; Testing). Story 2-1 testing approach:
+
+**Browser Compatibility Testing:**
+- Test in Chrome, Firefox, Safari (latest 2 versions each)
+- Verify identical behavior across all browsers
+- Use browser DevTools for debugging
+
+**Accessibility Testing:**
+- Screen reader testing (NVDA/JAWS) to verify ARIA labels
+- Keyboard-only navigation (Tab, Enter, Space keys)
+- Verify focus indicators are visible
+- Check role attributes (role="button", role="alert")
+
+**Responsive Design Testing:**
+- Test at 3 breakpoints: Desktop (1920px), Tablet (800px), Mobile (500px)
+- Verify no horizontal scrollbars at any viewport size
+- Check that layout adapts gracefully
+
+**Code Review Standards (from Epic 1 Retrospective):**
+- Self-review sufficient for simple stories like 2-1
+- Check for console errors in browser DevTools
+- Verify all acceptance criteria met before marking done
+- Test with real sample files from examples/ directory
+
+**Local Development:**
+- Start server: python web/serve.py or node web/serve.js
+- Open http://localhost:8080
+- Use examples/ directory files for testing
+- Check Network tab for zero requests during interaction
+    </standards>
+    <locations>
+      <location>web/index.html</location>
+      <location>web/static/style.css</location>
+      <location>web/static/main.js</location>
+      <location>web/static/file-handler.js</location>
+      <note>No automated test files for Epic 2 - manual testing only. Future: Epic 6 will add Playwright E2E tests.</note>
+    </locations>
+    <ideas>
+      <test id="AC-1">
+        <criterion>AC-1: Page Structure and Branding</criterion>
+        <idea>Open http://localhost:8080 and verify: Recipe branding visible, hero section with 3-sentence description present, footer shows version number (from getVersion()) and GitHub link</idea>
+      </test>
+      <test id="AC-2">
+        <criterion>AC-2: Drag-Drop Zone Visual Design</criterion>
+        <idea>Visual inspection on page load: Drop zone is 400×300px minimum, centered, has dashed border, shows 📁 icon and "Drop your preset file here" text, displays supported formats (.np3, .xmp, .lrtemplate)</idea>
+      </test>
+      <test id="AC-3">
+        <criterion>AC-3: Drag-Drop Interaction States</criterion>
+        <idea>1) Drag file over page (not drop zone) → no hover effect. 2) Drag file over drop zone → solid border, highlighted background. 3) Drop valid .xmp file → green border (success state). 4) Drop invalid .jpg file → red border (error state) with error message</idea>
+      </test>
+      <test id="AC-4">
+        <criterion>AC-4: File Picker Fallback</criterion>
+        <idea>Click drop zone → native file picker opens. Select .lrtemplate file → success state. Verify file picker has accept=".np3,.xmp,.lrtemplate" attribute. Test that file picker selection triggers same flow as drag-drop</idea>
+      </test>
+      <test id="AC-5">
+        <criterion>AC-5: Keyboard Accessibility</criterion>
+        <idea>Press Tab until drop zone receives focus → verify clear outline. Press Enter → file picker opens. Press Space → file picker opens. Screen reader announces "Upload preset file" when focused</idea>
+      </test>
+      <test id="AC-6">
+        <criterion>AC-6: File Validation (Basic)</criterion>
+        <idea>1) Drop image.jpg → error: "Please upload a preset file (.np3, .xmp, or .lrtemplate)". 2) Drop preset.xmp → no error. 3) Error message is dismissible. 4) Error disappears after 3 seconds automatically</idea>
+      </test>
+      <test id="AC-7">
+        <criterion>AC-7: Responsive Layout</criterion>
+        <idea>Resize browser window: 1920px → drop zone 600px wide centered. 800px → drop zone 90% width. 500px → drop zone full width with smaller text. No horizontal scrollbars at any size</idea>
+      </test>
+      <test id="browser-compat">
+        <criterion>Browser Compatibility</criterion>
+        <idea>Test all 7 ACs in Chrome, Firefox, and Safari. Verify WASM loads successfully (check "Recipe WASM module loaded successfully" in console). Verify no console errors on page load</idea>
+      </test>
+      <test id="wasm-load">
+        <criterion>WASM Loading</criterion>
+        <idea>On page load, status banner shows "Loading converter...". When WASM loads, status changes to "Ready". Footer displays version from getVersion(). Listen for wasmReady event</idea>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

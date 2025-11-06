@@ -1,6 +1,6 @@
 # Story 1.9a: metadata-field-implementation
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

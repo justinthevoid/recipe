@@ -1,0 +1,275 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2-5</storyId>
+    <title>Target Format Selection</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-5-target-format-selection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>to choose which format to convert my preset to</iWant>
+    <soThat>I can get the output format I need for my photography software</soThat>
+    <tasks>
+      - Display 3 format options (NP3, XMP, lrtemplate) with radio buttons
+      - Show format badges with icons/colors (reuse from Story 2-3)
+      - Each option shows: name, extension, compatible software, description
+      - Pre-select target format based on detected source (NP3→XMP, XMP→NP3, lrtemplate→XMP)
+      - Disable same-format conversion with tooltip
+      - Store selected target format in application state
+      - Display "Convert to [Format]" button
+      - Visual feedback on selection change (highlight, animation)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    AC-1: Format Selection UI Component
+    - Display 3 format options after parameter preview
+    - Use radio buttons for clarity
+    - Show format badges with icons/colors
+    - Each option shows: name, extension, compatible software, brief description
+
+    AC-2: Smart Default Selection
+    - Pre-select based on source: NP3→XMP, XMP→NP3, lrtemplate→XMP
+    - Default selected on load, user can change
+
+    AC-3: Disable Same-Format Conversion
+    - Disable option if source = target format
+    - Show tooltip: "Cannot convert to same format"
+    - Visually distinguish disabled option
+
+    AC-4: Format Descriptions (Educational)
+    - NP3: Nikon Picture Control, .np3, Nikon cameras
+    - XMP: Lightroom CC Preset, .xmp, cloud sync
+    - lrtemplate: Lightroom Classic Preset, .lrtemplate, legacy format
+
+    AC-5: Store Selected Format
+    - Store targetFormat in state
+    - Accessible to Story 2-6
+    - Update on selection change
+    - Clear on new file upload
+
+    AC-6: Display Convert Button
+    - Show after format selection
+    - Enabled when target selected
+    - Primary action style
+    - Text: "Convert to [Format Name]"
+
+    AC-7: Visual Feedback on Selection Change
+    - Highlight selected option
+    - Smooth transition (200ms)
+    - Button text updates immediately
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Story 2-5: Target Format Selection</section>
+        <snippet>Goal: User selects output format. Deliverables: Format selection dropdown/radio buttons, Smart default (XMP→NP3, NP3→XMP), Validation (prevent same-format conversion). Complexity: Simple (0.5-1 day). Dependency: Story 2-3 (need detected format).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Decision 1: Frontend Framework</section>
+        <snippet>Decision: Vanilla JavaScript (zero dependencies). Rationale: Epic 2 UI is simple, zero framework overhead (target: <100KB total JS), faster initial load time. State management via closures/objects.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Browser Compatibility Target</section>
+        <snippet>Support Matrix: Chrome/Firefox/Safari (Latest 2). Required: WebAssembly, File API, Drag-and-drop, Promises/async-await. IE11 not supported (no WASM).</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-3-format-detection.md</path>
+        <title>Story 2-3: Format Detection</title>
+        <section>Implementation</section>
+        <snippet>Provides detectFileFormat() function that returns "np3"|"xmp"|"lrtemplate". getCurrentFormat() returns cached detected format. Dispatches 'formatDetected' CustomEvent for Story 2-5 to listen.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-4-parameter-preview-display.md</path>
+        <title>Story 2-4: Parameter Preview Display</title>
+        <section>Implementation</section>
+        <snippet>Displays parameters before format selection. Parameter panel appears after format detection. Shows Basic/Color/Detail adjustments. Story 2-5 format selector should appear below parameter panel.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>web/static/main.js</path>
+        <kind>module</kind>
+        <symbol>handleFormatDetected</symbol>
+        <lines>150-183</lines>
+        <reason>Main entry point that listens for 'formatDetected' event. Story 2-5 needs to add another listener here for format selection integration.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/format-detector.js</path>
+        <kind>module</kind>
+        <symbol>getCurrentFormat</symbol>
+        <lines>47-49</lines>
+        <reason>Returns currently detected format ("np3"|"xmp"|"lrtemplate"). Story 2-5 needs this to determine source format for smart defaults.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/format-detector.js</path>
+        <kind>module</kind>
+        <symbol>getFormatDisplayName</symbol>
+        <lines>63-70</lines>
+        <reason>Maps format codes to human-readable names. Story 2-5 can reuse this for format option labels.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/format-detector.js</path>
+        <kind>module</kind>
+        <symbol>getFormatBadgeClass</symbol>
+        <lines>77-84</lines>
+        <reason>Returns CSS class for format badge colors (badge-blue, badge-purple, badge-teal). Story 2-5 can reuse these colors for format options.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/parameter-display.js</path>
+        <kind>module</kind>
+        <symbol>displayParameters</symbol>
+        <lines>12-44</lines>
+        <reason>Displays parameter panel. Story 2-5 format selector should appear after this panel in the UI flow.</reason>
+      </artifact>
+      <artifact>
+        <path>web/index.html</path>
+        <kind>html</kind>
+        <symbol>conversionControls</symbol>
+        <lines>48-49</lines>
+        <reason>Placeholder div for conversion controls. Story 2-5 format selector should be rendered inside this div.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/style.css</path>
+        <kind>stylesheet</kind>
+        <symbol>format-badge styles</symbol>
+        <lines>247-272</lines>
+        <reason>Existing format badge styles (pill-shaped, colored). Story 2-5 can reuse these styling patterns for format options.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="vanilla-javascript">
+        <note>Zero npm dependencies - Pure vanilla JavaScript with ES6 modules</note>
+        <note>Browser APIs used: CustomEvent, DOM manipulation, CSS Grid</note>
+        <note>WebAssembly: recipe.wasm (Epic 1 conversion engine)</note>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      - Must use vanilla JavaScript (no React, Vue, or other frameworks per Tech Spec Decision 1)
+      - Must use ES6 module pattern (import/export)
+      - Must follow event-driven architecture (CustomEvent for component communication)
+      - Must use radio buttons for format selection (not dropdown, per story decision)
+    </constraint>
+    <constraint type="ui-ux">
+      - Format selector must appear AFTER parameter preview panel (Story 2-4)
+      - Must show all 3 format options (NP3, XMP, lrtemplate) even if one is disabled
+      - Must pre-select smart default (NP3→XMP, XMP→NP3, lrtemplate→XMP)
+      - Must disable same-format conversion (source = target)
+      - Convert button text must update dynamically based on selected format
+    </constraint>
+    <constraint type="browser-compatibility">
+      - Must work in Chrome, Firefox, Safari (Latest 2 versions)
+      - Must use standard Web APIs only (no browser-specific features)
+      - Must be responsive (desktop, tablet, mobile breakpoints)
+    </constraint>
+    <constraint type="state-management">
+      - Target format must be stored in module-level state (not global)
+      - State must be accessible to Story 2-6 (conversion execution)
+      - State must clear when new file is uploaded
+    </constraint>
+    <constraint type="styling">
+      - Must reuse existing badge colors from Story 2-3 (badge-blue, badge-purple, badge-teal)
+      - Must follow existing CSS patterns (pill shapes, spacing, colors)
+      - Must use CSS Grid for layout (not flexbox or tables)
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>getCurrentFormat()</name>
+      <kind>Function (import)</kind>
+      <signature>() => string | null</signature>
+      <path>web/static/format-detector.js:47-49</path>
+      <usage>Call this to get source format for smart default logic</usage>
+    </interface>
+    <interface>
+      <name>getFormatDisplayName(format)</name>
+      <kind>Function (import)</kind>
+      <signature>(format: string) => string</signature>
+      <path>web/static/format-detector.js:63-70</path>
+      <usage>Use to generate format option labels (e.g., "XMP (Lightroom CC)")</usage>
+    </interface>
+    <interface>
+      <name>getFormatBadgeClass(format)</name>
+      <kind>Function (import)</kind>
+      <signature>(format: string) => string</signature>
+      <path>web/static/format-detector.js:77-84</path>
+      <usage>Use to get CSS class for format option styling (badge-blue, badge-purple, badge-teal)</usage>
+    </interface>
+    <interface>
+      <name>formatDetected event</name>
+      <kind>CustomEvent (listen)</kind>
+      <signature>{ detail: { format: string } }</signature>
+      <path>web/static/main.js:137-143</path>
+      <usage>Listen for this event to trigger format selector display</usage>
+    </interface>
+    <interface>
+      <name>formatSelected event</name>
+      <kind>CustomEvent (dispatch)</kind>
+      <signature>{ detail: { format: string } }</signature>
+      <path>To be created in Story 2-5</path>
+      <usage>Dispatch when user selects target format (optional for analytics/logging)</usage>
+    </interface>
+    <interface>
+      <name>convertRequest event</name>
+      <kind>CustomEvent (dispatch)</kind>
+      <signature>{ detail: { fromFormat: string, toFormat: string } }</signature>
+      <path>To be created in Story 2-5</path>
+      <usage>Dispatch when user clicks Convert button (Story 2-6 will listen)</usage>
+    </interface>
+    <interface>
+      <name>getTargetFormat()</name>
+      <kind>Function (export)</kind>
+      <signature>() => string | null</signature>
+      <path>To be created in Story 2-5</path>
+      <usage>Story 2-6 will call this to get selected target format for conversion</usage>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Per Epic 2 Tech Spec, testing follows manual browser testing approach:
+      - Manual testing in Chrome, Firefox, Safari (Latest 2 versions)
+      - Use sample files from examples/ directory
+      - Browser DevTools for console verification
+      - No automated E2E tests in MVP (deferred to Epic 6)
+      - Code quality verified through code review against acceptance criteria
+    </standards>
+    <locations>
+      - web/index.html (UI testing - visual verification)
+      - Browser DevTools Console (event logging, state verification)
+      - examples/np3/, examples/lrtemplate/ (test files)
+    </locations>
+    <ideas>
+      <test id="AC-1">Upload NP3 file → verify XMP pre-selected (smart default)</test>
+      <test id="AC-1">Upload XMP file → verify NP3 pre-selected</test>
+      <test id="AC-1">Upload lrtemplate file → verify XMP pre-selected</test>
+      <test id="AC-2">Verify all 3 format options displayed with correct names and icons</test>
+      <test id="AC-3">Upload NP3 file → verify NP3 option disabled with tooltip</test>
+      <test id="AC-4">Verify format descriptions are accurate and educational</test>
+      <test id="AC-5">Call getTargetFormat() in console → verify returns correct format</test>
+      <test id="AC-5">Upload new file → verify target format resets to smart default</test>
+      <test id="AC-6">Verify Convert button visible and text matches selected format</test>
+      <test id="AC-7">Click different format option → verify smooth transition animation (200ms)</test>
+      <test id="AC-7">Verify Convert button text updates immediately on format change</test>
+      <test id="Integration">Test format selector appears below parameter panel (Story 2-4)</test>
+      <test id="Integration">Test formatDetected event triggers format selector display</test>
+      <test id="Responsive">Test desktop layout (1920px) - format options clear spacing</test>
+      <test id="Responsive">Test mobile layout (400px) - format header stacks vertically</test>
+    </ideas>
+  </tests>
+</story-context>

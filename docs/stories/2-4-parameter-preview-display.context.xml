@@ -1,0 +1,364 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>4</storyId>
+    <title>Parameter Preview Display</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-4-parameter-preview-display.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>to see what parameters are in my preset file before converting</iWant>
+    <soThat>I can verify it's the right file and understand what adjustments it contains</soThat>
+    <tasks>
+## Tasks/Subtasks
+
+1. **WASM Parameter Extraction Function** (AC-1)
+   - [ ] 1.1: Add `extractParametersWrapper()` to cmd/wasm/main.go
+   - [ ] 1.2: Implement `extractNP3Parameters()` using np3.ParseNP3
+   - [ ] 1.3: Implement `extractXMPParameters()` using xmp.ParseXMP
+   - [ ] 1.4: Implement `extractLRTemplateParameters()` using lrtemplate.ParseLRTemplate
+   - [ ] 1.5: Register `extractParameters` in WASM global scope
+   - [ ] 1.6: Test all three formats return valid JSON
+
+2. **Parameter Display Module** (AC-2, AC-3, AC-4)
+   - [ ] 2.1: Create web/static/parameter-display.js
+   - [ ] 2.2: Implement `displayParameters(fileData, format)` function
+   - [ ] 2.3: Implement `renderParameterPanel()` with grouped display
+   - [ ] 2.4: Implement `groupParameters()` to categorize by Basic/Color/Detail
+   - [ ] 2.5: Implement `formatParameterValue()` with sign formatting
+   - [ ] 2.6: Add CSS styles for parameter panel (web/static/style.css)
+   - [ ] 2.7: Test parameter grouping for all three formats
+
+3. **Collapsible Panel UI** (AC-5)
+   - [ ] 3.1: Add toggle button to parameter header
+   - [ ] 3.2: Implement `toggleParameterPanel()` function
+   - [ ] 3.3: Persist collapse state during session
+   - [ ] 3.4: Test collapse/expand behavior
+   - [ ] 3.5: Test state persistence across file uploads
+
+4. **Integration with Main Flow** (AC-1, AC-6, AC-7)
+   - [ ] 4.1: Update main.js to import parameter-display.js
+   - [ ] 4.2: Listen for 'formatDetected' event
+   - [ ] 4.3: Call displayParameters() after format detection
+   - [ ] 4.4: Add loading states (showParameterLoading/hideParameterLoading)
+   - [ ] 4.5: Implement error handling with user-friendly messages
+   - [ ] 4.6: Add HTML elements to index.html (parameterStatus, parameterError, parameterPanel)
+   - [ ] 4.7: Test error handling with corrupted files
+   - [ ] 4.8: Measure and verify &lt;100ms extraction time
+
+5. **Responsive Design &amp; Polish** (AC-4)
+   - [ ] 5.1: Test desktop layout (1920px)
+   - [ ] 5.2: Test tablet layout (800px)
+   - [ ] 5.3: Test mobile layout (400px) - single column stack
+   - [ ] 5.4: Verify monospace font rendering for values
+   - [ ] 5.5: Test dark mode compatibility (if applicable)
+
+6. **Testing &amp; Validation** (AC-7, DoD)
+   - [ ] 6.1: Manual test with 10 NP3 files
+   - [ ] 6.2: Manual test with 10 XMP files
+   - [ ] 6.3: Manual test with 10 lrtemplate files
+   - [ ] 6.4: Performance testing (20 files, log extraction times)
+   - [ ] 6.5: Browser compatibility (Chrome, Firefox, Safari)
+   - [ ] 6.6: Verify integration with Stories 2-2 and 2-3
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+### AC-1: Extract Parameters via WASM
+- [ ] Call new WASM function `extractParameters(fileData, format)` after format detection
+- [ ] Function returns JSON with parameter values
+- [ ] Handle all three formats: NP3, XMP, lrtemplate
+- [ ] Display loading state during extraction (&lt;100ms expected)
+
+### AC-2: Display Core Parameters (10-15 Key Settings)
+- [ ] Show parameters in organized sections: Basic, Color, Detail, Effects
+- [ ] Display format: "Parameter Name: Value" (e.g., "Exposure: +0.5")
+- [ ] Handle missing parameters gracefully (show "—" or omit)
+
+### AC-3: Handle Format-Specific Parameters
+- [ ] NP3-specific: Sharpening (0-9), Mid-range Sharpening (0-7), Quick Adjust
+- [ ] XMP/lrtemplate-specific: Exposure2012, Contrast2012, Highlights2012, Shadows2012
+- [ ] Show all parameters with original format names (no translation yet)
+- [ ] Group similar parameters
+
+### AC-4: Styled Parameter Display Component
+- [ ] Layout: Two-column grid (parameter name | value)
+- [ ] Typography: Monospace font for values (alignment)
+- [ ] Colors: Subtle backgrounds for sections, bold for section headers
+- [ ] Responsiveness: Stack to single column on mobile (&lt;768px)
+
+### AC-5: Collapsible/Expandable Parameter View
+- [ ] Parameter panel initially expanded (show by default)
+- [ ] Click "Hide Parameters" → panel collapses
+- [ ] Click "Show Parameters" → panel expands
+- [ ] State persists during session
+
+### AC-6: Error Handling for Parse Failures
+- [ ] Show message if extractParameters() fails: "Unable to extract parameters. File may be corrupted or unsupported."
+- [ ] Display format badge as "Unknown" on parse failure
+- [ ] Allow user to proceed with conversion anyway
+- [ ] Don't block conversion workflow
+
+### AC-7: Performance Target
+- [ ] Parameter extraction completes &lt;100ms (P95)
+- [ ] Display updates immediately (no perceptible lag)
+- [ ] No blocking of browser UI
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification - Epic 2: Web Interface</title>
+        <section>Story 2-4: Parameter Preview Display</section>
+        <snippet>Shows extracted parameters before conversion. Uses WASM extractParameters() function. File structure: web/static/parameter-preview.js for display logic.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-2.3: Parameter Preview</section>
+        <snippet>Display extracted parameters before conversion in tabular/list view. Shows 10-15 core parameters (Exposure, Contrast, etc.). Extraction completes &lt;50ms. Builds trust and validates correct file.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/stories/2-2-file-upload-handling.md</path>
+        <title>Story 2-2: File Upload Handling</title>
+        <section>File Data Provision</section>
+        <snippet>Provides file data as Uint8Array via getCurrentFileData(). File loaded using FileReader.readAsArrayBuffer(). Data accessible to format detection and conversion.</snippet>
+      </doc>
+
+      <doc>
+        <path>docs/stories/2-3-format-detection.md</path>
+        <title>Story 2-3: Format Detection</title>
+        <section>Format Detection Integration</section>
+        <snippet>Fires 'formatDetected' event with detected format ("np3", "xmp", "lrtemplate"). Uses WASM detectFormat() function. 100% accuracy on 1,479 test files.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>cmd/wasm/main.go</path>
+        <kind>wasm-wrapper</kind>
+        <symbol>convertWrapper, detectFormatWrapper, getVersionWrapper</symbol>
+        <lines>1-159</lines>
+        <reason>WASM bridge functions. Need to add extractParametersWrapper() following same Promise pattern. Registers Go functions as JavaScript global functions.</reason>
+      </artifact>
+
+      <artifact>
+        <path>internal/formats/np3/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>35-40</lines>
+        <reason>NP3 parser that returns UniversalRecipe. Will use this in extractNP3Parameters() to get parsed data, then convert to parameter map.</reason>
+      </artifact>
+
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>1-40</lines>
+        <reason>XMP parser with XML unmarshaling. Returns UniversalRecipe with Exposure2012, Contrast2012, etc. Will convert to JSON parameter map.</reason>
+      </artifact>
+
+      <artifact>
+        <path>internal/formats/lrtemplate/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>1-40</lines>
+        <reason>lrtemplate parser using regex extraction. Returns UniversalRecipe. Same Lightroom parameters as XMP (Exposure2012, etc.).</reason>
+      </artifact>
+
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>converter-interface</kind>
+        <symbol>Convert, DetectFormat</symbol>
+        <lines>1-60</lines>
+        <reason>Main converter API. Thread-safe, stateless. Defines format constants (FormatNP3, FormatXMP, FormatLRTemplate). Reference for error handling patterns.</reason>
+      </artifact>
+
+      <artifact>
+        <path>web/static/file-handler.js</path>
+        <kind>javascript-module</kind>
+        <symbol>getCurrentFileData</symbol>
+        <lines>1-60</lines>
+        <reason>Provides Uint8Array file data. Story 2-4 will call getCurrentFileData() to get file data for parameter extraction.</reason>
+      </artifact>
+
+      <artifact>
+        <path>web/static/format-detector.js</path>
+        <kind>javascript-module</kind>
+        <symbol>detectFileFormat, getCurrentFormat, getFormatDisplayName</symbol>
+        <lines>1-80</lines>
+        <reason>WASM wrapper pattern reference. Shows how to call WASM functions, handle Promises, measure performance, and cache state. Follow this pattern for parameter-display.js.</reason>
+      </artifact>
+
+      <artifact>
+        <path>web/static/main.js</path>
+        <kind>javascript-entry</kind>
+        <symbol>main application logic</symbol>
+        <lines>N/A</lines>
+        <reason>Will integrate parameter display by listening to 'formatDetected' event and calling displayParameters().</reason>
+      </artifact>
+
+      <artifact>
+        <path>web/index.html</path>
+        <kind>html-template</kind>
+        <symbol>DOM structure</symbol>
+        <lines>N/A</lines>
+        <reason>Need to add: parameterStatus div, parameterError div, parameterPanel div for displaying parameters.</reason>
+      </artifact>
+
+      <artifact>
+        <path>web/static/style.css</path>
+        <kind>stylesheet</kind>
+        <symbol>CSS styles</symbol>
+        <lines>N/A</lines>
+        <reason>Will add parameter panel styles: .parameter-panel, .parameter-header, .parameter-grid, .parameter-row, responsive breakpoints.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <package name="standard-library">
+          <item>encoding/json (JSON marshaling for parameter maps)</item>
+          <item>encoding/xml (XMP XML parsing)</item>
+          <item>regexp (lrtemplate Lua parsing)</item>
+          <item>syscall/js (WASM JavaScript bridge)</item>
+        </package>
+
+        <package name="internal">
+          <item>github.com/justin/recipe/internal/converter (format detection, conversion orchestration)</item>
+          <item>github.com/justin/recipe/internal/formats/np3 (NP3 binary parser)</item>
+          <item>github.com/justin/recipe/internal/formats/xmp (XMP XML parser)</item>
+          <item>github.com/justin/recipe/internal/formats/lrtemplate (lrtemplate Lua parser)</item>
+          <item>github.com/justin/recipe/internal/models (UniversalRecipe data model)</item>
+        </package>
+      </go>
+
+      <javascript>
+        <package name="standard-web-apis">
+          <item>FileReader API (file loading from Story 2-2)</item>
+          <item>Promise API (async WASM calls)</item>
+          <item>CustomEvent API (formatDetected event)</item>
+          <item>Performance API (performance.now() for timing)</item>
+          <item>JSON API (parsing WASM JSON responses)</item>
+        </package>
+
+        <package name="es6-modules">
+          <item>ES6 import/export (module system)</item>
+          <item>Arrow functions</item>
+          <item>Template literals</item>
+          <item>Async/await</item>
+        </package>
+      </javascript>
+
+      <wasm>
+        <runtime>Go 1.25.1 compiled to WebAssembly</runtime>
+        <loader>wasm_exec.js (official Go WASM runtime)</loader>
+        <size-constraint>Keep WASM binary &lt;2MB (currently ~800KB)</size-constraint>
+      </wasm>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint category="architecture">Must use Epic 1 parsers (np3.Parse, xmp.Parse, lrtemplate.Parse). These are proven with 100% accuracy on 1,479 sample files. Do NOT create new parsing logic.</constraint>
+    <constraint category="performance">Parameter extraction must complete in &lt;100ms (P95). Epic 1 parsers already meet this target (&lt;30ms for XMP, &lt;20ms for lrtemplate, &lt;50ms for NP3).</constraint>
+    <constraint category="privacy">All processing must be client-side. Zero network requests during conversion. WASM sandbox prevents malicious file attacks.</constraint>
+    <constraint category="code-organization">Follow existing JavaScript module pattern: export functions, handle async Promises, measure performance with performance.now(), use try/catch for error handling.</constraint>
+    <constraint category="wasm-integration">WASM functions must follow Promise pattern with resolve/reject handlers. Run operations in goroutines to avoid blocking. Use js.CopyBytesToGo for input, return JSON strings to JavaScript.</constraint>
+    <constraint category="dependencies">No external Lua libraries (lrtemplate uses regex). No external XML libraries (xmp uses encoding/xml). Keep dependencies minimal for WASM binary size.</constraint>
+    <constraint category="browser-compatibility">Must work in Chrome, Firefox, Safari (latest versions). Use standard Web APIs only (FileReader, Promises, CustomEvents).</constraint>
+    <constraint category="testing">Manual testing with 10+ sample files per format. Measure extraction times. Verify responsive layout at 3 breakpoints (desktop, tablet, mobile).</constraint>
+    <constraint category="error-handling">Non-blocking errors. If parameter extraction fails, show error message but allow conversion to proceed. Parameters are informational, not required for conversion.</constraint>
+    <constraint category="ui-patterns">Follow existing UI patterns: status messages, loading states, error messages. Use same color scheme and typography as format detection badge.</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>WASM Global Functions</name>
+      <kind>JavaScript API</kind>
+      <signature>convert(inputBytes: Uint8Array, fromFormat: string, toFormat: string): Promise&lt;Uint8Array&gt;
+detectFormat(inputBytes: Uint8Array): Promise&lt;string&gt;
+getVersion(): string
+extractParameters(inputBytes: Uint8Array, format: string): Promise&lt;string&gt; // NEW - to be added</signature>
+      <path>cmd/wasm/main.go</path>
+    </interface>
+
+    <interface>
+      <name>formatDetected Event</name>
+      <kind>Custom Event</kind>
+      <signature>window.dispatchEvent(new CustomEvent('formatDetected', { detail: { format: string } }))</signature>
+      <path>web/static/main.js</path>
+    </interface>
+
+    <interface>
+      <name>getCurrentFileData</name>
+      <kind>JavaScript Function</kind>
+      <signature>getCurrentFileData(): Uint8Array | null</signature>
+      <path>web/static/file-handler.js</path>
+    </interface>
+
+    <interface>
+      <name>UniversalRecipe</name>
+      <kind>Go Struct</kind>
+      <signature>type UniversalRecipe struct { Exposure, Contrast, Highlights, Shadows, Whites, Blacks float64; Vibrance, Saturation, Clarity, Sharpness float64; /* 50+ parameters */ }</signature>
+      <path>internal/models/recipe.go</path>
+    </interface>
+
+    <interface>
+      <name>Parser Functions</name>
+      <kind>Go Functions</kind>
+      <signature>np3.Parse(data []byte) (*models.UniversalRecipe, error)
+xmp.Parse(data []byte) (*models.UniversalRecipe, error)
+lrtemplate.Parse(data []byte) (*models.UniversalRecipe, error)</signature>
+      <path>internal/formats/*/parse.go</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Manual browser testing is the primary testing approach for Epic 2 stories. Implementation quality verified through: 1) Code review against acceptance criteria, 2) Browser initialization testing (WASM loading, function availability), 3) Manual test execution with real sample files, 4) Performance measurement via console.time() and performance.now(), 5) Cross-browser compatibility verification (Chrome, Firefox, Safari - latest versions). Testing artifacts stored in story files with detailed test case documentation. Unit tests (Go) exist for Epic 1 parsers (internal/formats/*_test.go) achieving 100% accuracy on 1,479 sample files. Web UI testing focuses on integration and user experience validation.</standards>
+
+    <locations>
+      - Go unit tests: internal/formats/np3/*_test.go, internal/formats/xmp/*_test.go, internal/formats/lrtemplate/*_test.go
+      - Manual browser testing: Chrome DevTools, Firefox DevTools, Safari Web Inspector
+      - Sample files: examples/np3/, examples/xmp/, examples/lrtemplate/ (1,479 test files from Epic 1)
+      - Test documentation: Story markdown files contain manual testing checklists and test cases
+    </locations>
+
+    <ideas>
+      AC-1: Extract Parameters via WASM
+      - Upload Classic Chrome.np3 → verify extractParameters() called → returns JSON with ~15 parameters → completes &lt;100ms
+      - Upload .xmp file → verify Exposure2012, Contrast2012, etc. in returned JSON
+      - Upload .lrtemplate file → verify same parameters as XMP (Lightroom format)
+
+      AC-2: Display Core Parameters
+      - Upload NP3 → verify Basic section shows Exposure, Contrast, Highlights, Shadows, Whites, Blacks
+      - Upload XMP → verify Color section shows Vibrance, Saturation, Temperature, Tint
+      - Verify Detail section shows Clarity, Sharpness, Noise Reduction
+
+      AC-3: Handle Format-Specific Parameters
+      - NP3 file → verify "Sharpening: 5", "Mid-range Sharpening: 3", "Quick Adjust" displayed
+      - XMP file → verify "Exposure2012: +0.50", "Contrast2012: +20" displayed
+      - Verify no confusion between NP3 and XMP parameter names
+
+      AC-4: Styled Parameter Display
+      - Desktop (1920px) → verify two-column grid, monospace values, section backgrounds
+      - Tablet (800px) → verify layout remains readable
+      - Mobile (400px) → verify single-column stack, name/value stacked vertically
+
+      AC-5: Collapsible Panel
+      - Upload file → panel expanded by default → click "Hide" → panel collapses
+      - Upload another file → panel remains collapsed (respects preference)
+      - Click "Show" → panel expands
+
+      AC-6: Error Handling
+      - Create corrupted XMP (invalid XML) → upload → verify error message "Unable to extract parameters"
+      - Verify conversion button still available (non-blocking error)
+
+      AC-7: Performance
+      - Upload 10 NP3, 10 XMP, 10 lrtemplate files → measure extraction times → verify all &lt;100ms (P95)
+      - Verify browser remains responsive during extraction (no UI blocking)
+    </ideas>
+  </tests>
+</story-context>

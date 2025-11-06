@@ -1,0 +1,334 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>3</storyId>
+    <title>Format Detection</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-3-format-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>the converter to automatically detect my preset file's format</iWant>
+    <soThat>I don't have to manually specify whether it's NP3, XMP, or lrtemplate</soThat>
+    <tasks>
+### Tasks and Subtasks
+
+#### Task 1: Create format-detector.js module
+- [ ] Implement detectFileFormat(fileData) function
+- [ ] Add getCurrentFormat() getter function
+- [ ] Add clearFormat() function
+- [ ] Add getFormatDisplayName(format) helper
+- [ ] Add getFormatBadgeClass(format) helper
+- [ ] Add console logging with performance timing
+
+#### Task 2: Integrate with file upload handler
+- [ ] Listen for fileLoaded event from Story 2-2
+- [ ] Call detectFileFormat() when file loaded
+- [ ] Handle async Promise (await detection)
+- [ ] Show loading state during detection
+- [ ] Hide loading state after detection completes or fails
+
+#### Task 3: Display format badge
+- [ ] Create displayFormatBadge(format) function
+- [ ] Add format badge to file info section
+- [ ] Apply correct color class based on format
+- [ ] Show human-readable format name
+
+#### Task 4: Error handling
+- [ ] Catch detection failures
+- [ ] Show user-friendly error message
+- [ ] Clear file data on error
+- [ ] Reset UI to default state
+- [ ] Allow retry with new file
+
+#### Task 5: State management
+- [ ] Store currentFormat in format-detector module
+- [ ] Make format accessible via getCurrentFormat()
+- [ ] Dispatch formatDetected custom event
+- [ ] Clear format when new file uploaded
+
+#### Task 6: CSS styling
+- [ ] Add .format-badge base styles
+- [ ] Add .badge-blue for NP3 (Nikon blue)
+- [ ] Add .badge-purple for XMP (Adobe purple)
+- [ ] Add .badge-teal for lrtemplate (Lightroom teal)
+- [ ] Add .badge-gray fallback
+
+#### Task 7: Testing
+- [ ] Test NP3 detection with sample files
+- [ ] Test XMP detection with sample files
+- [ ] Test lrtemplate detection with sample files
+- [ ] Test invalid file handling
+- [ ] Test multiple file uploads
+- [ ] Verify performance <100ms (console.log timing)
+- [ ] Test in Chrome, Firefox, Safari
+</tasks>
+  </story>
+
+  <acceptanceCriteria>
+### AC-1: Call WASM detectFormat() on File Load
+- [ ] Listen for `fileLoaded` event (from Story 2-2)
+- [ ] Call `detectFormat(fileData)` with the Uint8Array
+- [ ] Handle async Promise (detection may take 1-50ms)
+- [ ] Display loading state while detecting
+
+**Test:**
+1. Upload `Classic Chrome.np3`
+2. Verify: `detectFormat()` called automatically
+3. Verify: Console shows "Detecting format..."
+4. Verify: Detection completes <100ms
+
+### AC-2: Display Detected Format Badge
+- [ ] Show format badge in UI: "Detected: NP3" (with icon/color)
+- [ ] Format names:
+  - "NP3" (Nikon Picture Control)
+  - "XMP" (Lightroom CC)
+  - "lrtemplate" (Lightroom Classic)
+- [ ] Badge style: pill shape, colored background, clear typography
+
+**Test:**
+1. Upload `.np3` file → badge shows "Detected: NP3"
+2. Upload `.xmp` file → badge shows "Detected: XMP"
+3. Upload `.lrtemplate` file → badge shows "Detected: lrtemplate"
+
+### AC-3: Handle Unknown Format Gracefully
+- [ ] If `detectFormat()` rejects (unknown format):
+  - Clear file data
+  - Show error: "Unable to detect format. Please upload a valid preset file (.np3, .xmp, or .lrtemplate)"
+  - Reset UI to default state
+- [ ] User can retry with different file
+
+**Test:**
+1. Upload `image.jpg` (passes Story 2-1 validation but not a preset)
+2. Verify: Error message displayed
+3. Verify: Drop zone resets to default (accept new file)
+
+### AC-4: Store Detected Format for Subsequent Stories
+- [ ] Save detected format in application state: `currentFormat = "np3"|"xmp"|"lrtemplate"`
+- [ ] Accessible to Story 2-5 (target format selection)
+- [ ] Accessible to Story 2-6 (conversion)
+
+**Test:**
+1. Upload file → format detected
+2. Verify: `getCurrentFormat()` returns correct format string
+3. Verify: Format persists until new file uploaded
+
+### AC-5: Performance Target
+- [ ] Format detection completes <100ms (P95)
+- [ ] Display updates immediately (no perceptible lag)
+- [ ] No blocking of browser UI
+
+**Test:**
+1. Upload 10 different files (NP3, XMP, lrtemplate mix)
+2. Measure detection time (console.log with performance.now())
+3. Verify: All detections <100ms
+4. Verify: Browser remains responsive during detection
+
+### AC-6: Visual Feedback During Detection
+- [ ] Show spinner or progress indicator while detecting
+- [ ] Loading text: "Detecting format..."
+- [ ] Disappears when detection complete or fails
+
+**Test:**
+1. Upload file → loading indicator appears briefly
+2. Detection completes → loading indicator disappears, format badge appears
+3. Verify: Smooth transition (no flicker)
+</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Story 2-3: Format Detection</section>
+        <snippet>Auto-detect preset format using WASM. Call detectFormat() on file upload, display badge, handle unknown formats. Target: &lt;100ms detection. Dependency: Story 2-2 (Uint8Array).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Decision 3: File Format Auto-Detection</section>
+        <snippet>Use WASM content inspection (not extension). Epic 1's DetectFormat() proven 100% accurate. Better UX (handles renamed files). WASM overhead negligible (&lt;1ms).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>JavaScript API - detectFormat()</section>
+        <snippet>Signature: detectFormat(inputBytes: Uint8Array): Promise&lt;string&gt;. Returns "np3"|"xmp"|"lrtemplate". Rejects if unknown. Detection logic: NP3 (magic bytes "NCP"), XMP (XML + "crs:"), lrtemplate (Lua "s = {"). Performance: &lt;1ms.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-2-file-upload-handling.md</path>
+        <title>Story 2-2: File Upload Handling</title>
+        <section>Overview and Implementation</section>
+        <snippet>Provides file data as Uint8Array. Exports getCurrentFileData() and dispatches 'fileLoaded' custom event with fileData, fileName, fileSize. File validation: &lt;10MB, non-empty. Status: DONE.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>library</kind>
+        <symbol>DetectFormat</symbol>
+        <lines>126-165</lines>
+        <reason>Epic 1's proven format detection implementation. Uses magic bytes for NP3 ("NCP"), XML namespace for XMP ("crs:" or "x:xmpmeta"), Lua syntax for lrtemplate ("s = {"). 100% accurate on 1,479 sample files. This is exposed to WASM for browser use.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/file-handler.js</path>
+        <kind>module</kind>
+        <symbol>handleFile, getCurrentFileData, fileLoaded event</symbol>
+        <lines>all</lines>
+        <reason>Story 2-2 implementation. Provides Uint8Array file data via getCurrentFileData(). Dispatches 'fileLoaded' event that Story 2-3 listens to. Contains file validation, metadata display, error handling patterns to follow.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/main.js</path>
+        <kind>module</kind>
+        <symbol>handleFileLoaded</symbol>
+        <lines>34-47</lines>
+        <reason>Main coordination module. Story 2-3 adds format detection logic to this function. Currently logs event details. Shows event.detail structure: { fileName, fileSize, fileData: Uint8Array }. Comment on line 44 says "Story 2-3 will add format detection here".</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/wasm-loader.js</path>
+        <kind>module</kind>
+        <symbol>initializeWASM, wasmReady event</symbol>
+        <lines>19-43</lines>
+        <reason>Shows WASM initialization pattern. wasmReady event listener (line 19) triggers when WASM ready. Lines 38-42 log available WASM functions (convert, detectFormat, getVersion). Shows pattern for checking if functions exist: typeof detectFormat === 'function'.</reason>
+      </artifact>
+      <artifact>
+        <path>web/index.html</path>
+        <kind>html</kind>
+        <symbol>fileInfo div</symbol>
+        <lines>39</lines>
+        <reason>File metadata display container. Story 2-2 populates with file name/size. Story 2-3 adds format badge here. Currently hidden (style="display: none;"), shown after file upload.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/style.css</path>
+        <kind>css</kind>
+        <symbol>.status classes</symbol>
+        <lines>75-100</lines>
+        <reason>Existing style patterns: .status.loading (yellow), .status.ready (green), .status.error (red). Story 2-3 follows this pattern for loading indicator during detection. Color scheme uses system font stack, 8px border-radius, subtle transitions.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <javascript>
+        <framework>None - Vanilla JavaScript (ES6 modules)</framework>
+        <note>Zero npm dependencies per Tech Spec Decision 1. All code uses native browser APIs and ES6+ features.</note>
+      </javascript>
+      <go>
+        <module>github.com/justin/recipe</module>
+        <version>1.25.1</version>
+        <note>Go WASM compilation target. No external Go dependencies.</note>
+      </go>
+      <browser>
+        <api>FileReader API - File I/O (used by Story 2-2)</api>
+        <api>Uint8Array (typed arrays) - Binary data representation</api>
+        <api>Promises / async-await - Async operations</api>
+        <api>CustomEvent API - Event-driven architecture</api>
+        <api>WebAssembly - WASM module loading and execution</api>
+        <api>performance.now() - Performance timing measurement</api>
+        <api>console.log - Debugging and development logging</api>
+        <note>All APIs supported in Chrome, Firefox, Safari (latest 2 versions). No polyfills needed.</note>
+        <compatibility>Requires WebAssembly support (2017+). No IE11 support.</compatibility>
+      </browser>
+      <wasm>
+        <function>detectFormat(Uint8Array): Promise&lt;string&gt;</function>
+        <function>convert(Uint8Array, string, string): Promise&lt;Uint8Array&gt;</function>
+        <function>getVersion(): string</function>
+        <note>Global functions exposed by recipe.wasm after WASM initialization. Story 2-3 uses detectFormat().</note>
+        <loader>web/static/wasm_exec.js - Go's official WASM JavaScript support file</loader>
+      </wasm>
+      <development>
+        <tool>Node.js (built-in http module) - web/serve.js local development server</tool>
+        <tool>Browser DevTools - Testing and debugging</tool>
+        <note>Run with: node web/serve.js (serves on http://localhost:8080)</note>
+      </development>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>MUST use Vanilla JavaScript (ES6 modules) - no frameworks per Tech Spec Decision 1</constraint>
+    <constraint>MUST call detectFormat() as async function - returns Promise (does not block UI)</constraint>
+    <constraint>MUST check if WASM loaded before calling detectFormat() - verify typeof detectFormat === 'function' per wasm-loader.js pattern (line 38-42)</constraint>
+    <constraint>MUST handle Promise rejection gracefully - show user-friendly error message</constraint>
+    <constraint>MUST store detected format in module-level state for Story 2-5 and 2-6</constraint>
+    <constraint>MUST dispatch 'formatDetected' custom event for loose coupling with other modules</constraint>
+    <constraint>MUST follow Story 2-2 error handling pattern - inline error messages + console logging</constraint>
+    <constraint>MUST clear previous format when new file uploaded (prevent stale state)</constraint>
+    <constraint>MUST add format detection logic to main.js handleFileLoaded() function at line 44 (marked with comment "Story 2-3 will add format detection here")</constraint>
+    <constraint>MUST append format badge to existing fileInfo div (web/index.html:39) - don't replace Story 2-2's file metadata</constraint>
+    <constraint>MUST use existing .status classes for loading indicator (.status.loading from style.css:85-89)</constraint>
+    <constraint>Performance: Detection MUST complete in &lt;100ms (P95)</constraint>
+    <constraint>Security: MUST NOT execute any user-provided code - only pass binary data to WASM</constraint>
+    <constraint>Privacy: All processing client-side - zero server communication per Epic 2 architecture</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>detectFormat (WASM function)</name>
+      <kind>WASM global function</kind>
+      <signature>detectFormat(inputBytes: Uint8Array): Promise&lt;string&gt;</signature>
+      <path>Exposed by recipe.wasm after WASM initialization</path>
+      <notes>Returns "np3", "xmp", or "lrtemplate". Rejects Promise if format unknown. Performance: &lt;1ms native, target &lt;100ms in browser.</notes>
+    </interface>
+    <interface>
+      <name>fileLoaded event (listen)</name>
+      <kind>CustomEvent (subscribe)</kind>
+      <signature>window.addEventListener('fileLoaded', (event) =&gt; { ... })</signature>
+      <path>Dispatched by web/static/file-handler.js:267-276</path>
+      <notes>Event detail: { fileData: Uint8Array, fileName: string, fileSize: number }. Story 2-3 listens to this event to trigger format detection.</notes>
+    </interface>
+    <interface>
+      <name>formatDetected event (dispatch)</name>
+      <kind>CustomEvent (publish)</kind>
+      <signature>window.dispatchEvent(new CustomEvent('formatDetected', { detail: { format } }))</signature>
+      <path>web/static/format-detector.js or main.js (to be implemented)</path>
+      <notes>Story 2-3 dispatches this event after successful detection. Story 2-5 (target format selection) will listen to pre-select target format.</notes>
+    </interface>
+    <interface>
+      <name>getCurrentFormat (export)</name>
+      <kind>function export</kind>
+      <signature>export function getCurrentFormat(): string | null</signature>
+      <path>web/static/format-detector.js (to be implemented)</path>
+      <notes>Returns currently detected format or null. Accessible to Story 2-5 and 2-6 for conversion.</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Per Epic 2 Tech Spec, manual browser testing is the standard approach. Implementation quality verified through code review against acceptance criteria, browser initialization testing, and manual test execution. No automated unit tests required for MVP. Test in Chrome, Firefox, Safari (latest 2 versions). Use browser DevTools console for performance measurement (console.log with performance.now()).</standards>
+    <locations>web/static/*.js - Manual testing via http://localhost:8080 using npm start (serve.js). Open browser DevTools -&gt; Console for logs and Network tab for debugging.</locations>
+    <ideas>
+      <test id="AC-1">
+        <criterion>AC-1: Call WASM detectFormat() on File Load</criterion>
+        <approach>Upload Classic Chrome.np3, verify console shows "Detecting format..." and "Format detected: np3 ([time]ms)". Verify time &lt;100ms. Check that loading indicator appears and disappears.</approach>
+      </test>
+      <test id="AC-2">
+        <criterion>AC-2: Display Detected Format Badge</criterion>
+        <approach>Upload .np3 file → verify badge shows "NP3 (Nikon Picture Control)" with blue background. Upload .xmp → verify "XMP (Lightroom CC)" with purple. Upload .lrtemplate → verify "lrtemplate (Lightroom Classic)" with teal.</approach>
+      </test>
+      <test id="AC-3">
+        <criterion>AC-3: Handle Unknown Format Gracefully</criterion>
+        <approach>Upload image.jpg (not a preset). Verify error message "Unable to detect format. Please upload a valid preset file (.np3, .xmp, or .lrtemplate)". Verify UI resets to default state (can upload new file).</approach>
+      </test>
+      <test id="AC-4">
+        <criterion>AC-4: Store Detected Format for Subsequent Stories</criterion>
+        <approach>Upload file, open browser console, call getCurrentFormat(). Verify returns correct format string. Upload different file, verify format updates. Refresh page, verify format clears.</approach>
+      </test>
+      <test id="AC-5">
+        <criterion>AC-5: Performance Target</criterion>
+        <approach>Upload 10 different files (mix of NP3, XMP, lrtemplate). Record detection times from console logs. Verify all &lt;100ms. Calculate average. Verify browser remains responsive during detection.</approach>
+      </test>
+      <test id="AC-6">
+        <criterion>AC-6: Visual Feedback During Detection</criterion>
+        <approach>Upload file, verify loading indicator appears briefly with "Detecting format..." text. Verify smooth transition to format badge (no flicker). Test with slow network throttling to see loading state.</approach>
+      </test>
+      <test id="integration">
+        <criterion>Integration with Story 2-2</criterion>
+        <approach>Verify 'fileLoaded' event listener receives correct data. Verify format detection doesn't break Story 2-2 file metadata display. Test multiple file uploads - verify each triggers detection.</approach>
+      </test>
+      <test id="browser-compat">
+        <criterion>Browser Compatibility</criterion>
+        <approach>Test in Chrome, Firefox, and Safari. Verify identical behavior: badge colors, error messages, performance. Check DevTools console for any browser-specific errors.</approach>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

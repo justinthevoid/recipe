@@ -1,0 +1,296 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2-2</storyId>
+    <title>File Upload Handling</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-2-file-upload-handling.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>my uploaded preset file to be loaded into memory</iWant>
+    <soThat>it can be processed by the conversion engine</soThat>
+    <tasks>
+### Tasks & Subtasks
+
+**Task 1: Implement FileReader API Integration**
+- Subtask 1.1: Create readFileAsArrayBuffer() promise wrapper
+- Subtask 1.2: Add loading state UI during file read
+- Subtask 1.3: Handle FileReader errors with try/catch
+
+**Task 2: Data Conversion Pipeline**
+- Subtask 2.1: Convert ArrayBuffer to Uint8Array
+- Subtask 2.2: Store file data in application state (currentFileData)
+- Subtask 2.3: Export getCurrentFileData() for other modules
+
+**Task 3: File Metadata Display**
+- Subtask 3.1: Extract file name, size, and extension
+- Subtask 3.2: Format file size (bytes → KB/MB)
+- Subtask 3.3: Update #fileInfo div with metadata
+- Subtask 3.4: Implement XSS protection via escapeHtml()
+
+**Task 4: File Validation**
+- Subtask 4.1: Validate file size (<10MB limit)
+- Subtask 4.2: Check for empty files (0 bytes)
+- Subtask 4.3: Display appropriate error messages
+
+**Task 5: Memory Management**
+- Subtask 5.1: Clear previous file data on new upload
+- Subtask 5.2: Implement clearFileData() function
+- Subtask 5.3: Dispatch 'fileLoaded' custom event
+
+**Task 6: Integration with Story 2-1**
+- Subtask 6.1: Update main.js to import handleFile
+- Subtask 6.2: Pass handleFile callback to initializeDropZone
+- Subtask 6.3: Add event listener for 'fileLoaded' event
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+### AC-1: File Reading via FileReader API
+- Accept File object from drag-drop or file picker (from Story 2-1)
+- Use FileReader.readAsArrayBuffer() to read file contents
+- Handle asynchronous file reading with Promises
+- Display loading indicator while reading (for large files)
+**Test:** Upload 50KB XMP file → reads in <100ms | Upload 5MB file → shows loading indicator, completes successfully
+
+### AC-2: Data Conversion (File → Uint8Array)
+- Convert ArrayBuffer to Uint8Array
+- Store in application state for subsequent operations
+- Uint8Array accessible to format detection (Story 2-3) and conversion (Story 2-6)
+**Test:** Upload file → Uint8Array created | Verify: fileData instanceof Uint8Array === true | Verify: fileData.length matches original file size
+
+### AC-3: File Metadata Display
+- Extract and display: file name, file size (formatted), file extension
+- Update UI with file info (show hidden #fileInfo div from Story 2-1)
+- Clear previous file info when new file uploaded
+**Test:** Upload Classic Chrome.xmp (15KB) → display "File: Classic Chrome.xmp (15.23 KB)"
+
+### AC-4: File Size Validation
+- Accept files up to 10MB
+- Reject files >10MB with error: "File too large. Maximum size: 10MB"
+**Test:** Upload 5MB file → accepted | Upload 15MB file → error message
+
+### AC-5: Error Handling
+- File read failure → error: "Failed to read file. Please try again."
+- Corrupted file (0 bytes) → error: "File appears to be empty or corrupted"
+- User cancels file picker → no error, return to default state
+
+### AC-6: Memory Management
+- Clear previous file data when new file uploaded (prevent memory leak)
+- Release object URLs when no longer needed
+- Handle rapid file uploads (debounce if needed)
+**Test:** Upload 10 files in succession → memory usage doesn't grow unbounded
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Story 2-2: File Upload Handling</section>
+        <snippet>Converts File object to Uint8Array for WASM. Uses FileReader.readAsArrayBuffer() to read file contents. Handles files up to 10MB. Displays file name and size. Complexity: Simple (1 day).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Data Flow</section>
+        <snippet>JavaScript FileReader reads file as ArrayBuffer → Convert ArrayBuffer → Uint8Array → Call detectFormat(uint8array). All data stays in browser memory (no persistence).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Technical Decision 1: Frontend Framework</section>
+        <snippet>Decision: Vanilla JavaScript (zero dependencies). Rationale: Epic 2 UI is simple, zero framework overhead, faster initial load, target &lt;100KB total JS.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-1-html-drag-drop-ui.md</path>
+        <title>Story 2-1: HTML Drag-Drop UI</title>
+        <section>Story Dependencies</section>
+        <snippet>Story 2-2 requires Story 2-1 complete (HTML structure and drag-drop events). Story 2-2 blocks: Story 2-3 (Format Detection), 2-4 (Parameter Preview), 2-6 (WASM Conversion) - all need Uint8Array.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-1-html-drag-drop-ui.md</path>
+        <title>Story 2-1: HTML Drag-Drop UI</title>
+        <section>Integration Pattern</section>
+        <snippet>initializeDropZone accepts callback function handleFile. File validation done in Story 2-1, actual file reading implemented in Story 2-2. Uses custom 'fileLoaded' event for cross-module communication.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>web/static/file-handler.js</path>
+        <kind>module</kind>
+        <symbol>handleFile()</symbol>
+        <lines>98-141</lines>
+        <reason>Existing file validation logic that needs to be expanded with FileReader integration, Uint8Array conversion, and file metadata display per Story 2-2</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/file-handler.js</path>
+        <kind>module</kind>
+        <symbol>initializeDropZone()</symbol>
+        <lines>9-61</lines>
+        <reason>Sets up event handlers for drag-drop and file picker. Story 2-2 extends handleFile callback with actual file reading functionality</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/file-handler.js</path>
+        <kind>module</kind>
+        <symbol>showError(), hideError()</symbol>
+        <lines>147-163</lines>
+        <reason>Existing error display functions to reuse for file reading errors (AC-5: Error Handling)</reason>
+      </artifact>
+      <artifact>
+        <path>web/index.html</path>
+        <kind>html</kind>
+        <symbol>#fileInfo div</symbol>
+        <lines>143</lines>
+        <reason>Hidden div that Story 2-2 will populate with file metadata (name, size, extension) per AC-3</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/main.js</path>
+        <kind>module</kind>
+        <symbol>main entry point</symbol>
+        <lines>1-32</lines>
+        <reason>Story 2-2 updates to listen for 'fileLoaded' custom event and pass handleFile callback to initializeDropZone</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/wasm-loader.js</path>
+        <kind>module</kind>
+        <symbol>initializeWASM()</symbol>
+        <lines>all</lines>
+        <reason>WASM initialization and event dispatching pattern. Story 2-2 follows similar pattern with 'fileLoaded' event for cross-module communication</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <module>github.com/justin/recipe</module>
+        <version>go 1.25.1</version>
+        <usage>WASM compilation target (not runtime dependency)</usage>
+      </go>
+      <javascript>
+        <note>Zero npm dependencies - vanilla JavaScript only</note>
+        <browser_apis>
+          <api>FileReader</api>
+          <api>Uint8Array</api>
+          <api>CustomEvent</api>
+          <api>Promise</api>
+          <api>File API (File, Blob)</api>
+        </browser_apis>
+      </javascript>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Must use FileReader API (not File.arrayBuffer()) for browser compatibility with older Safari versions</constraint>
+    <constraint>File size limit: 10MB maximum (typical preset files are &lt;100KB)</constraint>
+    <constraint>Must convert to Uint8Array format (required by WASM Go []byte mapping)</constraint>
+    <constraint>XSS prevention: All user-controlled text (file names) must be escaped before DOM insertion using escapeHtml()</constraint>
+    <constraint>Memory management: Must clear previous file data on new upload to prevent memory leaks</constraint>
+    <constraint>Privacy: All processing client-side only, no network requests (except initial WASM load)</constraint>
+    <constraint>ES6 modules: Use import/export syntax, no bundler for MVP</constraint>
+    <constraint>Browser support: Chrome/Firefox/Safari latest 2 versions, no IE11</constraint>
+    <constraint>Vanilla JavaScript: Zero framework dependencies per Tech Spec Decision 1</constraint>
+    <constraint>Architecture: Separation of concerns - file-handler.js handles I/O, main.js coordinates modules</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>handleFile(file)</name>
+      <kind>function</kind>
+      <signature>async function handleFile(file: File) → Promise&lt;void&gt;</signature>
+      <path>web/static/file-handler.js</path>
+      <description>Main entry point for file processing. Validates, reads, converts to Uint8Array, dispatches fileLoaded event</description>
+    </interface>
+    <interface>
+      <name>readFileAsArrayBuffer(file)</name>
+      <kind>function</kind>
+      <signature>function readFileAsArrayBuffer(file: File) → Promise&lt;ArrayBuffer&gt;</signature>
+      <path>web/static/file-handler.js</path>
+      <description>Promise wrapper around FileReader.readAsArrayBuffer(). Returns ArrayBuffer on success, rejects on error</description>
+    </interface>
+    <interface>
+      <name>getCurrentFileData()</name>
+      <kind>export</kind>
+      <signature>export function getCurrentFileData() → Uint8Array | null</signature>
+      <path>web/static/file-handler.js</path>
+      <description>Returns currently loaded file data for use by Story 2-3 (format detection) and 2-6 (conversion)</description>
+    </interface>
+    <interface>
+      <name>getCurrentFileName()</name>
+      <kind>export</kind>
+      <signature>export function getCurrentFileName() → string | null</signature>
+      <path>web/static/file-handler.js</path>
+      <description>Returns current file name for display and download filename generation (Story 2-7)</description>
+    </interface>
+    <interface>
+      <name>fileLoaded custom event</name>
+      <kind>CustomEvent</kind>
+      <signature>new CustomEvent('fileLoaded', {detail: {fileName, fileSize, fileData}})</signature>
+      <path>web/static/file-handler.js</path>
+      <description>Dispatched when file successfully loaded. Listened to by main.js to notify other modules (Stories 2-3, 2-4, 2-6)</description>
+    </interface>
+    <interface>
+      <name>FileReader API</name>
+      <kind>browser API</kind>
+      <signature>FileReader.readAsArrayBuffer(blob) → ArrayBuffer</signature>
+      <path>browser native</path>
+      <description>Asynchronous file reading API. Used for compatibility and future progress event support</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Epic 2 uses manual testing approach per Tech Spec. No automated E2E tests until Epic 6. Testing standards: browser DevTools for verification, console logging for debugging, manual cross-browser testing in Chrome/Firefox/Safari latest 2 versions. Performance testing via performance.now() benchmarks. Memory testing via DevTools Memory profiler (heap snapshots).</standards>
+    <locations>
+      <location>Manual testing per Story acceptance criteria</location>
+      <location>Browser DevTools Console for performance logging</location>
+      <location>Browser DevTools Network tab for privacy verification (zero requests)</location>
+      <location>Browser DevTools Memory profiler for leak detection</location>
+    </locations>
+    <ideas>
+      <test ac="AC-1">
+        <id>AC-1-1</id>
+        <description>Upload 50KB XMP file, measure read time with performance.now(), verify &lt;100ms</description>
+      </test>
+      <test ac="AC-1">
+        <id>AC-1-2</id>
+        <description>Upload 5MB file, verify loading indicator displays, verify completion and console log "File loaded: [size] bytes"</description>
+      </test>
+      <test ac="AC-2">
+        <id>AC-2-1</id>
+        <description>Upload file, verify fileData instanceof Uint8Array === true via console</description>
+      </test>
+      <test ac="AC-2">
+        <id>AC-2-2</id>
+        <description>Verify fileData.length matches original file.size via console comparison</description>
+      </test>
+      <test ac="AC-3">
+        <id>AC-3-1</id>
+        <description>Upload Classic Chrome.xmp (15KB), verify #fileInfo div displays "File: Classic Chrome.xmp (15.23 KB)"</description>
+      </test>
+      <test ac="AC-3">
+        <id>AC-3-2</id>
+        <description>Upload second file without refresh, verify previous file info cleared and new info displayed</description>
+      </test>
+      <test ac="AC-4">
+        <id>AC-4-1</id>
+        <description>Create 5MB test file (dd if=/dev/zero of=test.xmp bs=1M count=5), upload, verify accepted</description>
+      </test>
+      <test ac="AC-4">
+        <id>AC-4-2</id>
+        <description>Create 15MB test file, upload, verify error "File too large. Maximum size: 10MB"</description>
+      </test>
+      <test ac="AC-5">
+        <id>AC-5-1</id>
+        <description>Create empty file (touch empty.xmp), upload, verify error "File appears to be empty or corrupted"</description>
+      </test>
+      <test ac="AC-5">
+        <id>AC-5-2</id>
+        <description>Open file picker, click Cancel, verify no error message and UI remains in default state</description>
+      </test>
+      <test ac="AC-6">
+        <id>AC-6-1</id>
+        <description>Upload 10 files in succession, take heap snapshots in DevTools Memory profiler, verify memory usage stable and only one Uint8Array retained</description>
+      </test>
+    </ideas>
+  </tests>
+</story-context>
