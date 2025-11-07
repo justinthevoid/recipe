@@ -15,3 +15,7 @@ benchmark-results.txt
 *.prof
 cpu.prof
 mem.prof
+testdata/xmp
+testdata/np3
+testdata/lrtemplate
+testdata/visual-regression/images
