@@ -1,0 +1,34 @@
+# Cloudflare Pages Ignore File (Repository Root)
+# Exclude large files and directories from deployment
+
+# Test data (contains 26-28MB NEF files that exceed 25MB limit)
+testdata/
+
+# Development files
+web/recipe.wasm
+web/recipe-unstripped.wasm
+web/README.md
+web/serve.js
+web/serve.py
+
+# Source code (not needed for deployment)
+cmd/
+internal/
+pkg/
+
+# Build artifacts
+bin/
+*.test
+*.out
+
+# Git
+.git/
+.github/
+
+# Documentation
+docs/
+
+# Configuration
+.vscode/
+.idea/
+*.log
