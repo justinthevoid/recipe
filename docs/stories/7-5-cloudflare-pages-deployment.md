@@ -1062,9 +1062,15 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - Changed workflow directory from `web` to `web/static` (4.2M total - under 25MB limit)
 - Created `.cfignore` to exclude duplicate WASM files and dev files from deployment
 - Updated WASM build output path to `web/static/recipe.wasm`
+- **Additional fix:** Created clean `deploy/` directory in workflow to isolate deployment files from testdata
+
+**Issue #2 - Testdata NEF Files:**
+- **Problem:** testdata/visual-regression/images/*.nef files (26-28MB each) were triggering 25MB limit
+- **Root Cause:** cloudflare/pages-action scans entire repository checkout, not just specified directory
+- **Solution:** Copy `web/static/*` to clean `deploy/` directory before deployment to isolate from testdata
 
 **Files Created:**
-- `.github/workflows/deploy-pages.yml` - GitHub Actions workflow with corrected directory path
+- `.github/workflows/deploy-pages.yml` - GitHub Actions workflow with clean deployment directory
 - `web/.cfignore` - Cloudflare Pages ignore file to exclude unnecessary files
 
 ### Completion Notes List
@@ -1074,6 +1080,7 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
   - Fixed directory path from `web` to `web/static` to resolve 25MB deployment limit
   - Workflow builds WASM with `-ldflags="-s -w"` for size optimization
   - Deploys only `web/static/` directory (4.2MB) instead of entire `web/` (12MB+)
+  - **Second fix:** Added clean `deploy/` directory step to isolate from testdata
 - ✅ Created `.cfignore` file to exclude duplicate WASM binaries and dev files
 - ✅ Task 9: Updated README.md with comprehensive deployment section
   - Documented live URL (https://recipe.pages.dev)
@@ -1081,11 +1088,17 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
   - Provided manual deployment instructions
   - Documented rollback procedure
 
-**Root Cause & Solution:**
-- **Problem:** Cloudflare Pages has 25MB file limit per deployment
-- **Root Cause:** Duplicate WASM files in `web/` directory (12MB+ total)
-- **Solution:** Deploy only `web/static/` directory (4.2MB total)
-- **Result:** Deployment size reduced by 66%, well under 25MB limit
+**Root Cause & Solutions:**
+- **Issue #1 - Duplicate WASM Files:**
+  - Problem: Duplicate WASM files in `web/` directory (12MB+ total)
+  - Solution: Deploy only `web/static/` directory (4.2MB total)
+  - Result: Deployment size reduced by 66%
+
+- **Issue #2 - Testdata NEF Files:**
+  - Problem: testdata/*.nef files (26-28MB each) in repository checkout
+  - Root cause: cloudflare/pages-action scans entire checkout
+  - Solution: Copy `web/static/*` to clean `deploy/` directory before deployment
+  - Result: Testdata completely isolated from deployment process
 
 **Remaining Manual Tasks (Require Justin's Action):**
 - Task 1-4: Cloudflare project creation, API token, Account ID, GitHub secrets (Justin has Cloudflare Pages set up)
@@ -1124,4 +1137,6 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 ## Change Log
 
 - **2025-11-06:** Story created from Epic 7 Tech Spec (Fifth story in Epic 7, implements automated Cloudflare Pages deployment with GitHub Actions)
-- **2025-11-07:** Development started - Fixed 25MB deployment limit by deploying `web/static/` instead of `web/` (reduced size from 12MB+ to 4.2MB)
+- **2025-11-07:** Development started
+  - Fixed Issue #1: Duplicate WASM files (12MB+) by deploying `web/static/` (4.2MB)
+  - Fixed Issue #2: Testdata NEF files (26-28MB each) by creating clean `deploy/` directory in workflow
