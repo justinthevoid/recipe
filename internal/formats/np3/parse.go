@@ -105,6 +105,7 @@ type np3Parameters struct {
 	brightness float64
 	saturation int
 	hue        int
+	rawData    []byte // Store original file data for chunk preservation
 }
 
 // colorDataPoint represents an RGB triplet extracted from the color section
@@ -146,6 +147,10 @@ type chunkData struct {
 // through round-trip testing and visual comparison with Nikon software.
 func extractParameters(data []byte) (*np3Parameters, error) {
 	params := &np3Parameters{}
+
+	// Store raw data for chunk preservation during generation
+	params.rawData = make([]byte, len(data))
+	copy(params.rawData, data)
 
 	// Extract preset name (offset 20-60, null-terminated ASCII)
 	// Python reference: data[20:60].decode('ascii', errors='ignore').strip('\x00').strip()
@@ -406,6 +411,16 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 	recipe, err := builder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("build recipe: %w", err)
+	}
+
+	// Store raw binary data for perfect round-trip preservation
+	// This allows us to preserve TLV chunks and other binary structures
+	// that we can't fully decode yet
+	if params.rawData != nil && len(params.rawData) > 0 {
+		if recipe.FormatSpecificBinary == nil {
+			recipe.FormatSpecificBinary = make(map[string][]byte)
+		}
+		recipe.FormatSpecificBinary["np3_raw"] = params.rawData
 	}
 
 	return recipe, nil

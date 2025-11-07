@@ -122,4 +122,8 @@ type UniversalRecipe struct {
 
 	// Generic metadata for unmappable parameters
 	Metadata map[string]interface{} `json:"metadata,omitempty" xml:"-"` // Generic metadata for format-specific unmappable parameters
+
+	// Complete raw binary data (for perfect round-trip of binary formats like NP3)
+	// Not serialized to JSON/XML - used only for in-memory conversions
+	FormatSpecificBinary map[string][]byte `json:"-" xml:"-"` // Raw binary data keyed by format (e.g., "np3_raw")
 }

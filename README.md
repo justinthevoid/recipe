@@ -29,6 +29,26 @@ For complete legal details including reverse engineering disclosure, warranty li
 - **XMP** - Adobe Lightroom sidecar XML
 - **lrtemplate** - Adobe Lightroom Lua preset
 
+## Format Compatibility
+
+Recipe converts between three photo preset formats:
+
+| Format     | Extension   | Used In                 |
+| ---------- | ----------- | ----------------------- |
+| NP3        | .np3        | Nikon Z cameras         |
+| XMP        | .xmp        | Adobe Lightroom CC      |
+| lrtemplate | .lrtemplate | Adobe Lightroom Classic |
+
+**Bidirectional Conversion:** All combinations supported (6 conversion paths)
+
+**Accuracy:** 95%+ for core adjustments (Exposure, Contrast, Saturation, HSL)
+
+**Known Limitations:** Advanced Lightroom features (Tone Curves, Grain, Vignette)
+do not convert to NP3 (format limitation). Recipe warns you when parameters
+cannot be mapped.
+
+**[View Complete Compatibility Matrix →](docs/format-compatibility-matrix.md)**
+
 ## Building
 
 ### Build CLI
