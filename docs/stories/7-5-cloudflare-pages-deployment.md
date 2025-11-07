@@ -1100,10 +1100,18 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
   - Solution: Copy `web/static/*` to clean `deploy/` directory before deployment
   - Result: Testdata completely isolated from deployment process
 
+**Issue #3 - Missing Download Button:**
+  - Problem: After successful conversion, download button was not visible
+  - Root cause: HTML element `<button id="downloadButton">` didn't exist in DOM
+  - Solution: Added download button, status, and error elements to `format-selector.js` HTML generation
+  - Location: `web/static/format-selector.js` lines 106-117
+  - Result: Download flow now complete (upload → detect → convert → download)
+
 **Remaining Manual Tasks (Require Justin's Action):**
 - Task 1-4: Cloudflare project creation, API token, Account ID, GitHub secrets (Justin has Cloudflare Pages set up)
 - Task 6: Commit and push workflow to trigger first deployment
-- Task 7-8: Monitor deployment and test trigger behavior
+- Task 7: Monitor deployment to verify download button fix works in production
+- Task 8: Test workflow trigger behavior
 - Task 10-11: Update sprint-status.yaml and test rollback
 
 ### File List
@@ -1125,9 +1133,14 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - `docs/sprint-status.yaml` - Updated 7-5-cloudflare-pages-deployment from "ready-for-dev" to "in-progress"
 - `docs/stories/7-5-cloudflare-pages-deployment.md` - Updated with:
   - Completed task checkboxes (Task 5, Task 9)
-  - Debug log with 25MB limit diagnosis
+  - Debug log with Issue #1, #2, and #3 details
   - Completion notes
   - File list
+- `web/static/format-selector.js` - Added missing download button HTML elements:
+  - Download button (hidden by default)
+  - Download status element
+  - Download error element
+  - Fixes conversion → download workflow on deployed site
 
 **DELETED:**
 - (none)
@@ -1138,5 +1151,8 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 
 - **2025-11-06:** Story created from Epic 7 Tech Spec (Fifth story in Epic 7, implements automated Cloudflare Pages deployment with GitHub Actions)
 - **2025-11-07:** Development started
-  - Fixed Issue #1: Duplicate WASM files (12MB+) by deploying `web/static/` (4.2MB)
-  - Fixed Issue #2: Testdata NEF files (26-28MB each) by creating clean `deploy/` directory in workflow
+  - Fixed Issue #1: Duplicate WASM files (12MB+) by deploying `web/static/` (4.2MB) - commit 109fa95
+  - Fixed Issue #2: Testdata NEF files (26-28MB each) by creating clean `deploy/` directory in workflow - commits 48c0a13, 42b44da
+  - Fixed Issue #3: Missing download button in web UI by adding HTML elements to format-selector.js - commit f950cea
+  - Deployment now successful at https://recipe.justins.studio/
+  - Awaiting verification that download button works in production
