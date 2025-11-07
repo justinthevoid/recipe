@@ -21,10 +21,15 @@ jobs:
       - name: Build WASM
         run: GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/static/recipe.wasm cmd/wasm/main.go
 
+      - name: Create deployment directory
+        run: |
+          mkdir -p deploy
+          cp -r web/static/* deploy/
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: recipe
-          directory: web/static
+          directory: deploy
