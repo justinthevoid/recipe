@@ -284,6 +284,18 @@ func buildXMPDocument(recipe *models.UniversalRecipe) *xmpDocWrapper {
 		SplitToningHighlightSaturation: formatInt(recipe.SplitHighlightSaturation),
 		SplitToningBalance:             formatInt(recipe.SplitBalance),
 
+		// Color Grading (Phase 2)
+		ColorGradeHighlightHue: formatColorGradingZoneHue(recipe.ColorGrading, "highlights"),
+		ColorGradeHighlightSat: formatColorGradingZoneChroma(recipe.ColorGrading, "highlights"),
+		ColorGradeHighlightLum: formatColorGradingZoneBrightness(recipe.ColorGrading, "highlights"),
+		ColorGradeMidtoneHue:   formatColorGradingZoneHue(recipe.ColorGrading, "midtone"),
+		ColorGradeMidtoneSat:   formatColorGradingZoneChroma(recipe.ColorGrading, "midtone"),
+		ColorGradeMidtoneLum:   formatColorGradingZoneBrightness(recipe.ColorGrading, "midtone"),
+		ColorGradeShadowHue:    formatColorGradingZoneHue(recipe.ColorGrading, "shadows"),
+		ColorGradeShadowSat:    formatColorGradingZoneChroma(recipe.ColorGrading, "shadows"),
+		ColorGradeShadowLum:    formatColorGradingZoneBrightness(recipe.ColorGrading, "shadows"),
+		ColorGradeBlending:     formatColorGradingBlending(recipe.ColorGrading),
+
 		// Tone Curve
 		ToneCurve: formatToneCurve(recipe.PointCurve),
 	}
@@ -382,6 +394,21 @@ type descriptionWrapper struct {
 	SplitToningHighlightSaturation string `xml:"crs:SplitToningHighlightSaturation,attr,omitempty"`
 	SplitToningBalance             string `xml:"crs:SplitToningBalance,attr,omitempty"`
 
+	// Color Grading (Phase 2) - Lightroom 2019+ Color Grading panel
+	ColorGradeHighlightHue string `xml:"crs:ColorGradeHighlightHue,attr,omitempty"`
+	ColorGradeHighlightSat string `xml:"crs:ColorGradeHighlightSat,attr,omitempty"`
+	ColorGradeHighlightLum string `xml:"crs:ColorGradeHighlightLum,attr,omitempty"`
+	ColorGradeMidtoneHue   string `xml:"crs:ColorGradeMidtoneHue,attr,omitempty"`
+	ColorGradeMidtoneSat   string `xml:"crs:ColorGradeMidtoneSat,attr,omitempty"`
+	ColorGradeMidtoneLum   string `xml:"crs:ColorGradeMidtoneLum,attr,omitempty"`
+	ColorGradeShadowHue    string `xml:"crs:ColorGradeShadowHue,attr,omitempty"`
+	ColorGradeShadowSat    string `xml:"crs:ColorGradeShadowSat,attr,omitempty"`
+	ColorGradeShadowLum    string `xml:"crs:ColorGradeShadowLum,attr,omitempty"`
+	ColorGradeBlending     string `xml:"crs:ColorGradeBlending,attr,omitempty"`
+	ColorGradeGlobalHue    string `xml:"crs:ColorGradeGlobalHue,attr,omitempty"`
+	ColorGradeGlobalSat    string `xml:"crs:ColorGradeGlobalSat,attr,omitempty"`
+	ColorGradeGlobalLum    string `xml:"crs:ColorGradeGlobalLum,attr,omitempty"`
+
 	// Tone Curve (stored as string, to be parsed separately if needed)
 	ToneCurve string `xml:"crs:ToneCurve,attr,omitempty"`
 }
@@ -425,4 +452,67 @@ func formatToneCurve(points []models.ToneCurvePoint) string {
 		result += fmt.Sprintf("%d, %d", point.Input, point.Output)
 	}
 	return result
+}
+
+// formatColorGradingZoneHue formats the Hue value for a specific color grading zone.
+// Returns empty string if ColorGrading is nil.
+func formatColorGradingZoneHue(cg *models.ColorGrading, zone string) string {
+	if cg == nil {
+		return ""
+	}
+	switch zone {
+	case "highlights":
+		return formatInt(cg.Highlights.Hue)
+	case "midtone":
+		return formatInt(cg.Midtone.Hue)
+	case "shadows":
+		return formatInt(cg.Shadows.Hue)
+	default:
+		return ""
+	}
+}
+
+// formatColorGradingZoneChroma formats the Chroma (Saturation) value for a specific color grading zone.
+// Returns empty string if ColorGrading is nil.
+func formatColorGradingZoneChroma(cg *models.ColorGrading, zone string) string {
+	if cg == nil {
+		return ""
+	}
+	switch zone {
+	case "highlights":
+		return formatInt(cg.Highlights.Chroma)
+	case "midtone":
+		return formatInt(cg.Midtone.Chroma)
+	case "shadows":
+		return formatInt(cg.Shadows.Chroma)
+	default:
+		return ""
+	}
+}
+
+// formatColorGradingZoneBrightness formats the Brightness (Luminance) value for a specific color grading zone.
+// Returns empty string if ColorGrading is nil.
+func formatColorGradingZoneBrightness(cg *models.ColorGrading, zone string) string {
+	if cg == nil {
+		return ""
+	}
+	switch zone {
+	case "highlights":
+		return formatInt(cg.Highlights.Brightness)
+	case "midtone":
+		return formatInt(cg.Midtone.Brightness)
+	case "shadows":
+		return formatInt(cg.Shadows.Brightness)
+	default:
+		return ""
+	}
+}
+
+// formatColorGradingBlending formats the Blending value for color grading.
+// Returns empty string if ColorGrading is nil.
+func formatColorGradingBlending(cg *models.ColorGrading) string {
+	if cg == nil {
+		return ""
+	}
+	return formatInt(cg.Blending)
 }

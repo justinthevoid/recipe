@@ -25,13 +25,13 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 			},
 			wantErr: false,
 			checkFunc: func(t *testing.T, params *np3Parameters) {
-				if params.sharpening != 9 {
-					t.Errorf("Sharpness: got %d, want 9", params.sharpening)
+				if params.sharpening != 9.0 && params.sharpening != 9 {
+					t.Errorf("Sharpness: got %.2f, want 9", params.sharpening)
 				}
 			},
 		},
 		{
-			name: "Contrast at upper boundary (100 → 3)",
+			name: "Contrast at upper boundary (100 → 100) - Phase 2 direct mapping",
 			recipe: &models.UniversalRecipe{
 				Sharpness:  0,
 				Contrast:   100,
@@ -40,13 +40,13 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 			},
 			wantErr: false,
 			checkFunc: func(t *testing.T, params *np3Parameters) {
-				if params.contrast != 3 {
-					t.Errorf("Contrast: got %d, want 3", params.contrast)
+				if params.contrast != 100 {
+					t.Errorf("Contrast: got %d, want 100", params.contrast)
 				}
 			},
 		},
 		{
-			name: "Contrast at lower boundary (-100 → -3)",
+			name: "Contrast at lower boundary (-100 → -100) - Phase 2 direct mapping",
 			recipe: &models.UniversalRecipe{
 				Sharpness:  0,
 				Contrast:   -100,
@@ -55,13 +55,13 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 			},
 			wantErr: false,
 			checkFunc: func(t *testing.T, params *np3Parameters) {
-				if params.contrast != -3 {
-					t.Errorf("Contrast: got %d, want -3", params.contrast)
+				if params.contrast != -100 {
+					t.Errorf("Contrast: got %d, want -100", params.contrast)
 				}
 			},
 		},
 		{
-			name: "Saturation at upper boundary (100 → 3)",
+			name: "Saturation at upper boundary (100 → 100) - Phase 2 direct mapping",
 			recipe: &models.UniversalRecipe{
 				Sharpness:  0,
 				Contrast:   0,
@@ -70,13 +70,13 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 			},
 			wantErr: false,
 			checkFunc: func(t *testing.T, params *np3Parameters) {
-				if params.saturation != 3 {
-					t.Errorf("Saturation: got %d, want 3", params.saturation)
+				if params.saturation != 100 {
+					t.Errorf("Saturation: got %d, want 100", params.saturation)
 				}
 			},
 		},
 		{
-			name: "Saturation at lower boundary (-100 → -3)",
+			name: "Saturation at lower boundary (-100 → -100) - Phase 2 direct mapping",
 			recipe: &models.UniversalRecipe{
 				Sharpness:  0,
 				Contrast:   0,
@@ -85,8 +85,8 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 			},
 			wantErr: false,
 			checkFunc: func(t *testing.T, params *np3Parameters) {
-				if params.saturation != -3 {
-					t.Errorf("Saturation: got %d, want -3", params.saturation)
+				if params.saturation != -100 {
+					t.Errorf("Saturation: got %d, want -100", params.saturation)
 				}
 			},
 		},
@@ -136,7 +136,7 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 	}
 }
 
-// TestEncodeBinaryMinFileSize tests that files are padded to minimum size
+// TestEncodeBinaryMinFileSize tests that files are exactly 480 bytes (NP3 standard size)
 func TestEncodeBinaryMinFileSize(t *testing.T) {
 	params := &np3Parameters{
 		name:       "",
@@ -152,9 +152,9 @@ func TestEncodeBinaryMinFileSize(t *testing.T) {
 		t.Fatalf("encodeBinary failed: %v", err)
 	}
 
-	// Should be 500 bytes (allocated size)
-	if len(data) != 500 {
-		t.Errorf("File size: got %d, want 500", len(data))
+	// Phase 2: NP3 files are exactly 480 bytes (0x1E0), matching real NP3 files
+	if len(data) != 480 {
+		t.Errorf("File size: got %d, want 480", len(data))
 	}
 }
 

@@ -295,3 +295,51 @@ func (r *UniversalRecipe) Validate() error {
 
 	return nil
 }
+
+// ValidateMidRangeSharpening validates mid-range sharpening parameter (-5.0 to +5.0)
+func ValidateMidRangeSharpening(value float64) error {
+	if value < -5.0 || value > 5.0 {
+		return fmt.Errorf("mid-range sharpening must be -5.0 to 5.0, got %.1f", value)
+	}
+	return nil
+}
+
+// ValidateColorGradingHue validates color grading hue (0-360 degrees)
+func ValidateColorGradingHue(hue int) error {
+	if hue < 0 || hue > 360 {
+		return fmt.Errorf("color grading hue must be 0-360, got %d", hue)
+	}
+	return nil
+}
+
+// ValidateColorGradingChroma validates color grading chroma (-100 to +100)
+func ValidateColorGradingChroma(chroma int) error {
+	if chroma < -100 || chroma > 100 {
+		return fmt.Errorf("color grading chroma must be -100 to 100, got %d", chroma)
+	}
+	return nil
+}
+
+// ValidateColorGradingBrightness validates color grading brightness (-100 to +100)
+func ValidateColorGradingBrightness(brightness int) error {
+	if brightness < -100 || brightness > 100 {
+		return fmt.Errorf("color grading brightness must be -100 to 100, got %d", brightness)
+	}
+	return nil
+}
+
+// ValidateColorGradingBlending validates color grading blending (0-100)
+func ValidateColorGradingBlending(blending int) error {
+	if blending < 0 || blending > 100 {
+		return fmt.Errorf("color grading blending must be 0-100, got %d", blending)
+	}
+	return nil
+}
+
+// ValidateColorGradingBalance validates color grading balance (-100 to +100)
+func ValidateColorGradingBalance(balance int) error {
+	if balance < -100 || balance > 100 {
+		return fmt.Errorf("color grading balance must be -100 to 100, got %d", balance)
+	}
+	return nil
+}
