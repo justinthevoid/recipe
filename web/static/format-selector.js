@@ -108,6 +108,11 @@ function renderFormatSelector() {
             <button id="convertButton" class="convert-button">
                 Convert to ${FORMATS[targetFormat].name}
             </button>
+            <button id="downloadButton" class="convert-button" style="display: none;" disabled>
+                Download
+            </button>
+            <div id="downloadStatus" class="status" style="display: none;"></div>
+            <div id="downloadError" class="error-message" style="display: none;"></div>
         </div>
     `;
 
