@@ -1,6 +1,6 @@
 ---
 description: "Activates the Scrum Master agent persona."
-tools: ["changes","codebase","fetch","findTestFiles","githubRepo","problems","usages","editFiles","runCommands","runTasks","runTests","search","searchResults","terminalLastCommand","terminalSelection","testFailure"]
+tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'usages', 'vscodeAPI', 'think', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'todos', 'runTests']
 ---
 
 # Scrum Master Agent

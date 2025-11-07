@@ -1,0 +1,351 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>2</storyId>
+    <title>convert-command</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-2-convert-command.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a photographer with a collection of Lightroom presets</asA>
+    <iWant>to convert individual preset files via the command line</iWant>
+    <soThat>I can use them on my Nikon Z camera or integrate conversion into my workflow automation</soThat>
+    <tasks>
+      ### Task 1: Implement Format Detection (AC-2)
+      - Create cmd/cli/format.go with detectFormat() and validateFormat() functions
+      - Case-insensitive extension matching (.np3, .xmp, .lrtemplate)
+      - Add unit tests in cmd/cli/format_test.go
+      - Run tests: go test ./cmd/cli/
+
+      ### Task 2: Implement Convert Command Flags (AC-10)
+      - Update cmd/cli/convert.go from Story 3-1 stub
+      - Required flag: --to/-t (target format)
+      - Optional flags: --from/-f, --output/-o, --overwrite
+      - Verify flags with ./recipe convert --help
+
+      ### Task 3: Implement File I/O and Output Path Logic (AC-3, AC-4)
+      - Create generateOutputPath(), checkOutputExists(), ensureOutputDir() helpers
+      - Default behavior: Replace input extension with target format extension
+      - Overwrite protection: Fail if output exists without --overwrite flag
+      - Add unit tests for path generation
+
+      ### Task 4: Implement runConvert Function (AC-1, AC-5, AC-6, AC-7, AC-8)
+      - Full conversion logic: Read → Detect → Convert → Write → Display
+      - Single API call to converter.Convert()
+      - Comprehensive error handling with user-friendly messages
+      - Success message with file size and duration
+      - Add formatBytes() and formatDuration() helpers
+
+      ### Task 5: Integration Testing (All ACs)
+      - Create cmd/cli/convert_integration_test.go
+      - Test basic conversion, file not found, overwrite protection
+      - Use real sample files from testdata/
+      - Run: go test -v ./cmd/cli/
+
+      ### Task 6: Manual Testing with Real Files (All ACs)
+      - Test all 6 format combinations (NP3↔XMP, NP3↔lrtemplate, XMP↔lrtemplate)
+      - Test error scenarios: file not found, invalid format, missing --to flag
+      - Test overwrite protection and custom output paths
+      - Document results in Dev Notes
+
+      ### Task 7: Update Documentation (AC-9)
+      - Update main README.md with CLI usage examples
+      - Add godoc comments to cmd/cli/convert.go
+      - Document supported formats and examples in help text
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    **AC-1: Basic Conversion Command**
+    - Command accepts input file and target format: recipe convert INPUT --to FORMAT
+    - Reads input file, calls converter.Convert(), writes output with appropriate extension
+    - Displays success message with filenames, file size, and duration
+    - Exit code 0 on success
+
+    **AC-2: Format Auto-Detection**
+    - CLI detects source format from file extension if --from flag omitted
+    - Supported extensions: .np3, .xmp, .lrtemplate (case-insensitive)
+    - Error if extension is unrecognized or missing
+    - All three format extensions detected correctly
+
+    **AC-3: Custom Output Path**
+    - --output or -o flag specifies custom output path
+    - Default behavior: Replace input extension with target format extension
+    - Output directory created if doesn't exist
+    - Absolute and relative paths supported
+
+    **AC-4: Overwrite Protection**
+    - CLI refuses to overwrite existing files by default
+    - --overwrite flag allows overwriting existing files
+    - Clear error message when file exists and --overwrite not specified
+    - Original file preserved when overwrite attempt fails
+
+    **AC-5: Error Handling - File Not Found**
+    - Clear error when input file doesn't exist
+    - Error message includes filename
+    - Exit code 1, no output file created
+
+    **AC-6: Error Handling - Invalid Format**
+    - Clear error when input file is corrupted or invalid
+    - Error message explains what's wrong
+    - Exit code 1, no output file created
+
+    **AC-7: Error Handling - Unsupported Target Format**
+    - Validate target format is one of: np3, xmp, lrtemplate
+    - Clear error for invalid --to value
+    - Exit code 1 or 2 for usage error
+
+    **AC-8: Integration with Internal Converter**
+    - CLI imports internal/converter package
+    - Calls converter.Convert(inputBytes, sourceFormat, targetFormat) exactly once
+    - Handles ConversionError type returned from converter
+    - Does not directly call format parsers/generators (architecture constraint)
+
+    **AC-9: Success Message Format**
+    - Success message format: ✓ Converted &lt;input&gt; → &lt;output&gt; (&lt;size&gt;,
+    &lt;duration&gt;)
+    - File size displayed in human-readable format (KB, MB)
+    - Duration displayed in milliseconds or seconds
+    - Unicode checkmark (✓) on supported terminals, fallback to "OK" if not
+
+    **AC-10: Flag Validation**
+    - --to flag is required (error if omitted)
+    - --from flag is optional (auto-detect by default)
+    - --output flag is optional (default to input path with new extension)
+    - --overwrite flag is optional (default: false)
+    - Invalid flag combinations return usage errors
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <artifact>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>Detailed Design - APIs and Interfaces</section>
+        <snippet>CLI-to-Converter API: converter.Convert(input []byte, sourceFormat, targetFormat
+          string) ([]byte, error). New CLI Internal APIs: detectFormat(), convertSingleFile(),
+          formatResult(). Command signatures using Cobra framework with RunE for error handling.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>Detailed Design - Data Models and Contracts</section>
+        <snippet>ConversionResult struct with InputFile, OutputFile, SourceFormat, TargetFormat,
+          Success, Error, Duration, FileSize, Warnings fields. ConvertFlags struct with From, To,
+          Output, Verbose, JSON, Overwrite fields.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>Workflows and Sequencing - Single File Conversion Flow</section>
+        <snippet>User Command: recipe convert portrait.xmp --to np3. Flow: Parse CLI flags →
+          Validate args → Detect source format → Read input file → Call converter.Convert() → Write
+          output file → Display result → Exit code 0.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/architecture.md</path>
+        <title>Architecture - Pattern 10: CLI Command Pattern</title>
+        <section>Implementation Patterns</section>
+        <snippet>Every CLI command follows Cobra structure with RunE for error handling. Example:
+          var convertCmd = &amp;cobra.Command{Use: "convert [input] [output]", RunE: runConvert}.
+          Flags registered via Flags().StringP(). Error handling via returned error from RunE.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/architecture.md</path>
+        <title>Architecture - Pattern 5: Error Handling</title>
+        <section>Implementation Patterns</section>
+        <snippet>Always return wrapped ConversionError for conversion failures. Type ConversionError
+          with Operation, Format, Cause fields. Usage: return &amp;ConversionError{Operation:
+          "parse", Format: from, Cause: err}. Unwrap() method for error chains.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-3: CLI Interface</section>
+        <snippet>FR-3.1: Basic CLI command structure with recipe convert INPUT --to FORMAT syntax.
+          FR-3.3: Format auto-detection from file extension. Command-line flags for source/target
+          formats, output paths, and operational modes.</snippet>
+      </artifact>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>core-conversion-api</kind>
+        <symbol>Convert</symbol>
+        <lines>23-124</lines>
+        <reason>Main conversion API that CLI will invoke. Thread-safe stateless function:
+          Convert(input []byte, from, to string) ([]byte, error). Supports auto-detection with
+          from="" parameter. Returns ConversionError on failure.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>format-detection</kind>
+        <symbol>DetectFormat</symbol>
+        <lines>126-165</lines>
+        <reason>Format auto-detection function used when --from flag omitted. Returns "np3", "xmp",
+          or "lrtemplate" based on magic bytes and file structure. CLI will use this in AC-2.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/error.go</path>
+        <kind>error-type</kind>
+        <symbol>ConversionError</symbol>
+        <lines>76-157</lines>
+        <reason>Structured error type that CLI will catch and format for user display. Contains
+          Operation, Format, Cause, and Warnings fields. Implements Error() and Unwrap() methods for
+          error chains.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>format-constants</kind>
+        <symbol>FormatNP3, FormatXMP, FormatLRTemplate</symbol>
+        <lines>13-18</lines>
+        <reason>Format identifier constants ("np3", "xmp", "lrtemplate") that CLI will use for
+          validation and display. Public constants for external use.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>data-model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>1-200</lines>
+        <reason>Universal intermediate representation used by converter. CLI doesn't interact with
+          this directly, but it's the hub that converter.Convert() uses internally.</reason>
+      </artifact>
+      <artifact>
+        <path>testdata/xmp/portrait.xmp</path>
+        <kind>test-data</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>Sample XMP file for integration testing. Story references this file in manual
+          testing examples (AC-1, AC-6). Part of 913 XMP sample files in testdata/.</reason>
+      </artifact>
+      <artifact>
+        <path>testdata/np3/*.np3</path>
+        <kind>test-data</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>22 sample NP3 files for testing all format combinations. Used in manual testing Task
+          6 for NP3→XMP and NP3→lrtemplate conversions.</reason>
+      </artifact>
+      <artifact>
+        <path>testdata/lrtemplate/*.lrtemplate</path>
+        <kind>test-data</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>544 sample lrtemplate files for testing. Used in manual testing for lrtemplate→XMP
+          and lrtemplate→NP3 conversions.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go version="1.24.0+">
+        <stdlib>
+          <package name="os" usage="File I/O (ReadFile, WriteFile, Stat, MkdirAll)" />
+          <package name="path/filepath" usage="Path manipulation (Ext, Dir, Join), glob patterns" />
+          <package name="strings" usage="String operations (ToLower, TrimSuffix)" />
+          <package name="time" usage="Duration tracking for success message" />
+          <package name="fmt" usage="Error formatting and output" />
+        </stdlib>
+        <internal>
+          <package name="github.com/justin/recipe/internal/converter"
+            usage="Core conversion API - Convert() function" />
+        </internal>
+        <external>
+          <package name="github.com/spf13/cobra"
+            usage="CLI framework for command structure, flag parsing, help generation" />
+        </external>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Thin CLI Layer - All business logic must be in
+      internal/converter, CLI only handles I/O and formatting. No direct imports of
+      internal/formats/* packages allowed.</constraint>
+    <constraint type="architecture">Single API Call - Must call converter.Convert() exactly once per
+      file conversion. No direct calls to format parsers/generators (AC-8).</constraint>
+    <constraint type="architecture">Stateless Operation - No global state, each convert call is
+      independent. Safe for concurrent execution (future batch mode).</constraint>
+    <constraint type="design">Overwrite Protection - Default behavior must refuse to overwrite
+      existing files without explicit --overwrite flag (AC-4).</constraint>
+    <constraint type="design">Exit Codes - 0 for success, 1 for conversion errors, 2 for usage
+      errors. Consistent with Unix conventions.</constraint>
+    <constraint type="error-handling">User-Friendly Errors - No stack traces in production. Clear
+      actionable messages ("use --overwrite to replace"). Technical details in verbose mode (Story
+      3-5).</constraint>
+    <constraint type="testing">Real Sample Files - Integration tests must use actual files from
+      testdata/ directory (1,501 total files). No mocked file data.</constraint>
+    <constraint type="dependencies">Zero New Dependencies - Use only Go stdlib and existing
+      internal/converter. Cobra already added in Story 3-1.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>converter.Convert</name>
+      <kind>function</kind>
+      <signature>func Convert(input []byte, from, to string) ([]byte, error)</signature>
+      <path>internal/converter/converter.go:23-124</path>
+      <usage>Main CLI conversion flow. Read file → Call Convert() → Write output. Pass empty string
+        for 'from' to enable auto-detection.</usage>
+    </interface>
+    <interface>
+      <name>converter.DetectFormat</name>
+      <kind>function</kind>
+      <signature>func DetectFormat(input []byte) (string, error)</signature>
+      <path>internal/converter/converter.go:126-165</path>
+      <usage>Optional explicit format detection. CLI uses extension-based detection first (AC-2),
+        this function is fallback for content-based detection (Story 3-4).</usage>
+    </interface>
+    <interface>
+      <name>ConversionError</name>
+      <kind>error-type</kind>
+      <signature>type ConversionError struct { Operation, Format string; Cause error; Warnings
+        []string }</signature>
+      <path>internal/converter/error.go:76-90</path>
+      <usage>CLI catches this error type to format user-friendly messages. Check Operation field
+        ("parse", "generate", "validate") for context.</usage>
+    </interface>
+    <interface>
+      <name>convertCmd Cobra Command</name>
+      <kind>cobra-command</kind>
+      <signature>var convertCmd = &amp;cobra.Command{Use: "convert [input]", RunE: runConvert}</signature>
+      <path>cmd/cli/convert.go</path>
+      <usage>Command definition from Story 3-1. This story implements the runConvert() function body
+        that was a stub.</usage>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Go standard testing package with table-driven tests. Integration tests build CLI binary and
+      execute as subprocess to test real command-line behavior. Use testdata/ sample files for
+      realistic validation. Verify exit codes, stdout/stderr output, and file creation.
+    </standards>
+    <locations>
+      <location>cmd/cli/*_test.go</location>
+      <location>cmd/cli/format_test.go - Unit tests for format detection</location>
+      <location>cmd/cli/convert_integration_test.go - End-to-end CLI execution tests</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1">TestCLI_BasicConversion: Run 'recipe convert testdata/xmp/portrait.xmp --to
+        np3', verify portrait.np3 created, check success message format, validate exit code 0</idea>
+      <idea ac="AC-2">TestDetectFormat: Table-driven test with .np3, .NP3, .xmp, .lrtemplate
+        extensions. Verify case-insensitive matching. Test unknown extension returns error.</idea>
+      <idea ac="AC-3">TestGenerateOutputPath: Verify portrait.xmp → portrait.np3 path generation.
+        Test absolute paths, relative paths, files with multiple dots.</idea>
+      <idea ac="AC-4">TestCLI_OverwriteProtection: Create existing portrait.np3, run convert without
+        --overwrite, verify error and file unchanged. Then run with --overwrite, verify success.</idea>
+      <idea ac="AC-5">TestCLI_FileNotFound: Run 'recipe convert nonexistent.xmp --to np3', verify
+        error message, exit code 1, no output file created.</idea>
+      <idea ac="AC-6">TestCLI_InvalidFormat: Create corrupted .xmp file, run convert, verify parser
+        error message is user-friendly, exit code 1.</idea>
+      <idea ac="AC-8">Code review verification: Grep for 'converter.Convert(' in convert.go, verify
+        single call. Grep for 'internal/formats' imports, should find none.</idea>
+      <idea ac="AC-9">TestFormatBytes: Verify 1234 → "1.2 KB", 1048576 → "1.0 MB".
+        TestFormatDuration: Verify 15ms and 1.5s formatting.</idea>
+      <idea ac="AC-10">TestCLI_MissingToFlag: Run 'recipe convert portrait.xmp', verify required
+        flag error, exit code 2.</idea>
+    </ideas>
+  </tests>
+</story-context>

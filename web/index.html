@@ -10,10 +10,262 @@
     <!-- Hero Section -->
     <header>
         <h1>🍳 Recipe</h1>
-        <p class="tagline">Convert photo presets between formats</p>
-        <p class="formats">Nikon NP3 ↔ Lightroom XMP ↔ lrtemplate</p>
-        <p class="privacy">🔒 100% privacy - your files never leave your device</p>
+        <p class="tagline">Universal Photo Preset Converter</p>
+        <p class="formats">Convert photo presets between Nikon NP3, Lightroom XMP, and lrtemplate formats</p>
+
+        <!-- Privacy Badge (Story 2-9, AC-1) -->
+        <a href="#privacy" id="privacyBadge" class="privacy-badge">
+            🔒 100% Privacy - Your files never leave your device
+        </a>
     </header>
+
+    <!-- Landing Page Content (Story 7-1) -->
+    <div class="landing-content">
+        <!-- What is Recipe Section (AC-1) -->
+        <section id="description" class="content-section">
+            <h2>What is Recipe?</h2>
+            <p>
+                Recipe lets Nikon Z-series photographers use the thousands of Lightroom presets
+                available online directly on their cameras. Convert .xmp or .lrtemplate files to
+                Nikon's .np3 Picture Control format in seconds—no installation, no uploads,
+                100% private.
+            </p>
+            <p>
+                Perfect for photographers who want in-camera color grading for instant results,
+                access to Lightroom's vast preset library on Nikon cameras, and privacy-first
+                conversion where files never leave your device.
+            </p>
+        </section>
+
+        <!-- How to Use Section (AC-2) -->
+        <section id="how-to-use" class="content-section">
+            <h2>How to Use</h2>
+            <ol class="steps">
+                <li>
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <strong>Upload</strong> — Drag your preset file or click to browse (.np3, .xmp, .lrtemplate)
+                    </div>
+                </li>
+                <li>
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <strong>Convert</strong> — Select target format and click Convert
+                    </div>
+                </li>
+                <li>
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <strong>Download</strong> — Save converted file to your device
+                    </div>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Privacy First Section (AC-3) -->
+        <section id="privacy" class="content-section privacy-section">
+            <h2>🔒 Privacy First</h2>
+            <p class="privacy-headline"><strong>Your files never leave your device.</strong></p>
+            <p>
+                Recipe processes all conversions locally in your browser using WebAssembly.
+                No server uploads, no tracking, no data collection. Your presets stay private.
+            </p>
+            <ul class="privacy-checklist">
+                <li>✅ Verified across Chrome, Firefox, and Safari</li>
+                <li>✅ Zero network requests during conversion</li>
+                <li>✅ No analytics or tracking scripts</li>
+            </ul>
+            <p class="privacy-link">
+                <a href="docs/browser-compatibility.md">Learn more about our privacy architecture →</a>
+            </p>
+        </section>
+
+        <!-- Supported Formats Section (AC-4) -->
+        <section id="formats" class="content-section">
+            <h2>Supported Formats</h2>
+            <p>Recipe converts between three photo preset formats:</p>
+            <div class="format-table-wrapper">
+                <table class="format-table">
+                    <thead>
+                        <tr>
+                            <th>Format</th>
+                            <th>Type</th>
+                            <th>Used In</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>.np3</code></td>
+                            <td>Nikon Picture Control</td>
+                            <td>Nikon Z cameras</td>
+                        </tr>
+                        <tr>
+                            <td><code>.xmp</code></td>
+                            <td>Lightroom CC Preset</td>
+                            <td>Adobe Lightroom CC</td>
+                        </tr>
+                        <tr>
+                            <td><code>.lrtemplate</code></td>
+                            <td>Lightroom Classic</td>
+                            <td>Adobe Lightroom Classic</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p><strong>Bidirectional Conversion:</strong> Convert any format to any other format (6 conversion paths)</p>
+            <p><strong>Accuracy:</strong> 95%+ parameter mapping for core adjustments (Exposure, Contrast, Saturation, HSL, etc.)</p>
+            <p class="format-link">
+                <a href="docs/format-compatibility-matrix.md">View detailed compatibility matrix →</a>
+            </p>
+        </section>
+
+        <!-- FAQ Section (AC-5) -->
+        <section id="faq-preview" class="content-section">
+            <h2>Frequently Asked Questions</h2>
+
+            <div class="faq-item-landing">
+                <h3>Is Recipe legal?</h3>
+                <p>
+                    Recipe uses reverse-engineered file formats for interoperability purposes,
+                    which is generally protected under fair use. We recommend private use until
+                    a full legal assessment is complete. No affiliation with Nikon or Adobe.
+                </p>
+            </div>
+
+            <div class="faq-item-landing">
+                <h3>Is my data private?</h3>
+                <p>
+                    <strong>Yes!</strong> Recipe processes all files locally in your browser via WebAssembly.
+                    Zero server uploads, zero tracking, zero data collection. Your presets stay private.
+                </p>
+            </div>
+
+            <div class="faq-item-landing">
+                <h3>Why don't some parameters convert?</h3>
+                <p>
+                    Different formats support different features. For example, Lightroom's Grain
+                    effect doesn't exist in Nikon's NP3 format. Recipe warns you when parameters
+                    can't be mapped and approximates where possible.
+                </p>
+            </div>
+
+            <div class="faq-item-landing">
+                <h3>How accurate is conversion?</h3>
+                <p>
+                    Recipe achieves 95%+ accuracy for core parameters like Exposure, Contrast,
+                    Saturation, and HSL adjustments. Visual similarity is validated against
+                    1,501 real-world preset files.
+                </p>
+            </div>
+
+            <p class="faq-link">
+                <a href="docs/faq.md">View complete FAQ →</a>
+            </p>
+        </section>
+
+        <!-- Try Recipe Now -->
+        <section id="try-now" class="content-section try-now-section">
+            <h2>Try Recipe Now</h2>
+            <p>Start converting presets instantly—no account required.</p>
+        </section>
+
+        <!-- Legal Disclaimer (Story 7-4) -->
+        <section id="legal-disclaimer" class="content-section legal-section">
+            <h2>Legal Disclaimer</h2>
+
+            <div class="legal-summary">
+                <p>
+                    <strong>Recipe is provided "AS IS" without warranty for research and interoperability purposes.
+                    We recommend private use only until a full legal assessment is completed.</strong>
+                </p>
+            </div>
+
+            <div class="legal-subsection">
+                <h3>Reverse Engineering Disclosure</h3>
+                <p>
+                    Recipe uses reverse-engineered file formats to enable interoperability between
+                    photo preset systems. Specifically, the Nikon Picture Control (.np3) format was
+                    reverse-engineered through clean-room analysis of publicly available sample files.
+                </p>
+                <p>
+                    <strong>Legal Basis:</strong> Reverse engineering for interoperability purposes is
+                    generally protected under fair use principles and research exemptions in copyright law,
+                    including DMCA Section 1201(f) (reverse engineering for interoperability) and Section
+                    1201(j) (security research). No proprietary software was decompiled or disassembled
+                    in creating Recipe.
+                </p>
+                <p>
+                    <strong>No Vendor Affiliation:</strong> Recipe is an independent project with no
+                    affiliation to Nikon Corporation, Adobe Inc., or any other camera/software manufacturer.
+                    Recipe does not distribute, modify, or incorporate any proprietary software, copyrighted
+                    presets, or vendor intellectual property.
+                </p>
+            </div>
+
+            <div class="legal-subsection">
+                <h3>No Warranty</h3>
+                <p class="legal-caps">
+                    RECIPE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+                    INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+                    PARTICULAR PURPOSE AND NONINFRINGEMENT.
+                </p>
+                <p class="legal-caps">
+                    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+                    OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+                    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+                </p>
+                <p>
+                    Recipe makes no guarantees about conversion accuracy, compatibility, or results.
+                    Parameter mapping between different preset formats involves approximations and may
+                    not produce identical visual results. Users are responsible for validating converted
+                    presets before use.
+                </p>
+            </div>
+
+            <div class="legal-subsection">
+                <h3>Recommended Use</h3>
+                <p>
+                    We recommend using Recipe for <strong>private and personal use only</strong> until
+                    a comprehensive legal assessment is completed by qualified legal counsel.
+                </p>
+                <p>
+                    <strong>Commercial Use:</strong> If you intend to use Recipe for commercial purposes
+                    (e.g., selling converted presets, using in a business workflow, or distributing to
+                    clients), you should consult with an attorney knowledgeable in intellectual property
+                    law to assess potential legal risks in your jurisdiction.
+                </p>
+                <p>
+                    <strong>User Responsibility:</strong> By using Recipe, you acknowledge that you are
+                    solely responsible for ensuring your use complies with applicable laws and regulations.
+                    You assume all risks associated with using reverse-engineered file formats.
+                </p>
+            </div>
+
+            <div class="legal-meta">
+                <h3>About This Disclaimer</h3>
+                <p>
+                    This disclaimer is based on the MIT License warranty language and standard open-source
+                    legal templates. It has not been reviewed by legal counsel. Recipe is an experimental
+                    project created for research and educational purposes.
+                </p>
+                <p>
+                    <strong>Open Source:</strong> Recipe's source code is publicly available on
+                    <a href="https://github.com/justin/recipe" target="_blank" rel="noopener">GitHub</a>
+                    under the MIT License. You are free to review, modify, and redistribute the code
+                    according to the license terms.
+                </p>
+                <p>
+                    <em>Last updated: 2025-11-06</em>
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Error Container (Story 2-8) - Fixed position at top -->
+    <div id="errorContainer" style="display: none;"></div>
+
+    <!-- Privacy Status (Story 2-9, AC-2) - Shows after file upload -->
+    <div id="privacyStatus" class="status privacy" style="display: none;" role="status" aria-live="polite"></div>
 
     <!-- Status Banner (WASM loading, etc.) -->
     <div id="status" class="status loading" role="status" aria-live="polite">
@@ -47,16 +299,89 @@
 
         <!-- Conversion Controls (populated by Stories 2-5, 2-6, 2-7) -->
         <div id="conversionControls" class="conversion-controls" style="display: none;"></div>
+
+        <!-- Conversion Status (Story 2-6) -->
+        <div id="conversionStatus" class="status" style="display: none;" role="status" aria-live="polite"></div>
+
+        <!-- Conversion Error (Story 2-6) -->
+        <div id="conversionError" class="error-message" style="display: none;" role="alert"></div>
+
+        <!-- Download Button (Story 2-7) -->
+        <button id="downloadButton" class="download-button" style="display: none;" disabled>
+            Download Converted Preset
+        </button>
+
+        <!-- Download Status (Story 2-7) -->
+        <div id="downloadStatus" class="status" style="display: none;" role="status" aria-live="polite"></div>
+
+        <!-- Download Error (Story 2-7) -->
+        <div id="downloadError" class="error-message" style="display: none;" role="alert"></div>
     </main>
 
     <!-- Footer -->
     <footer>
-        <p>
-            Recipe v<span id="version">Loading...</span> |
-            <a href="https://github.com/justin/recipe" target="_blank" rel="noopener">GitHub</a>
-        </p>
+        <div class="footer-links">
+            <p>
+                Recipe v<span id="version">Loading...</span> |
+                <a href="https://github.com/justin/recipe" target="_blank" rel="noopener">📂 Open Source - View on GitHub</a> |
+                <a href="#legal-disclaimer">⚖️ Legal Disclaimer</a>
+            </p>
+        </div>
+
+        <!-- For Developers Section (Story 7-1, AC-7) -->
+        <div class="developer-links">
+            <h3>For Developers</h3>
+            <p>Recipe is open-source and built with privacy-first architecture.</p>
+            <ul>
+                <li><a href="https://github.com/justin/recipe" target="_blank" rel="noopener">GitHub Repository</a> — Source code and CLI</li>
+                <li><a href="docs/architecture.md">Architecture Documentation</a> — System design and WASM implementation</li>
+                <li><a href="docs/cli-patterns-and-file-formats.md">Format Specifications</a> — NP3, XMP, lrtemplate details</li>
+                <li><a href="docs/browser-compatibility.md">Browser Compatibility</a> — Testing and privacy validation</li>
+            </ul>
+            <p class="tech-stack">Built with Go 1.25+, vanilla JavaScript, and WebAssembly.</p>
+        </div>
+
+        <!-- Privacy FAQ Section (Story 2-9, AC-4, AC-5, AC-6) -->
+        <div class="privacy-faq" id="privacyFAQ">
+            <button id="privacyFAQToggle" class="faq-toggle" aria-expanded="false">Privacy FAQ ▼</button>
+
+            <div id="privacyFAQContent" class="faq-content" style="display: none;">
+                <h3>Frequently Asked Questions About Privacy</h3>
+
+                <div class="faq-item">
+                    <h4>Are my files uploaded to a server?</h4>
+                    <p><strong>No.</strong> All processing happens in your browser using WebAssembly. Your files never leave your device.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>Does Recipe store or track my files?</h4>
+                    <p><strong>No.</strong> Recipe doesn't store any files, and we don't track what you convert. There are no servers, databases, or accounts.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>How does Recipe convert files without a server?</h4>
+                    <p>Recipe uses <strong>WebAssembly (WASM)</strong> to run the conversion engine directly in your browser. Think of it like a mini-application running entirely on your computer. <a href="https://webassembly.org/" target="_blank" rel="noopener">Learn more about WebAssembly</a>.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>Can I verify Recipe is private?</h4>
+                    <p><strong>Yes!</strong> Recipe is open source. You can review the entire codebase on <a href="https://github.com/justin/recipe" target="_blank" rel="noopener">GitHub</a> to confirm no data is sent anywhere.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>What about analytics or tracking?</h4>
+                    <p>Recipe doesn't use tracking or analytics. No cookies, no telemetry, no fingerprinting. You can verify this by inspecting network requests in your browser's developer tools.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>Is my browser safe running WebAssembly?</h4>
+                    <p><strong>Yes.</strong> WebAssembly runs in a sandboxed environment with the same security as JavaScript. It cannot access your file system, network, or other browser tabs without explicit permission.</p>
+                </div>
+            </div>
+        </div>
+
         <p class="disclaimer">
-            Files processed locally via WebAssembly. No server uploads.
+            Files processed locally via WebAssembly. No server uploads. No data stored.
         </p>
     </footer>
 

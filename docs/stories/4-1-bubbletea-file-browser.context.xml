@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <epic-id>4</epic-id>
+    <epic-name>TUI Interface (FR-4)</epic-name>
+    <story-id>4.1</story-id>
+    <story-key>4-1-bubbletea-file-browser</story-key>
+    <story-file>docs/stories/4-1-bubbletea-file-browser.md</story-file>
+    <status>ready-for-dev</status>
+    <complexity>Medium (2-3 days)</complexity>
+    <created>2025-11-06</created>
+    <context-generated>2025-11-06</context-generated>
+  </metadata>
+
+  <story>
+    <title>Bubbletea File Browser</title>
+    <user-story>
+      <as-a>photographer using Recipe from the terminal</as-a>
+      <i-want>an interactive file browser with keyboard navigation</i-want>
+      <so-that>I can visually select preset files for conversion without typing full paths or using
+        shell wildcards</so-that>
+    </user-story>
+
+    <business-value>
+      The Bubbletea-based TUI file browser transforms Recipe from a CLI-only tool into an
+      interactive terminal application that bridges the gap between command-line power and GUI
+      convenience:
+
+      - Visual File Management - Browse directories and see file previews without leaving the
+      terminal
+      - Reduced Cognitive Load - No need to remember file paths or glob patterns
+      - Power User Efficiency - Keyboard-driven workflow is faster than mouse-based GUIs for batch
+      operations
+      - Professional Workflow Integration - Terminal users (developers, sys admins, power users)
+      prefer TUI over switching to GUI tools
+
+      Strategic value: TUI interface differentiates Recipe from web-only converters and positions it
+      as a professional power-user tool. Photographers working in terminal-heavy workflows (server
+      environments, SSH sessions, automated pipelines) can use Recipe without GUI overhead.
+    </business-value>
+  </story>
+
+  <acceptance-criteria>
+    <criterion id="AC-1" title="Bubbletea Application Initialization">
+      <description>TUI application initialization and basic lifecycle management</description>
+      <requirements>
+        <requirement>TUI application built using Bubbletea framework
+          (github.com/charmbracelet/bubbletea/v2)</requirement>
+        <requirement>Application launches with `recipe-tui` command (separate binary from `recipe`
+          CLI)</requirement>
+        <requirement>Initial state shows current working directory</requirement>
+        <requirement>Terminal size detected and UI adapts to terminal dimensions</requirement>
+        <requirement>Application exits cleanly with Ctrl+C or 'q' key</requirement>
+      </requirements>
+      <test-guidance>
+        Test model initialization, verify currentDir starts at ".", confirm terminal width
+        detection, test clean exit handlers
+      </test-guidance>
+    </criterion>
+
+    <criterion id="AC-2" title="Directory Navigation">
+      <description>Keyboard-driven directory and file navigation</description>
+      <requirements>
+        <requirement>Display current directory path at top of screen</requirement>
+        <requirement>List files and subdirectories in current directory</requirement>
+        <requirement>Arrow keys navigate up/down through file list</requirement>
+        <requirement>Enter key on directory navigates into that directory</requirement>
+        <requirement>Backspace or left arrow navigates to parent directory</requirement>
+        <requirement>Home/End keys jump to first/last item in list</requirement>
+      </requirements>
+      <test-guidance>
+        Test navigation with nested directories, verify cursor movement, test boundary conditions
+        (first/last item), test parent navigation from deep paths
+      </test-guidance>
+    </criterion>
+
+    <criterion id="AC-3" title="File Filtering by Format">
+      <description>Display only supported preset formats with metadata</description>
+      <requirements>
+        <requirement>Display only supported preset formats: .np3, .xmp, .lrtemplate</requirement>
+        <requirement>Show directories (for navigation) but filter non-preset files</requirement>
+        <requirement>Display file extension badges (NP3, XMP, LRT) with color coding</requirement>
+        <requirement>Show file size in human-readable format (KB, MB)</requirement>
+        <requirement>Empty directory message if no preset files found</requirement>
+      </requirements>
+      <test-guidance>
+        Test with mixed file types, verify only presets + directories shown, test empty directory
+        message, validate badge colors
+      </test-guidance>
+    </criterion>
+
+    <criterion id="AC-4" title="Multi-File Selection">
+      <description>Keyboard-based multi-file selection with visual indicators</description>
+      <requirements>
+        <requirement>Space bar toggles selection on current file</requirement>
+        <requirement>Selected files marked with checkmark (✓) indicator</requirement>
+        <requirement>Status bar shows count of selected files</requirement>
+        <requirement>'a' key selects all files in current directory</requirement>
+        <requirement>'n' key deselects all files (clears selection)</requirement>
+        <requirement>Selection state persists across directory navigation</requirement>
+      </requirements>
+      <test-guidance>
+        Test selection toggle, verify checkmark display, test select-all/deselect-all, test
+        selection persistence when navigating directories
+      </test-guidance>
+    </criterion>
+
+    <criterion id="AC-5" title="File Information Display">
+      <description>Rich file metadata display in UI</description>
+      <requirements>
+        <requirement>Display file name, size, and last modified date</requirement>
+        <requirement>Show file path (full absolute path) in status bar when file selected</requirement>
+        <requirement>Display total count of files in current directory</requirement>
+        <requirement>Show format type (NP3, XMP, lrtemplate) with color-coded badge</requirement>
+      </requirements>
+      <test-guidance>
+        Verify all metadata fields display correctly, test path truncation for long paths, validate
+        color-coded badges match format
+      </test-guidance>
+    </criterion>
+
+    <criterion id="AC-6" title="Keyboard Shortcuts Help">
+      <description>In-app help overlay for keyboard shortcuts</description>
+      <requirements>
+        <requirement>'?' key displays help overlay with all keyboard shortcuts</requirement>
+        <requirement>Help overlay can be dismissed with '?' or Escape key</requirement>
+        <requirement>Help overlay lists all navigation, selection, and action keys</requirement>
+      </requirements>
+      <test-guidance>
+        Test help toggle (? to show, ? or Esc to hide), verify all shortcuts documented in help,
+        test help overlay styling
+      </test-guidance>
+    </criterion>
+
+    <criterion id="AC-7" title="Terminal Resize Handling">
+      <description>Responsive UI that adapts to terminal size changes</description>
+      <requirements>
+        <requirement>UI adapts to terminal resize events</requirement>
+        <requirement>File list scrolls if more files than terminal height</requirement>
+        <requirement>Layout remains functional at minimum 80x24 terminal size</requirement>
+        <requirement>Help overlay adapts to terminal size</requirement>
+      </requirements>
+      <test-guidance>
+        Test with various terminal sizes, verify scrolling with large file lists, test minimum size
+        constraint, verify resize handling during operation
+      </test-guidance>
+    </criterion>
+  </acceptance-criteria>
+
+  <tasks>
+    <task-group name="Task 1: Project Structure Setup">
+      <task>Create `cmd/tui/` directory</task>
+      <task>Create `cmd/tui/main.go` with basic structure (package main, main() entry point,
+        tea.NewProgram call)</task>
+    </task-group>
+
+    <task-group name="Task 2: Dependency Installation">
+      <task>Install Bubbletea v2 experimental: `go get github.com/charmbracelet/bubbletea/v2@v2-exp`</task>
+      <task>Install Bubbles v2 experimental: `go get github.com/charmbracelet/bubbles/v2@v2-exp`</task>
+      <task>Install Lipgloss v2 experimental: `go get github.com/charmbracelet/lipgloss/v2@v2-exp`</task>
+      <task>Install Charm X packages: `go get github.com/charmbracelet/x@v0.2.0`</task>
+    </task-group>
+
+    <task-group name="Task 3: Model Definition">
+      <task>Define initial model struct in `cmd/tui/model.go` with fields: currentDir, files,
+        cursor, selected, termWidth, termHeight, showHelp, err</task>
+      <task>Implement `Init()` method returning loadFiles command</task>
+      <task>Implement `Update()` method skeleton handling KeyMsg, WindowSizeMsg, fileListMsg</task>
+      <task>Implement `View()` method skeleton with basic rendering structure</task>
+    </task-group>
+
+    <task-group name="Task 4: File Loading">
+      <task>Create `loadFiles()` command reading directory with os.ReadDir and filtering for .np3,
+        .xmp, .lrtemplate</task>
+      <task>Implement `detectFormat()` helper returning format string ("NP3"/"XMP"/"LRT") based on
+        extension</task>
+      <task>Define fileInfo struct with fields: name, path, size, modTime, isDir, format</task>
+    </task-group>
+
+    <task-group name="Task 5: Keyboard Navigation">
+      <task>Create `handleKeyPress()` method handling up/down arrow keys, enter, backspace, home,
+        end, q, ctrl+c</task>
+      <task>Implement `navigateInto()` method for entering directories (updates currentDir, reloads
+        files, resets cursor)</task>
+      <task>Implement `navigateUp()` method for parent directory navigation (filepath.Dir, reloads
+        files)</task>
+    </task-group>
+
+    <task-group name="Task 6: Multi-File Selection">
+      <task>Add selection toggle to `handleKeyPress()` for space, 'a', 'n' keys</task>
+      <task>Implement `toggleSelection()` adding/removing current file from selected map</task>
+      <task>Implement `selectAll()` and `deselectAll()` methods for bulk selection operations</task>
+    </task-group>
+
+    <task-group name="Task 7: Lipgloss Styling">
+      <task>Create `renderFileList()` using Lipgloss for styled file list rendering</task>
+      <task>Implement `renderFileLine()` with cursor highlight, selection indicator, badge, size
+        formatting</task>
+      <task>Implement `formatBadge()` returning color-coded format badges using Lipgloss styles</task>
+      <task>Implement `formatSize()` converting bytes to human-readable KB/MB format</task>
+    </task-group>
+
+    <task-group name="Task 8: Help Overlay">
+      <task>Create `renderHelp()` returning formatted help text with keyboard shortcuts table</task>
+      <task>Update `handleKeyPress()` to handle '?' and Escape keys for help toggle</task>
+    </task-group>
+
+    <task-group name="Task 9: Terminal Resize Handling">
+      <task>Update `Update()` to handle WindowSizeMsg and update termWidth/termHeight in model</task>
+      <task>Implement scrolling for long file lists (track viewport offset, render visible slice)</task>
+    </task-group>
+
+    <task-group name="Task 10: Polish and UX">
+      <task>Add 'r' key handler for manual refresh/reload</task>
+      <task>Show refresh indicator during file load operations</task>
+    </task-group>
+
+    <task-group name="Task 11: Testing">
+      <task>Create `cmd/tui/model_test.go` with unit tests for navigation, selection, file filtering</task>
+      <task>Test coverage goal: &gt;85% for model logic</task>
+    </task-group>
+
+    <task-group name="Task 12: Build and Documentation">
+      <task>Update `Makefile` adding `recipe-tui` build target</task>
+      <task>Add TUI to GitHub Actions CI (go build, go test)</task>
+      <task>Update `README.md` with TUI usage section</task>
+      <task>Create `docs/tui-guide.md` with screenshots (ASCII art) and workflow examples</task>
+    </task-group>
+  </tasks>
+
+  <artifacts>
+    <documentation>
+      <doc type="prd" path="docs/PRD.md" section="FR-4: TUI Interface (Phase 2)">
+        Contains functional requirements FR-4.1 (Interactive File Browser), FR-4.2 (Live Parameter
+        Preview), FR-4.3 (Batch Progress), FR-4.4 (Visual Validation). This story implements FR-4.1
+        specifically.
+      </doc>
+      <doc type="prd" path="docs/PRD.md" section="Project Classification">
+        Describes Recipe as hybrid web app + CLI tool with three interfaces: CLI, TUI, Web. TUI
+        targets power users with interactive workflows.
+      </doc>
+      <doc type="architecture" path="docs/architecture.md" section="TUI Framework: Bubbletea">
+        Documents Bubbletea framework selection rationale, Elm Architecture pattern
+        (Model-Update-View), cross-platform terminal support, and integration with Lipgloss styling.
+      </doc>
+      <doc type="architecture" path="docs/architecture.md" section="Project Structure">
+        Shows cmd/{cli,tui,wasm}/ + internal/ layout. TUI lives in cmd/tui/ and uses shared
+        internal/converter packages.
+      </doc>
+    </documentation>
+
+    <related-stories>
+      <story id="4-2" title="Live Parameter Preview" relationship="depends-on-this">
+        Future story that will add parameter preview pane showing extracted preset data when file
+        selected in browser.
+      </story>
+      <story id="4-3" title="Batch Progress" relationship="depends-on-this">
+        Future story that will add conversion progress UI for selected files with real-time status
+        updates.
+      </story>
+      <story id="4-4" title="Visual Validation" relationship="depends-on-this">
+        Future story that will add preview/confirmation screen before executing batch conversion
+        operations.
+      </story>
+    </related-stories>
+
+    <sample-data>
+      <sample type="test-files" path="examples/np3/"
+        description="22 NP3 sample files for testing format detection and file filtering" />
+      <sample type="test-files" path="examples/xmp/"
+        description="913 XMP sample files for testing format detection and file filtering" />
+      <sample type="test-files" path="examples/lrtemplate/"
+        description="544 lrtemplate sample files for testing format detection and file filtering" />
+      <sample type="test-files" path="testdata/xmp/"
+        description="Additional XMP test files for validation" />
+    </sample-data>
+
+    <existing-code>
+      <note>This is the first story in Epic 4. No existing TUI code exists yet. Story 4-1 creates
+        the foundation for future TUI stories.</note>
+      <reference type="future-integration" path="internal/converter/"
+        description="Future stories (4-2+) will integrate with converter package for parameter extraction and conversion operations" />
+      <reference type="future-integration" path="internal/models/"
+        description="UniversalRecipe model will be used by Story 4-2 for live parameter preview" />
+    </existing-code>
+  </artifacts>
+
+  <dependencies>
+    <external-packages>
+      <package name="github.com/charmbracelet/bubbletea/v2" version="v2.0.0-exp"
+        source="v2-exp branch">
+        Core TUI framework implementing Elm Architecture (Model-Update-View pattern). Handles
+        terminal events, rendering, and application lifecycle.
+
+        CRITICAL: v2 experimental version with breaking changes from v1:
+        - Import path: github.com/charmbracelet/bubbletea/v2 (note /v2 suffix)
+        - Install: go get github.com/charmbracelet/bubbletea/v2@v2-exp
+        - Migration guide: https://github.com/charmbracelet/bubbletea/tree/v2-exp
+      </package>
+
+      <package name="github.com/charmbracelet/bubbles/v2" version="v2.0.0-exp"
+        source="v2-exp branch">
+        Reusable TUI components (file picker, text input, progress bar, viewport). Future stories
+        will use these components.
+
+        CRITICAL: v2 experimental version with breaking changes from v1:
+        - Import path: github.com/charmbracelet/bubbles/v2 (note /v2 suffix)
+        - Install: go get github.com/charmbracelet/bubbles/v2@v2-exp
+        - Migration guide: https://github.com/charmbracelet/bubbles/tree/v2-exp
+      </package>
+
+      <package name="github.com/charmbracelet/lipgloss/v2" version="v2.0.0-exp"
+        source="v2-exp branch">
+        Terminal styling library providing CSS-like styling for TUI. Used for colors, borders,
+        padding, and layout.
+
+        CRITICAL: v2 experimental version with breaking changes from v1:
+        - Import path: github.com/charmbracelet/lipgloss/v2 (note /v2 suffix)
+        - Install: go get github.com/charmbracelet/lipgloss/v2@v2-exp
+        - Migration guide: https://github.com/charmbracelet/lipgloss/tree/v2-exp
+      </package>
+
+      <package name="github.com/charmbracelet/x" version="v0.2.0" source="main branch">
+        Charm experimental packages providing additional utilities (ansi, input, term helpers).
+        Install: go get github.com/charmbracelet/x@v0.2.0
+      </package>
+    </external-packages>
+
+    <standard-library>
+      <package name="os">File system operations (ReadDir, Stat, Getwd)</package>
+      <package name="path/filepath">Path manipulation (Join, Dir, Ext, Abs)</package>
+      <package name="time">File modification time handling</package>
+      <package name="strings">String building for UI rendering</package>
+    </standard-library>
+
+    <internal-packages>
+      <note>Story 4-1 has zero internal dependencies - it's the foundation for Epic 4.</note>
+      <future-dependency story="4-2" package="internal/converter"
+        usage="Parameter extraction for live preview pane" />
+      <future-dependency story="4-3" package="internal/converter"
+        usage="Conversion execution with progress tracking" />
+    </internal-packages>
+  </dependencies>
+
+  <constraints>
+    <technical>
+      <constraint type="framework">Must use Bubbletea Elm Architecture (Model-Update-View) - state
+        immutability, pure functions for Update/View</constraint>
+      <constraint type="compatibility">Must work on Windows, macOS, Linux terminals with minimum
+        80x24 size</constraint>
+      <constraint type="performance">File listing should handle directories with 1000+ files without
+        lag (use lazy loading/pagination if needed)</constraint>
+      <constraint type="keyboard-only">100% keyboard-driven - no mouse support required (Bubbletea
+        supports mouse but not needed for this story)</constraint>
+      <constraint type="versioning">CRITICAL - Use v2 experimental branches with /v2 import paths.
+        Code will NOT work with v1 versions.</constraint>
+    </technical>
+
+    <architectural>
+      <constraint type="separation">TUI lives in cmd/tui/ - separate binary from cmd/cli/main.go
+        (recipe) and cmd/wasm/main.go</constraint>
+      <constraint type="shared-logic">File format detection logic should be extracted to helper
+        functions for reuse in future stories</constraint>
+      <constraint type="state-management">All UI state stored in model struct - no global variables
+        (Bubbletea requirement)</constraint>
+      <constraint type="testing">Model logic must be testable - separate business logic from
+        rendering where possible</constraint>
+    </architectural>
+
+    <ui-ux>
+      <constraint type="responsiveness">UI must update within 16ms (60fps) for smooth user
+        experience</constraint>
+      <constraint type="accessibility">Clear visual indicators for selection, cursor position, and
+        keyboard shortcuts</constraint>
+      <constraint type="error-handling">Graceful error messages for permission denied, directory not
+        found, etc.</constraint>
+      <constraint type="consistency">Color scheme and styling should be consistent across all TUI
+        screens (use shared Lipgloss styles)</constraint>
+    </ui-ux>
+
+    <testing>
+      <constraint type="coverage">Minimum 85% test coverage for model logic (navigation, selection,
+        filtering)</constraint>
+      <constraint type="manual-testing">Must manually test on Windows PowerShell, macOS Terminal,
+        and Linux terminal emulators</constraint>
+      <constraint type="edge-cases">Test with empty directories, single file, 1000+ files, deeply
+        nested paths</constraint>
+    </testing>
+  </constraints>
+
+  <interfaces>
+    <input>
+      <interface type="keyboard">
+        <keys>Arrow Up/Down: Navigate file list</keys>
+        <keys>Enter: Navigate into directory or select file</keys>
+        <keys>Backspace/Left Arrow: Navigate to parent directory</keys>
+        <keys>Home/End: Jump to first/last item</keys>
+        <keys>Space: Toggle file selection</keys>
+        <keys>a: Select all files in current directory</keys>
+        <keys>n: Deselect all files</keys>
+        <keys>?: Toggle help overlay</keys>
+        <keys>Escape: Close help overlay</keys>
+        <keys>r: Refresh/reload current directory</keys>
+        <keys>q/Ctrl+C: Exit application</keys>
+      </interface>
+
+      <interface type="terminal-events">
+        <event>WindowSizeMsg: Terminal resize (handled by Bubbletea)</event>
+        <event>KeyMsg: Keyboard input (handled by Bubbletea)</event>
+      </interface>
+    </input>
+
+    <output>
+      <interface type="terminal-display">
+        <section>Header: Current directory path</section>
+        <section>File List: Scrollable list with cursor, selection indicators, badges, sizes</section>
+        <section>Status Bar: Selected file count, total file count, current file path</section>
+        <section>Help Overlay: Keyboard shortcuts reference (modal overlay)</section>
+      </interface>
+
+      <interface type="model-state">
+        <state-field>currentDir: Current working directory path</state-field>
+        <state-field>files: Array of fileInfo structs (filtered preset files + directories)</state-field>
+        <state-field>cursor: Current cursor position (0-indexed)</state-field>
+        <state-field>selected: Map of selected file paths (for multi-select persistence)</state-field>
+        <state-field>termWidth: Current terminal width (updated on resize)</state-field>
+        <state-field>termHeight: Current terminal height (updated on resize)</state-field>
+        <state-field>showHelp: Boolean flag for help overlay visibility</state-field>
+        <state-field>err: Error state for displaying error messages</state-field>
+      </interface>
+    </output>
+  </interfaces>
+
+  <testing-standards>
+    <unit-tests>
+      <test-area>Model Initialization: Verify model initializes with correct default values
+        (currentDir=".", cursor=0, selected empty)</test-area>
+      <test-area>Navigation Logic: Test cursor movement (up/down/home/end), directory navigation
+        (enter/backspace), boundary conditions</test-area>
+      <test-area>Selection Logic: Test toggle selection, select all, deselect all, selection
+        persistence across navigation</test-area>
+      <test-area>File Filtering: Test only .np3/.xmp/.lrtemplate files shown (plus directories),
+        test empty directory handling</test-area>
+      <test-area>Format Detection: Test detectFormat() returns correct format strings for each
+        extension</test-area>
+      <test-area>Error Handling: Test handling of permission errors, invalid paths, missing
+        directories</test-area>
+    </unit-tests>
+
+    <integration-tests>
+      <test-area>Real File System: Test with actual example files from examples/ and testdata/
+        directories</test-area>
+      <test-area>Large Directories: Test performance and scrolling with 100+ file directories</test-area>
+      <test-area>Deep Paths: Test navigation through deeply nested directory structures</test-area>
+    </integration-tests>
+
+    <manual-tests>
+      <test-area>Cross-Platform: Test on Windows (PowerShell, CMD), macOS (Terminal.app, iTerm2),
+        Linux (gnome-terminal, xterm)</test-area>
+      <test-area>Terminal Sizes: Test at 80x24 (minimum), 120x40 (typical), 200x60 (large), resize
+        during operation</test-area>
+      <test-area>Keyboard Layouts: Test with different keyboard layouts (QWERTY, AZERTY, etc.)</test-area>
+      <test-area>Visual Inspection: Verify colors, alignment, spacing, cursor visibility, selection
+        indicators</test-area>
+    </manual-tests>
+
+    <coverage-target>85% minimum for cmd/tui/ package</coverage-target>
+  </testing-standards>
+
+  <technical-debt>
+    <debt-item priority="low">
+      v2 experimental versions are pre-release and may have breaking changes before stable v2
+      release. Monitor upstream for changes and be prepared to update code.
+    </debt-item>
+
+    <debt-item priority="medium">
+      No pagination/lazy loading in Story 4-1 - large directories (1000+ files) will load all into
+      memory. Consider adding viewport/pagination in future performance optimization story if
+      needed.
+    </debt-item>
+
+    <debt-item priority="low">
+      File metadata caching not implemented - directory reload fetches all file stats again. Could
+      optimize with caching layer in future if performance becomes issue.
+    </debt-item>
+  </technical-debt>
+
+  <dev-agent-record>
+    <story-path>docs/stories/4-1-bubbletea-file-browser.md</story-path>
+    <context-reference>docs/stories/4-1-bubbletea-file-browser.context.xml</context-reference>
+    <epic-docs>
+      <doc>docs/PRD.md (FR-4.1: Interactive File Browser)</doc>
+      <doc>docs/architecture.md (TUI Framework: Bubbletea)</doc>
+    </epic-docs>
+    <code-locations>
+      <new-code>cmd/tui/main.go (TUI entry point)</new-code>
+      <new-code>cmd/tui/model.go (Bubbletea Model-Update-View implementation)</new-code>
+      <new-code>cmd/tui/model_test.go (Unit tests)</new-code>
+    </code-locations>
+    <validation>
+      <step>Run `go build ./cmd/tui` to verify TUI builds successfully</step>
+      <step>Run `go test ./cmd/tui -v` to verify all tests pass with &gt;85% coverage</step>
+      <step>Manual test: Launch TUI and verify file browser functionality on target platform</step>
+      <step>Manual test: Verify keyboard shortcuts work as documented in help overlay</step>
+      <step>Manual test: Test with large directory from examples/ to verify performance</step>
+    </validation>
+  </dev-agent-record>
+</story-context>

@@ -1,3 +1,14 @@
 .vscode/
 examples/
 legacy/
+
+# Test coverage reports
+coverage.out
+coverage.html
+
+# Performance benchmarking outputs
+benchmarks.txt
+benchmark-results.txt
+*.prof
+cpu.prof
+mem.prof

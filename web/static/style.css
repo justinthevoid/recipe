@@ -52,10 +52,31 @@ header h1 {
     font-weight: 300;
 }
 
-.privacy {
-    font-size: 0.95rem;
-    opacity: 0.85;
-    font-weight: 300;
+/* Story 2-9: Privacy Badge (AC-1) */
+.privacy-badge {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #c6f6d5;
+    color: #22543d;
+    border: 1px solid #9ae6b4;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.privacy-badge:hover {
+    background: #9ae6b4;
+    border-color: #68d391;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.privacy-badge:active {
+    transform: translateY(0);
 }
 
 /* ========================================
@@ -98,6 +119,14 @@ main {
     background: #fdd;
     border: 1px solid #f56565;
     color: #c53030;
+}
+
+/* Story 2-9: Privacy Status Message (AC-2) */
+.status.privacy {
+    background: #c6f6d5;
+    color: #22543d;
+    border: 1px solid #9ae6b4;
+    transition: opacity 0.5s ease;
 }
 
 /* ========================================
@@ -318,88 +347,328 @@ footer a:hover {
 }
 
 .disclaimer {
-    font-size: 0.8rem;
-    opacity: 0.8;
+    font-size: 0.75rem;
+    color: #718096;
+    text-align: center;
+    margin-top: 1rem;
 }
 
 /* ========================================
-   Responsive Design
+   Privacy FAQ (Story 2-9, AC-4, AC-5, AC-6)
    ======================================== */
+.privacy-faq {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+}
 
-/* Desktop (≥1024px) - Default styles above */
-@media (min-width: 1024px) {
-    main {
-        max-width: 600px;
+.faq-toggle {
+    background: none;
+    border: none;
+    color: #4a5568;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 1rem;
+    transition: color 0.2s ease;
+}
+
+.faq-toggle:hover {
+    color: #2d3748;
+    text-decoration: underline;
+}
+
+.faq-toggle:focus {
+    outline: 2px solid #4299e1;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.faq-content {
+    margin-top: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.faq-content h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.faq-item {
+    margin-bottom: 1.5rem;
+}
+
+.faq-item h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.faq-item p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+.faq-item a {
+    color: #3182ce;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.faq-item a:hover {
+    color: #2c5aa0;
+}
+
+.footer-links {
+    margin-bottom: 1rem;
+}
+
+.footer-links p {
+    margin: 0.25rem 0;
+}
+
+/* Responsive: Privacy FAQ on mobile */
+@media (max-width: 768px) {
+    .privacy-faq {
+        padding-top: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .faq-content h3 {
+        font-size: 1rem;
+    }
+
+    .faq-item {
+        margin-bottom: 1.25rem;
+    }
+
+    .faq-item h4 {
+        font-size: 0.9rem;
+    }
+
+    .faq-item p {
+        font-size: 0.8rem;
     }
 }
 
-/* Tablet (768-1023px) */
-@media (min-width: 768px) and (max-width: 1023px) {
-    main {
-        max-width: 90%;
-        min-width: 400px;
+/* ========================================
+   RESPONSIVE DESIGN - Mobile-First Approach
+   Story 2-10: Responsive Design
+   ======================================== */
+
+/* ========================================
+   BASE STYLES (Mobile <768px)
+   Default styles optimized for mobile
+   ======================================== */
+
+/* Typography adjustments already in base styles are mobile-optimized */
+
+/* Mobile-specific drop zone text (handled by JavaScript in responsive.js) */
+/* Touch devices will see "Tap to select your preset file" via JS */
+
+/* ========================================
+   TABLET STYLES (768px - 1023px)
+   ======================================== */
+
+@media (min-width: 768px) {
+    body {
+        font-size: 16px;
+        padding: 0;
+    }
+
+    header {
+        padding: 2.5rem 1.5rem 2rem;
     }
 
     header h1 {
         font-size: 2.5rem;
     }
 
-    .drop-zone {
-        padding: 2.5rem 1.5rem;
-        min-height: 280px;
-    }
-}
-
-/* Mobile (<768px) */
-@media (max-width: 767px) {
-    header {
-        padding: 2rem 1rem 1.5rem;
-    }
-
-    header h1 {
-        font-size: 2rem;
-    }
-
     .tagline {
-        font-size: 1.2rem;
+        font-size: 1.4rem;
     }
 
     .formats {
-        font-size: 1rem;
-    }
-
-    .privacy {
-        font-size: 0.875rem;
+        font-size: 1.1rem;
     }
 
     main {
-        padding: 1.5rem 1rem;
+        max-width: 90%;
+        padding: 2rem 1.5rem;
     }
 
+    /* Drop zone - centered, comfortable width */
     .drop-zone {
-        padding: 2rem 1rem;
-        min-height: 250px;
+        width: 90%;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem;
+        min-height: 280px;
     }
 
-    .drop-zone .icon {
+    /* Parameter panel - two columns possible */
+    .parameter-panel {
+        padding: 1.5rem;
+    }
+
+    .parameter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .parameter-row {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    /* Format selector - centered */
+    .format-selector {
+        width: 90%;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Buttons - centered with max width */
+    .convert-button,
+    .download-button {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Footer - horizontal links */
+    .footer-links a {
+        display: inline;
+        margin-right: 1rem;
+    }
+
+    .footer-links a:last-child {
+        margin-right: 0;
+    }
+}
+
+/* ========================================
+   DESKTOP STYLES (≥1024px)
+   ======================================== */
+
+@media (min-width: 1024px) {
+    body {
+        padding: 0;
+    }
+
+    header {
+        padding: 3rem 1.5rem 2rem;
+    }
+
+    header h1 {
         font-size: 3rem;
     }
 
-    .drop-zone .primary-text {
-        font-size: 1.25rem;
+    .tagline {
+        font-size: 1.5rem;
     }
 
-    .drop-zone .secondary-text {
-        font-size: 0.9rem;
+    main {
+        max-width: 600px;
+        padding: 2rem 1.5rem;
     }
 
-    .drop-zone .formats-text {
-        font-size: 0.8rem;
+    /* Drop zone - fixed width, centered */
+    .drop-zone {
+        width: 600px;
+        margin: 0 auto;
+        padding: 3rem 2rem;
+        min-height: 300px;
     }
 
-    footer {
-        padding: 1.5rem 1rem;
-        font-size: 0.8rem;
+    /* Parameter panel - comfortable spacing */
+    .parameter-panel {
+        padding: 1.5rem;
+    }
+
+    /* Format selector - fixed width */
+    .format-selector {
+        width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Buttons - fixed width */
+    .convert-button,
+    .download-button {
+        width: 100%;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* ========================================
+   TOUCH-SPECIFIC STYLES
+   Applied only on touch devices
+   ======================================== */
+
+@media (hover: none) and (pointer: coarse) {
+    /* Touch device detected */
+
+    /* Larger tap targets (WCAG 2.1 AAA: minimum 48×48px) */
+    .drop-zone {
+        padding: 2.5rem 1.5rem;
+        min-height: 260px;
+    }
+
+    .convert-button,
+    .download-button,
+    .error-action-btn,
+    .format-option {
+        min-height: 48px;
+        padding: 0.875rem 1.5rem;
+    }
+
+    /* Privacy badge - larger tap target */
+    .privacy-badge {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Toggle button - larger tap target */
+    .toggle-button,
+    .faq-toggle,
+    .error-dismiss {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Disable hover effects on touch devices */
+    .drop-zone:hover {
+        background: #ffffff;
+        border-color: #cbd5e0;
+    }
+
+    .format-option:not(.disabled):hover {
+        background: #f7fafc;
+        border-color: #e2e8f0;
+    }
+
+    .convert-button:hover,
+    .download-button:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Ensure adequate spacing between tap targets (min 8px) */
+    .format-options {
+        gap: 0.75rem; /* 12px spacing between format options */
+    }
+
+    .error-actions {
+        gap: 0.75rem; /* 12px spacing between action buttons */
     }
 }
 
@@ -664,6 +933,712 @@ footer a:hover {
 }
 
 /* ========================================
+   Conversion States (Story 2-6)
+   ======================================== */
+
+/* Convert button states */
+.convert-button.converting {
+    background: #cbd5e0;
+    cursor: wait;
+}
+
+.convert-button.success {
+    background: #48bb78;
+    cursor: default;
+}
+
+.convert-button.error {
+    background: #f56565;
+}
+
+.convert-button.error:hover {
+    background: #e53e3e;
+}
+
+/* Conversion status */
+.status.success {
+    background: #c6f6d5;
+    border: 1px solid #48bb78;
+    color: #22543d;
+}
+
+/* Conversion error message */
+#conversionError {
+    margin-top: 1rem;
+    padding: 1rem 1.5rem;
+    background: #fed7d7;
+    border: 1px solid #f56565;
+    border-radius: 8px;
+    color: #c53030;
+    font-size: 0.95rem;
+    text-align: center;
+    animation: slideIn 0.3s ease;
+}
+
+/* Spinner icon animation */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.converting::before {
+    content: '⟳';
+    display: inline-block;
+    animation: spin 1s linear infinite;
+    margin-right: 0.5rem;
+}
+
+/* Download button (Story 2-7) */
+.download-button {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    margin-top: 1rem;
+    background: #3182ce;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.download-button:hover:not(:disabled) {
+    background: #2c5aa0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.download-button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.download-button:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Download status */
+#downloadStatus {
+    margin-top: 0.5rem;
+}
+
+#downloadError {
+    margin-top: 0.5rem;
+}
+
+/* ========================================
+   Error Panel (Story 2-8)
+   Centralized error handling UI
+   ======================================== */
+.error-panel {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    max-width: 600px;
+    width: 90%;
+    background: #fed7d7;
+    border: 2px solid #f56565;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.error-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.error-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.error-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #742a2a;
+}
+
+.error-dismiss {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #742a2a;
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.error-dismiss:hover {
+    color: #c53030;
+}
+
+.error-dismiss:focus {
+    outline: 2px solid #742a2a;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.error-body {
+    margin-bottom: 1rem;
+}
+
+.error-message {
+    margin: 0 0 0.5rem 0;
+    color: #742a2a;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.error-reason {
+    margin: 0 0 0.5rem 0;
+    color: #9b2c2c;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.error-action {
+    margin: 0;
+    color: #742a2a;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* Technical details section */
+.error-details {
+    margin-bottom: 1rem;
+    border-top: 1px solid #fc8181;
+    padding-top: 1rem;
+}
+
+.error-details-toggle {
+    background: none;
+    border: none;
+    color: #742a2a;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s ease;
+}
+
+.error-details-toggle:hover {
+    color: #c53030;
+    text-decoration: underline;
+}
+
+.error-details-toggle:focus {
+    outline: 2px solid #742a2a;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.error-details-content {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background: #fff5f5;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.75rem;
+    color: #742a2a;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.error-details-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Action buttons */
+.error-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.error-action-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #742a2a;
+    border-radius: 4px;
+    background: #fff;
+    color: #742a2a;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.error-action-btn:hover {
+    background: #fff5f5;
+    border-color: #c53030;
+    color: #c53030;
+}
+
+.error-action-btn:focus {
+    outline: 2px solid #742a2a;
+    outline-offset: 2px;
+}
+
+/* Mobile responsiveness for error panel */
+@media (max-width: 640px) {
+    .error-panel {
+        width: 95%;
+        padding: 1rem;
+        top: 0.5rem;
+    }
+
+    .error-title {
+        font-size: 1.1rem;
+    }
+
+    .error-actions {
+        flex-direction: column;
+    }
+
+    .error-action-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ========================================
+   Landing Page Content (Story 7-1)
+   ======================================== */
+
+/* Landing content wrapper */
+.landing-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    background: #f7fafc;
+}
+
+/* Content sections */
+.content-section {
+    margin: 3rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.content-section h2 {
+    font-size: 2rem;
+    margin: 0 0 1.5rem 0;
+    color: #2d3748;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 0.75rem;
+}
+
+.content-section p {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: #4a5568;
+    margin-bottom: 1rem;
+}
+
+.content-section p:last-child {
+    margin-bottom: 0;
+}
+
+/* What is Recipe Section (AC-1) */
+#description p {
+    font-size: 1.1rem;
+    line-height: 1.75;
+}
+
+/* How to Use Section (AC-2) */
+.steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    background: #f7fafc;
+    border-left: 4px solid #667eea;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.steps li:hover {
+    background: #edf2f7;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.steps li:last-child {
+    margin-bottom: 0;
+}
+
+.step-number {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.step-content {
+    flex: 1;
+    padding-top: 0.5rem;
+}
+
+.step-content strong {
+    color: #2d3748;
+    font-size: 1.2rem;
+}
+
+/* Privacy First Section (AC-3) */
+.privacy-section {
+    background: #c6f6d5;
+    border: 2px solid #48bb78;
+}
+
+.privacy-section h2 {
+    border-bottom-color: #48bb78;
+}
+
+.privacy-headline {
+    font-size: 1.3rem;
+    color: #22543d;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.privacy-checklist {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+}
+
+.privacy-checklist li {
+    padding: 0.75rem 0;
+    font-size: 1.05rem;
+    color: #22543d;
+    font-weight: 500;
+}
+
+.privacy-link {
+    margin-top: 1.5rem;
+}
+
+.privacy-link a {
+    color: #2d6a4f;
+    font-weight: 600;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.privacy-link a:hover {
+    color: #1b4332;
+}
+
+/* Supported Formats Section (AC-4) */
+.format-table-wrapper {
+    overflow-x: auto;
+    margin: 1.5rem 0;
+}
+
+.format-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.format-table thead {
+    background: #667eea;
+    color: white;
+}
+
+.format-table th,
+.format-table td {
+    padding: 1rem;
+    text-align: left;
+    border: 1px solid #e2e8f0;
+}
+
+.format-table th {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.format-table td {
+    font-size: 0.95rem;
+    color: #4a5568;
+}
+
+.format-table code {
+    background: #edf2f7;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 0.9rem;
+    color: #2d3748;
+}
+
+.format-link {
+    margin-top: 1.5rem;
+}
+
+.format-link a {
+    color: #3182ce;
+    font-weight: 600;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.format-link a:hover {
+    color: #2c5aa0;
+}
+
+/* FAQ Section (AC-5) */
+.faq-item-landing {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.faq-item-landing:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.faq-item-landing h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.faq-item-landing p {
+    margin: 0;
+    font-size: 1rem;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+.faq-link {
+    margin-top: 2rem;
+    text-align: center;
+    padding-top: 1.5rem;
+    border-top: 2px solid #e2e8f0;
+}
+
+.faq-link a {
+    color: #3182ce;
+    font-weight: 600;
+    font-size: 1.1rem;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.faq-link a:hover {
+    color: #2c5aa0;
+}
+
+/* Try Recipe Now Section */
+.try-now-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.try-now-section h2 {
+    color: white;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.try-now-section p {
+    color: white;
+    font-size: 1.2rem;
+    opacity: 0.95;
+}
+
+/* Developer Links (AC-7) */
+.developer-links {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.developer-links h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.developer-links p {
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+    color: #4a5568;
+}
+
+.developer-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+
+.developer-links li {
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+}
+
+.developer-links a {
+    color: #3182ce;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.developer-links a:hover {
+    color: #2c5aa0;
+}
+
+.tech-stack {
+    font-style: italic;
+    color: #718096;
+    font-size: 0.8rem;
+}
+
+/* ========================================
+   Landing Page - Mobile Responsive
+   ======================================== */
+
+@media (max-width: 768px) {
+    .landing-content {
+        padding: 0 1rem;
+    }
+
+    .content-section {
+        padding: 1.5rem 1rem;
+        margin: 2rem auto;
+    }
+
+    .content-section h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .content-section p {
+        font-size: 1rem;
+    }
+
+    /* Steps - vertical layout on mobile */
+    .steps li {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1rem;
+        padding: 1.25rem;
+    }
+
+    .step-number {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+    }
+
+    .step-content strong {
+        font-size: 1.1rem;
+    }
+
+    /* Privacy section */
+    .privacy-headline {
+        font-size: 1.15rem;
+    }
+
+    .privacy-checklist li {
+        font-size: 0.95rem;
+    }
+
+    /* Format table */
+    .format-table th,
+    .format-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* FAQ items */
+    .faq-item-landing {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+    }
+
+    .faq-item-landing h3 {
+        font-size: 1.1rem;
+    }
+
+    .faq-item-landing p {
+        font-size: 0.95rem;
+    }
+
+    /* Try now section */
+    .try-now-section {
+        padding: 2rem 1.5rem;
+    }
+
+    .try-now-section h2 {
+        font-size: 1.5rem;
+    }
+
+    .try-now-section p {
+        font-size: 1rem;
+    }
+
+    /* Developer links */
+    .developer-links {
+        padding-top: 1.5rem;
+    }
+
+    .developer-links h3 {
+        font-size: 1rem;
+    }
+
+    .developer-links li {
+        font-size: 0.8rem;
+    }
+}
+
+/* ========================================
    Print Styles (minimal)
    ======================================== */
 @media print {
@@ -674,7 +1649,280 @@ footer a:hover {
 
     .drop-zone,
     .status,
-    footer {
+    footer,
+    .try-now-section {
         display: none;
+    }
+
+    .landing-content {
+        background: white;
+    }
+
+    .content-section {
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+}
+
+/* ========================================
+   Unsupported Browser Screen (Story 6-4, AC-7)
+   Full-page message for browsers without required features
+   ======================================== */
+.unsupported-browser {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.unsupported-browser h1 {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+}
+
+.unsupported-browser .message {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    opacity: 0.95;
+}
+
+.unsupported-browser .info {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.unsupported-browser .browser-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 2rem 0;
+    font-size: 1.125rem;
+    line-height: 1.8;
+}
+
+.unsupported-browser .browser-list li {
+    padding: 0.5rem 0;
+}
+
+.unsupported-browser .download-links {
+    margin: 2rem 0;
+    font-size: 1.125rem;
+}
+
+.unsupported-browser .download-links a {
+    color: #c6f6d5;
+    text-decoration: underline;
+    font-weight: 600;
+    transition: color 0.2s ease;
+    padding: 0 0.5rem;
+}
+
+.unsupported-browser .download-links a:hover {
+    color: #ffffff;
+}
+
+.unsupported-browser .technical-info {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    line-height: 1.8;
+    text-align: left;
+    max-width: 600px;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+}
+
+.unsupported-browser .technical-info strong {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* Mobile responsiveness for unsupported browser screen */
+@media (max-width: 768px) {
+    .unsupported-browser h1 {
+        font-size: 2rem;
+    }
+
+    .unsupported-browser .message {
+        font-size: 1.125rem;
+    }
+
+    .unsupported-browser .info {
+        font-size: 1rem;
+    }
+
+    .unsupported-browser .browser-list {
+        font-size: 1rem;
+    }
+
+    .unsupported-browser .download-links {
+        font-size: 0.875rem;
+    }
+
+    .unsupported-browser .technical-info {
+        font-size: 0.75rem;
+        padding: 1rem;
+    }
+}
+
+/* ============================================================================
+   Legal Disclaimer Section (Story 7-4)
+   ============================================================================ */
+
+/* Legal section container */
+.legal-section {
+    background: #fff8e1 !important; /* Light yellow background for legal notices */
+    border-left: 4px solid #f59e0b; /* Orange accent border */
+    margin: 3rem auto;
+}
+
+/* Summary box at top of legal section */
+.legal-summary {
+    background: #fef3c7;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    border: 2px solid #f59e0b;
+}
+
+.legal-summary p {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: #78350f;
+}
+
+.legal-summary strong {
+    font-weight: 600;
+    color: #78350f;
+}
+
+/* Legal subsections */
+.legal-subsection {
+    margin-bottom: 2.5rem;
+}
+
+.legal-subsection h3 {
+    color: #78350f;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #fbbf24;
+    padding-bottom: 0.5rem;
+}
+
+.legal-subsection p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+    color: #292524;
+}
+
+.legal-subsection strong {
+    font-weight: 600;
+    color: #78350f;
+}
+
+/* All-caps warranty text */
+.legal-caps {
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    background: #fef3c7;
+    padding: 1rem;
+    border-radius: 4px;
+    border-left: 3px solid #f59e0b;
+    color: #78350f;
+    font-weight: 500;
+}
+
+/* Metadata section at bottom */
+.legal-meta {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid #fbbf24;
+}
+
+.legal-meta h3 {
+    color: #78350f;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.legal-meta p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+    color: #57534e;
+    font-size: 0.938rem;
+}
+
+.legal-meta em {
+    color: #78350f;
+    font-style: italic;
+}
+
+.legal-meta a {
+    color: #7c3aed;
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.legal-meta a:hover {
+    color: #5b21b6;
+}
+
+/* Footer link to legal disclaimer */
+.footer-links a[href="#legal-disclaimer"] {
+    color: #f59e0b;
+    font-weight: 500;
+}
+
+.footer-links a[href="#legal-disclaimer"]:hover {
+    color: #d97706;
+}
+
+/* Mobile responsiveness for legal section */
+@media (max-width: 768px) {
+    .legal-section {
+        padding: 1.5rem;
+        margin: 2rem auto;
+    }
+
+    .legal-summary {
+        padding: 1rem;
+    }
+
+    .legal-summary p {
+        font-size: 1rem;
+    }
+
+    .legal-subsection h3 {
+        font-size: 1.25rem;
+    }
+
+    .legal-subsection p {
+        font-size: 0.938rem;
+    }
+
+    .legal-caps {
+        font-size: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .legal-meta h3 {
+        font-size: 1.125rem;
+    }
+
+    .legal-meta p {
+        font-size: 0.875rem;
     }
 }

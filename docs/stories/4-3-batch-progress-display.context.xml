@@ -1,0 +1,458 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.3</storyId>
+    <title>Batch Progress Display</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-3-batch-progress-display.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer using Recipe TUI</asA>
+    <iWant>to see visual progress bars when converting multiple preset files</iWant>
+    <soThat>I can monitor batch conversion status and estimated completion time</soThat>
+    <tasks>
+      <task id="1" title="Implement Conversion Trigger (AC-1)">
+        <subtask id="1.1">Add 'c' key handler to Model.Update() with selection check</subtask>
+        <subtask id="1.2">Create format selection prompt component with Lipgloss styled menu</subtask>
+        <subtask id="1.3">Create output directory prompt with validation</subtask>
+        <subtask id="1.4">Implement confirmation screen showing file count, formats, output dir</subtask>
+        <subtask id="1.5">Add unit tests for trigger flow</subtask>
+      </task>
+      <task id="2" title="Overall Progress Bar (AC-2)">
+        <subtask id="2.1">Add progress tracking fields to Model (converting, currentFile,
+          totalFiles, completedFiles, startTime)</subtask>
+        <subtask id="2.2">Create renderProgressBar(current, total int) string function with
+          percentage and bar</subtask>
+        <subtask id="2.3">Implement progress bar color logic (blue in-progress, green completed, red
+          errors)</subtask>
+        <subtask id="2.4">Update progress bar in real-time using Bubbletea Cmd tick</subtask>
+        <subtask id="2.5">Add unit tests for progress calculation and rendering</subtask>
+      </task>
+      <task id="3" title="Per-File Status Display (AC-3)">
+        <subtask id="3.1">Add per-file tracking fields (currentFileName, currentStatus,
+          completedList, remainingCount)</subtask>
+        <subtask id="3.2">Create formatFileStatus(file, sourceFormat, targetFormat, status) function
+          with color-coding</subtask>
+        <subtask id="3.3">Update status during conversion (converting → success/warning/error)</subtask>
+        <subtask id="3.4">Render completed files list (last 5 files)</subtask>
+        <subtask id="3.5">Add unit tests for status formatting</subtask>
+      </task>
+      <task id="4" title="Time Estimation (AC-4)">
+        <subtask id="4.1">Add time tracking fields (startTime, elapsedTime, estimatedRemaining)</subtask>
+        <subtask id="4.2">Create formatDuration(d time.Duration) string function (MM:SS format)</subtask>
+        <subtask id="4.3">Implement estimateRemainingTime(start, completed, total) calculation</subtask>
+        <subtask id="4.4">Update time every second using Bubbletea tick Cmd</subtask>
+        <subtask id="4.5">Add unit tests for time formatting and estimation</subtask>
+      </task>
+      <task id="5" title="Results Summary (AC-5)">
+        <subtask id="5.1">Add ConversionResult struct and results tracking</subtask>
+        <subtask id="5.2">Accumulate results during conversion with success/warning/error counts</subtask>
+        <subtask id="5.3">Create renderSummaryScreen(results) function with color-coded statistics</subtask>
+        <subtask id="5.4">Show summary after batch completes with any-key dismiss</subtask>
+        <subtask id="5.5">Add unit tests for summary generation</subtask>
+      </task>
+      <task id="6" title="Cancellation Handling (AC-6)">
+        <subtask id="6.1">Add cancellation fields (cancelling bool, cancelChan chan bool)</subtask>
+        <subtask id="6.2">Implement Ctrl+C handler setting cancelling state</subtask>
+        <subtask id="6.3">Check cancel signal in conversion loop before each file</subtask>
+        <subtask id="6.4">Display partial results on cancel with cancelled count</subtask>
+        <subtask id="6.5">Add unit tests for cancellation logic</subtask>
+      </task>
+      <task id="7" title="Error Handling (AC-7)">
+        <subtask id="7.1">Implement per-file error catching with recover from panic</subtask>
+        <subtask id="7.2">Track errors during batch without halting</subtask>
+        <subtask id="7.3">Log error details using slog</subtask>
+        <subtask id="7.4">Display errors in summary with red color-coding</subtask>
+        <subtask id="7.5">Add unit tests for error recovery</subtask>
+      </task>
+      <task id="8" title="Integration and Polish">
+        <subtask id="8.1">Integrate with converter.Convert() from Epic 1</subtask>
+        <subtask id="8.2">Add spinner animation for current file</subtask>
+        <subtask id="8.3">Optimize with parallel conversion using worker pool pattern</subtask>
+        <subtask id="8.4">End-to-end testing with 10+ sample files</subtask>
+        <subtask id="8.5">Update help overlay with 'c' key and Ctrl+C documentation</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" title="Batch Conversion Trigger">
+      <requirement>'c' key triggers conversion when files are selected (from Story 4-1
+        multi-selection)</requirement>
+      <requirement>Target format selection prompt appears before conversion starts</requirement>
+      <requirement>User selects target format: NP3, XMP, or lrtemplate via numbered menu</requirement>
+      <requirement>Output directory selection prompt (default: same directory as source)</requirement>
+      <requirement>Confirmation screen shows: file count, source formats, target format, output
+        location</requirement>
+      <requirement>User confirms (y) or cancels (n/Esc) before conversion begins</requirement>
+    </criterion>
+    <criterion id="AC-2" title="Overall Progress Bar">
+      <requirement>Display progress bar showing overall batch completion (X/Y files)</requirement>
+      <requirement>Progress bar fills left-to-right as conversions complete</requirement>
+      <requirement>Percentage indicator shows numeric progress (e.g., "50% (5/10)")</requirement>
+      <requirement>Bar color: blue (in-progress), green (completed), red (errors detected)</requirement>
+      <requirement>Progress bar updates in real-time as each file completes</requirement>
+      <requirement>Bar remains visible for 3 seconds after batch completes</requirement>
+    </criterion>
+    <criterion id="AC-3" title="Per-File Conversion Status">
+      <requirement>Display current file being processed (filename shown)</requirement>
+      <requirement>Show conversion status: "Converting...", "✓ Success", "⚠️ Warning", "✗ Error"</requirement>
+      <requirement>Color-code status: Blue (converting), Green (success), Yellow (warning), Red
+        (error)</requirement>
+      <requirement>Display file number in sequence (e.g., "File 3 of 10")</requirement>
+      <requirement>Show source format → target format for current file</requirement>
+    </criterion>
+    <criterion id="AC-4" title="Time Estimation">
+      <requirement>Display elapsed time since batch started (MM:SS format)</requirement>
+      <requirement>Estimate remaining time based on average file conversion time</requirement>
+      <requirement>Show "Remaining: ~MM:SS" with tilde indicating estimate</requirement>
+      <requirement>Update estimate every second as batch progresses</requirement>
+      <requirement>Handle edge cases: first file (no estimate yet), very fast conversions (&lt;1s)</requirement>
+    </criterion>
+    <criterion id="AC-5" title="Color-Coded Results Summary">
+      <requirement>After batch completes, show summary screen with statistics</requirement>
+      <requirement>Display total files: succeeded (green), warnings (yellow), errors (red)</requirement>
+      <requirement>List all warning files with warning messages</requirement>
+      <requirement>List all error files with error messages</requirement>
+      <requirement>Show total elapsed time for entire batch</requirement>
+      <requirement>Press any key to return to file browser</requirement>
+    </criterion>
+    <criterion id="AC-6" title="Cancellable Operations">
+      <requirement>Ctrl+C immediately cancels batch conversion</requirement>
+      <requirement>Show "Cancelling..." message while in-flight conversion completes</requirement>
+      <requirement>Display partial results summary (files completed before cancel)</requirement>
+      <requirement>No partial/corrupted output files left (atomic writes or cleanup)</requirement>
+      <requirement>Return to file browser with selection preserved</requirement>
+    </criterion>
+    <criterion id="AC-7" title="Error Handling and Recovery">
+      <requirement>Detect and report conversion errors per file (don't halt batch)</requirement>
+      <requirement>Continue to next file if current file fails</requirement>
+      <requirement>Log error details for debugging</requirement>
+      <requirement>Show error count in progress bar (e.g., "8/10, 2 errors")</requirement>
+      <requirement>Option to retry failed files after batch completes</requirement>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-4.3: Batch Progress</section>
+        <snippet>Requirement: Visual progress bars for batch operations showing overall progress
+          (X/Y files), current file processing, estimated time remaining. Real-time updates,
+          color-coded (success/warning/error), cancellable (Ctrl+C).</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-4: TUI Interface (Phase 2)</section>
+        <snippet>TUI provides interactive file browsing with live parameter preview, batch progress
+          visualization, and visual validation before conversion. Built with Bubbletea framework for
+          keyboard-driven workflows.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>TUI Framework: Bubbletea</section>
+        <snippet>Bubbletea Elm Architecture (Model-Update-View) with Lipgloss styling. Real-time
+          updates via Cmd pattern for progress animation. State immutability with pure functions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Performance Considerations - Parallel Batch Processing</section>
+        <snippet>Target: Convert 100 files in &lt;10 seconds. Use worker pool pattern with
+          runtime.NumCPU() goroutines. Update progress atomically with mutex on shared state.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/4-1-bubbletea-file-browser.md</path>
+        <title>Story 4.1 - Bubbletea File Browser</title>
+        <section>Multi-File Selection</section>
+        <snippet>Story 4-1 provides file selection mechanism (selected map[int]bool). Story 4-3 uses
+          selected files as input for batch conversion triggered by 'c' key.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/4-2-live-parameter-preview.md</path>
+        <title>Story 4.2 - Live Parameter Preview</title>
+        <section>Unmappable Parameter Warnings</section>
+        <snippet>Story 4-2 implements detectUnmappableParams() for identifying parameters that won't
+          map between formats. Story 4-3 reuses this to show warnings during batch conversion.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-9-bidirectional-conversion-api.md</path>
+        <title>Story 1.9 - Bidirectional Conversion API</title>
+        <section>converter.Convert() API</section>
+        <snippet>converter.Convert(input []byte, sourceFormat string, targetFormat string) ([]byte,
+          error) - Single conversion API shared across all interfaces. Returns ConversionError for
+          type-safe error handling.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>api</kind>
+        <symbol>Convert</symbol>
+        <lines></lines>
+        <reason>Core conversion API called for each file in batch. Returns converted data or
+          ConversionError. Implemented in Story 1-9.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/errors.go</path>
+        <kind>error-type</kind>
+        <symbol>ConversionError</symbol>
+        <lines></lines>
+        <reason>Type-safe error handling for conversion failures. Used to distinguish conversion
+          errors from other failures during batch processing.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines></lines>
+        <reason>NP3 parser used for source format detection and validation before batch conversion.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines></lines>
+        <reason>XMP parser used for source format detection and validation before batch conversion.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/lrtemplate/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines></lines>
+        <reason>lrtemplate parser used for source format detection and validation before batch
+          conversion.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go-modules>
+        <module name="github.com/charmbracelet/bubbletea/v2" version="v2.0.0-exp">Core TUI framework
+          with Cmd pattern for async updates</module>
+        <module name="github.com/charmbracelet/bubbles/v2" version="v2.0.0-exp">Reusable components
+          (progress bar, spinner)</module>
+        <module name="github.com/charmbracelet/lipgloss/v2" version="v2.0.0-exp">Terminal styling
+          for progress bars and colors</module>
+        <module name="github.com/charmbracelet/x" version="v0.2.0">Charm experimental utilities</module>
+      </go-modules>
+      <standard-library>
+        <package>os</package>
+        <package>time</package>
+        <package>sync</package>
+        <package>runtime</package>
+        <package>log/slog</package>
+      </standard-library>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <technical>
+      <constraint>BLOCKS ON: Story 4-1 (Bubbletea File Browser) - Must be implemented first to
+        provide file selection mechanism</constraint>
+      <constraint>COORDINATES WITH: Story 4-2 (Live Parameter Preview) - Reuses
+        detectUnmappableParams() for warning detection</constraint>
+      <constraint>REQUIRES: Story 1-9 (Bidirectional Conversion API) - converter.Convert() must be
+        functional</constraint>
+      <constraint>Must use Bubbletea v2 experimental (/v2 import paths) with Cmd pattern for async
+        updates</constraint>
+      <constraint>Performance target: Convert 100 files in &lt;10 seconds (avg 100ms per file)</constraint>
+      <constraint>Worker pool concurrency: runtime.NumCPU() goroutines for parallel conversion</constraint>
+      <constraint>Atomic file writes: Use temp file + rename pattern to prevent corrupted output</constraint>
+      <constraint>Must work on Windows, macOS, Linux terminals with minimum 80x24 size</constraint>
+    </technical>
+    <architectural>
+      <constraint>Extend Stories 4-1 and 4-2 Model - Add batch conversion state (converting,
+        currentFile, results, startTime)</constraint>
+      <constraint>New conversion screen replaces file browser during batch (switch based on
+        converting flag)</constraint>
+      <constraint>Progress updates via Bubbletea tick Cmd (100ms interval for 10 FPS animation)</constraint>
+      <constraint>Worker pool pattern: Job queue (chan FileInfo), result queue (chan
+        ConversionResult), WaitGroup for synchronization</constraint>
+      <constraint>Thread safety: Mutex on shared state (currentFile counter) during parallel
+        conversion</constraint>
+      <constraint>State immutability: Follow Bubbletea Elm Architecture - pure functions for
+        Update/View</constraint>
+      <constraint>Return to file browser on completion/cancellation with selection preserved</constraint>
+    </architectural>
+    <ui-ux>
+      <constraint>Progress bar: 40 characters width, filled blocks (█) and empty blocks (░)</constraint>
+      <constraint>Color coding: Blue (in-progress), Green (completed), Yellow (warnings), Red
+        (errors)</constraint>
+      <constraint>Status icons: ✓ (success), ⚠️ (warning), ✗ (error), ⊘ (cancelled)</constraint>
+      <constraint>Time format: MM:SS for &lt;1 hour batches, HH:MM:SS for longer batches</constraint>
+      <constraint>Spinner animation: "⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏" rotating every 100ms</constraint>
+      <constraint>Confirmation screen shows: file count, source formats breakdown, target format,
+        output directory</constraint>
+      <constraint>Summary screen: Color-coded statistics, warning/error details, total elapsed time</constraint>
+    </ui-ux>
+    <performance>
+      <constraint>Parallel conversion efficiency: 8-core CPU should complete 100 files in ~3 seconds
+        (8 parallel × 25ms avg)</constraint>
+      <constraint>Progress bar update frequency: 100ms (10 FPS) for smooth animation without CPU
+        overhead</constraint>
+      <constraint>Time estimation accuracy: Within ±20% of actual completion time after first 3
+        files</constraint>
+      <constraint>Cancellation responsiveness: &lt;200ms from Ctrl+C to cancelling message display</constraint>
+    </performance>
+    <error-handling>
+      <constraint>Per-file error isolation: Conversion errors don't halt batch processing</constraint>
+      <constraint>Panic recovery: Use defer/recover in worker goroutines to prevent crash</constraint>
+      <constraint>Error logging: Use slog.Error() with filename, source/target formats, and error
+        message</constraint>
+      <constraint>Partial file cleanup: Remove temp files on error or cancellation</constraint>
+      <constraint>Error count visibility: Show error count in progress bar (e.g., "8/10, 2 errors")</constraint>
+    </error-handling>
+  </constraints>
+  <interfaces>
+    <interface name="convertBatch" type="function">
+      <signature>convertBatch(files []FileInfo, targetFormat string, outputDir string)
+        []ConversionResult</signature>
+      <description>Main batch conversion orchestrator using worker pool pattern. Returns results for
+        all files processed.</description>
+    </interface>
+    <interface name="renderProgressBar" type="function">
+      <signature>renderProgressBar(current int, total int, errorCount int) string</signature>
+      <description>Render progress bar with filled/empty blocks, percentage, and error count if &gt;
+        0.</description>
+    </interface>
+    <interface name="formatFileStatus" type="function">
+      <signature>formatFileStatus(file string, sourceFormat string, targetFormat string, status
+        string) string</signature>
+      <description>Format per-file status line with icon, color coding, and format conversion
+        display.</description>
+    </interface>
+    <interface name="estimateRemainingTime" type="function">
+      <signature>estimateRemainingTime(start time.Time, completed int, total int) time.Duration</signature>
+      <description>Calculate remaining time estimate based on average conversion time per file.</description>
+    </interface>
+    <interface name="formatDuration" type="function">
+      <signature>formatDuration(d time.Duration) string</signature>
+      <description>Format duration as MM:SS or HH:MM:SS string.</description>
+    </interface>
+    <interface name="renderSummaryScreen" type="function">
+      <signature>renderSummaryScreen(results []ConversionResult, elapsed time.Duration) string</signature>
+      <description>Render final summary with color-coded statistics, warning/error details, and
+        total time.</description>
+    </interface>
+    <interface name="writeOutputAtomic" type="function">
+      <signature>writeOutputAtomic(path string, data []byte) error</signature>
+      <description>Write file atomically using temp file + rename to prevent partial writes.</description>
+    </interface>
+    <interface name="ConversionResult" type="struct">
+      <fields>
+        <field>File string - Filename</field>
+        <field>Status string - "success", "warning", "error", "cancelled"</field>
+        <field>Message string - Error/warning message if applicable</field>
+        <field>SourceFormat string - Original format</field>
+        <field>TargetFormat string - Converted format</field>
+      </fields>
+    </interface>
+    <interface name="Model extension" type="struct">
+      <fields>
+        <field>converting bool - Batch conversion in progress</field>
+        <field>currentFile int - Current file index (0-based)</field>
+        <field>totalFiles int - Total files in batch</field>
+        <field>completedFiles int - Successfully completed count</field>
+        <field>errorCount int - Failed conversions count</field>
+        <field>warningCount int - Conversions with warnings</field>
+        <field>startTime time.Time - Batch start timestamp</field>
+        <field>elapsedTime time.Duration - Updated every second</field>
+        <field>estimatedRemaining time.Duration - Calculated from average</field>
+        <field>currentFileName string - File being processed</field>
+        <field>currentStatus string - "converting", "success", "warning", "error"</field>
+        <field>completedList []string - Last 5 completed filenames</field>
+        <field>results []ConversionResult - Full results list</field>
+        <field>cancelling bool - Cancel requested</field>
+        <field>cancelChan chan bool - Signal to stop batch</field>
+        <field>showSummary bool - Display summary screen</field>
+        <field>targetFormat string - Selected output format</field>
+        <field>outputDir string - Output directory path</field>
+      </fields>
+    </interface>
+    <interface name="Keyboard events" type="input">
+      <keys>c: Trigger batch conversion (when files selected)</keys>
+      <keys>1-3: Select target format in prompt menu</keys>
+      <keys>y/n: Confirm or cancel conversion</keys>
+      <keys>Ctrl+C: Cancel batch conversion</keys>
+      <keys>Any key: Dismiss summary screen</keys>
+    </interface>
+    <interface name="converter.Convert" type="existing">
+      <signature>Convert(input []byte, sourceFormat string, targetFormat string) ([]byte, error)</signature>
+      <description>Core conversion API from Story 1-9. Called for each file in batch. Returns
+        ConversionError on failure.</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Story 4-3 follows the same testing standards as Stories 4-1 and 4-2:
+
+      - Unit tests for batch logic using Go's testing package with table-driven test pattern
+      - Test coverage target: 85% minimum for cmd/tui/ package
+      - Integration tests with real sample files (10+ file batches)
+      - Performance tests: 100 files in &lt;10 seconds target
+      - Manual cross-platform testing on Windows (PowerShell), macOS (Terminal.app), Linux
+      (gnome-terminal)
+      - Concurrency testing: Race detector enabled during worker pool tests
+      - Visual inspection: Progress bar animation, color coding, spinner
+
+      Testing framework: Go standard library testing package
+      Concurrency testing: go test -race to detect race conditions
+      Performance benchmarking: go test -bench for conversion throughput
+      CI/CD: Tests run in GitHub Actions on all platforms
+    </standards>
+    <locations>
+      <location>cmd/tui/batch_test.go - Unit tests for batch conversion logic and worker pool</location>
+      <location>cmd/tui/progress_test.go - Unit tests for progress bar rendering and time estimation</location>
+      <location>cmd/tui/model_test.go - Extended tests for Model.Update() with 'c' key and
+        conversion state</location>
+      <location>examples/np3/ - 22 NP3 sample files for batch conversion testing</location>
+      <location>examples/xmp/ - 913 XMP sample files for batch conversion testing</location>
+      <location>examples/lrtemplate/ - 544 lrtemplate sample files for batch conversion testing</location>
+    </locations>
+    <ideas>
+      <test-idea ac="AC-1">TestConversionTrigger - Verify 'c' key disabled when no selection; test
+        format menu navigation; test confirmation screen</test-idea>
+      <test-idea ac="AC-1">TestFormatSelection - Test numbered menu (1-3), Esc to cancel, invalid
+        input handling</test-idea>
+      <test-idea ac="AC-2">TestProgressBarRendering - Verify bar at 0%, 50%, 100%; test width
+        calculation; test color logic (blue/green/red)</test-idea>
+      <test-idea ac="AC-2">TestProgressPercentage - Test percentage accuracy for various
+        current/total combinations</test-idea>
+      <test-idea ac="AC-3">TestFileStatusFormatting - Test status icons (✓⚠️✗), color coding, format
+        display (NP3→XMP)</test-idea>
+      <test-idea ac="AC-3">TestCompletedList - Test last 5 files display, scrolling for longer lists</test-idea>
+      <test-idea ac="AC-4">TestTimeEstimation - Test elapsed time accuracy; test remaining time
+        calculation; test edge cases (0 completed, first file)</test-idea>
+      <test-idea ac="AC-4">TestDurationFormatting - Test MM:SS format, HH:MM:SS for long batches,
+        "0:00" for zero</test-idea>
+      <test-idea ac="AC-5">TestResultsSummary - Test count accuracy (success/warning/error); test
+        message formatting; test color coding</test-idea>
+      <test-idea ac="AC-5">TestSummaryDismissal - Test any-key returns to file browser</test-idea>
+      <test-idea ac="AC-6">TestCancellation - Test Ctrl+C stops batch; test in-flight file
+        completes; test partial results display</test-idea>
+      <test-idea ac="AC-6">TestSelectionPreserved - Verify file selection preserved after
+        cancellation</test-idea>
+      <test-idea ac="AC-7">TestErrorRecovery - Test batch continues after error; test error count
+        tracking; test error message capture</test-idea>
+      <test-idea ac="AC-7">TestErrorIsolation - Verify errors don't halt batch processing</test-idea>
+      <test-idea type="integration">TestBatchConversion10Files - Convert 10 mixed format files;
+        verify all complete; verify results accurate</test-idea>
+      <test-idea type="integration">TestBatchConversionErrors - Include corrupted file in batch;
+        verify error handling; verify batch completes</test-idea>
+      <test-idea type="performance">TestBatchConversion100Files - Convert 100 files; measure total
+        time (&lt;10s target); verify throughput</test-idea>
+      <test-idea type="performance">TestWorkerPoolScaling - Test conversion with 1, 2, 4, 8 workers;
+        verify parallel speedup</test-idea>
+      <test-idea type="concurrency">TestRaceConditions - Run with -race flag; test worker pool;
+        verify no data races on shared state</test-idea>
+      <test-idea type="concurrency">TestAtomicWrites - Test multiple workers writing simultaneously;
+        verify no corrupted files</test-idea>
+    </ideas>
+  </tests>
+</story-context>

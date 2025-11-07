@@ -1,0 +1,293 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>3.5</storyId>
+    <title>Verbose Logging Mode</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-5-verbose-logging.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>CLI user debugging conversion issues</asA>
+    <iWant>detailed logging output with the --verbose flag</iWant>
+    <soThat>I can troubleshoot problems, understand what parameters were extracted, and see warnings
+      for unmappable fields</soThat>
+    <tasks>
+      ### Task 1: Create Logging Infrastructure (AC-1, AC-2)
+      - Create `cmd/cli/logging.go` file
+      - Implement `initLogger(verbose bool)` function with slog.HandlerOptions
+      - Add global `logger` variable
+      - Export `logger` for use by all CLI commands
+
+      ### Task 2: Add Verbose Flag to Root Command (AC-1)
+      - Open `cmd/cli/root.go`
+      - Add persistent flag: `rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose
+      logging")`
+      - Initialize logger in Execute() based on verbose flag value
+
+      ### Task 3: Add Conversion Workflow Logging (AC-3)
+      - Open `cmd/cli/convert.go`
+      - Add log statements at each workflow step (reading, detection, parsing, converting,
+      generating, writing)
+      - Add warning logs for conversion errors/warnings
+
+      ### Task 4: Add Parameter Extraction Logging (AC-4)
+      - In convert.go, after parsing, log parameter count and sample parameters
+      - Implement `countParameters(recipe)` helper
+      - Implement `formatParameterSummary(recipe, limit)` helper
+
+      ### Task 5: Add Warning Logs for Unmappable Parameters (AC-5)
+      - Identify where conversion warnings are generated
+      - Add logging for warnings returned by converter
+
+      ### Task 6: Add Performance Timing (AC-6)
+      - In convert.go, track conversion duration with time.Now() and time.Since()
+      - Log completion message with duration_ms structured field
+
+      ### Task 7: Add Batch Logging (AC-7)
+      - In `cmd/cli/batch.go`, add batch-level logs (start, progress, completion)
+      - Log batch summary with success/error counts and total duration
+
+      ### Task 8: Add Unit Tests
+      - Create `cmd/cli/logging_test.go` for initLogger() tests
+      - Create `cmd/cli/convert_test.go` (if not exists) for flag and output tests
+
+      ### Task 9: Add Integration Tests
+      - Test verbose output for single file conversion
+      - Test verbose output for batch conversion
+      - Test normal mode (no verbose logs)
+
+      ### Task 10: Update Documentation
+      - Update `README.md` with verbose flag examples
+      - Document structured logging format
+      - Add troubleshooting section using verbose logs
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    ### AC-1: Verbose Flag Configuration
+    - `--verbose` and `-v` flags add verbose logging mode
+    - Flag defined in root command (global flag available to all commands)
+    - Flag accessible via Cobra context in all commands
+    - Boolean flag (no value required: presence = enabled)
+    - Defaults to false (normal quiet mode)
+
+    ### AC-2: Structured Logging with slog
+    - Use Go stdlib `slog` package for all verbose logging
+    - Configure slog handler based on verbose flag
+    - Normal mode: Minimal output (success/error messages only)
+    - Verbose mode: Debug level logging with structured fields
+    - All logs go to stderr (stdout reserved for output/JSON)
+
+    ### AC-3: Conversion Workflow Logging
+    - Log file reading: "Reading input: {path}"
+    - Log format detection: "Detected format: {format}"
+    - Log parsing start: "Parsing {format} file..."
+    - Log parameter extraction: "Extracted parameters: Exposure={value}, Contrast={value}, ..."
+    - Log conversion start: "Converting {from} → {to}..."
+    - Log warnings: "Parameter '{name}' not supported in {format} format (omitted)"
+    - Log generation: "Generating {format} binary..."
+    - Log file write: "Writing output: {path}"
+
+    ### AC-4: Parameter Extraction Logging
+    - Log extracted parameter count: "Extracted {count} parameters"
+    - Log key parameters in compact format: "Exposure={value}, Contrast={value}, Saturation={value}"
+    - Limit parameter display to prevent log spam (first 10 parameters + count)
+    - Full parameter details available at Debug level
+
+    ### AC-5: Warning Messages for Unmappable Parameters
+    - Log warnings when parameters can't be mapped between formats
+    - Warning level (not error - conversion still succeeds)
+    - Include parameter name and target format
+    - Explain action taken: "omitted", "approximated", etc.
+
+    ### AC-6: Performance Timing Logs
+    - Log conversion duration: "Conversion completed in {duration}ms"
+    - Include timing as structured field for parsing
+    - Timing includes full workflow (read → parse → convert → generate → write)
+
+    ### AC-7: Batch Processing Verbose Logs
+    - Log batch start: "Starting batch conversion: {count} files"
+    - Log progress: "Processing file {current}/{total}: {filename}"
+    - Log individual file results (per-file logs from AC-3)
+    - Log batch summary: "Batch complete: {success} succeeded, {error} failed, {duration}s total"
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>Non-Functional Requirements - Observability</section>
+        <snippet>Structured logging with Go stdlib slog (Go 1.21+), log levels: Debug, Info, Warn,
+          Error. Normal mode: minimal output. Verbose mode: Debug level with structured fields. All
+          logs to stderr.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>Detailed Design - Data Models - ConvertFlags</section>
+        <snippet>Verbose bool flag for controlling logging verbosity. JSON bool flag for output
+          formatting (coordinate with verbose mode).</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-3.4: Verbose Mode</section>
+        <snippet>Requirement: Detailed logging for debugging with --verbose or -v flag. Output
+          includes file parsing details, parameter extraction log, conversion warnings, performance
+          timing. Logs to stderr.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Pattern 8: Logging Strategy</section>
+        <snippet>Use slog with structured fields. Log levels: Debug (internal state, verbose only),
+          Info (conversion start/complete), Warn (missing fields, approximations), Error (failures).
+          Example: logger.Info("starting conversion", slog.String("file", path), slog.String("from",
+          src), slog.String("to", tgt))</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>library</kind>
+        <symbol>Convert</symbol>
+        <lines></lines>
+        <reason>Core conversion function that will be wrapped by CLI. Logging will occur in CLI
+          layer before/after calling this function.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/error.go</path>
+        <kind>types</kind>
+        <symbol>ConversionError</symbol>
+        <lines></lines>
+        <reason>Error type that may contain warnings/messages to log in verbose mode.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines></lines>
+        <reason>Data structure for parsed parameters - will need to count parameters and format them
+          for logging.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go_stdlib>
+        <package name="log/slog" reason="Structured logging with log levels (Go 1.21+)" />
+        <package name="os" reason="Stderr output for logs" />
+        <package name="time" reason="Performance timing measurements" />
+        <package name="io" reason="Log capture in tests" />
+      </go_stdlib>
+      <external>
+        <package name="github.com/spf13/cobra"
+          reason="CLI framework - will be used to add persistent --verbose flag to root command" />
+      </external>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Logging infrastructure (Task 1-2) MUST be implemented before workflow logging (Task 3-7)
+    - Story 3-1 (Cobra CLI Structure) must be complete to provide root command for --verbose flag
+    - Story 3-2 (Convert Command) must exist for conversion workflow logging
+    - Story 3-3 (Batch Processing) must exist for batch logging (AC-7)
+    - All logs MUST go to stderr (never stdout) to preserve output for piping/JSON mode
+    - Verbose mode MUST add less than 15% performance overhead (NFR requirement from Tech Spec)
+    - Logging uses ONLY Go stdlib (no external logging frameworks)
+    - Global --verbose flag must be accessible to all subcommands (persistent flag)
+    - Normal mode: Level=Error (minimal output), Verbose mode: Level=Debug (all logs)
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>initLogger</name>
+      <kind>function</kind>
+      <signature>func initLogger(verbose bool) *slog.Logger</signature>
+      <path>cmd/cli/logging.go</path>
+      <description>Initializes slog logger with appropriate level based on verbose flag. Returns
+        configured logger writing to stderr.</description>
+    </interface>
+    <interface>
+      <name>logger (global variable)</name>
+      <kind>variable</kind>
+      <signature>var logger *slog.Logger</signature>
+      <path>cmd/cli/logging.go</path>
+      <description>Package-level logger instance used by all CLI commands for structured logging.</description>
+    </interface>
+    <interface>
+      <name>Cobra PersistentFlags</name>
+      <kind>API</kind>
+      <signature>rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")</signature>
+      <path>cmd/cli/root.go</path>
+      <description>Cobra persistent flag mechanism for --verbose flag available to all subcommands.</description>
+    </interface>
+    <interface>
+      <name>slog.HandlerOptions</name>
+      <kind>struct</kind>
+      <signature>type HandlerOptions struct { Level slog.Leveler }</signature>
+      <path>log/slog (stdlib)</path>
+      <description>Configuration for slog handler controlling log level threshold.</description>
+    </interface>
+    <interface>
+      <name>slog.TextHandler</name>
+      <kind>function</kind>
+      <signature>func slog.NewTextHandler(w io.Writer, opts *HandlerOptions) *TextHandler</signature>
+      <path>log/slog (stdlib)</path>
+      <description>Creates human-readable text log handler for slog writing to specified io.Writer
+        (os.Stderr).</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      This story follows the Recipe project testing standards established in Epic 1:
+      - Table-driven tests for multiple scenarios
+      - Use of testdata/ directory for sample files (1,501 files available)
+      - Unit tests for isolated functions (initLogger, flag parsing)
+      - Integration tests executing CLI as subprocess via os/exec
+      - Benchmark tests for performance validation (less than 15% overhead target)
+      - All tests use Go stdlib testing package (no external test frameworks)
+      - Coverage goal: >90% for new CLI logging code
+    </standards>
+    <locations>
+      cmd/cli/logging_test.go - Unit tests for logger initialization
+      cmd/cli/convert_test.go - Integration tests for verbose flag behavior
+    </locations>
+    <ideas>
+      ### Unit Test Ideas (AC-1, AC-2):
+      - TestInitLogger_VerboseTrue: Verify logger level=Debug when verbose=true
+      - TestInitLogger_VerboseFalse: Verify logger level=Error when verbose=false
+      - TestInitLogger_OutputsToStderr: Verify logs written to stderr not stdout
+      - TestVerboseFlag_ShortFlag: Test -v flag recognized
+      - TestVerboseFlag_LongFlag: Test --verbose flag recognized
+
+      ### Integration Test Ideas (AC-3, AC-4, AC-6):
+      - TestVerboseConversion_AllStepsLogged: Run conversion with -v, verify all workflow steps
+      appear in stderr
+      - TestVerboseConversion_StructuredFields: Verify slog structured format (level=DEBUG, file=,
+      format=)
+      - TestVerboseConversion_ParameterDetails: Verify parameter extraction logged with count and
+      sample values
+      - TestVerboseConversion_TimingLogged: Verify duration_ms field present in completion message
+      - TestNormalMode_NoVerboseLogs: Run without -v, verify only error messages in stderr
+
+      ### Integration Test Ideas (AC-5):
+      - TestVerboseWarnings_UnmappableParameters: Convert file with known unmappable params, verify
+      warnings logged
+      - TestVerboseWarnings_LevelIsWarn: Verify warnings use WARN level not ERROR
+
+      ### Integration Test Ideas (AC-7):
+      - TestVerboseBatch_StartEndLogged: Batch conversion logs start/completion messages
+      - TestVerboseBatch_PerFileProgress: Verify "Processing file X/Y" messages appear
+      - TestVerboseBatch_SummaryStatistics: Verify success/error counts and total duration logged
+
+      ### Performance Test Ideas (AC-6):
+      - BenchmarkVerboseOverhead: Compare conversion time with/without -v flag, verify less than 15%
+      impact
+      - TestTimingAccuracy: Verify logged duration matches actual conversion time
+    </ideas>
+  </tests>
+</story-context>
