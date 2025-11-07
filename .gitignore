@@ -1,6 +1,9 @@
 .vscode/
 examples/
 legacy/
+.bak
+.txt
+.html
 
 # Test coverage reports
 coverage.out

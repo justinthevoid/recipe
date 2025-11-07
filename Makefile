@@ -55,7 +55,7 @@ coverage-html:
 # Run performance benchmarks
 benchmark:
 	@echo "Running performance benchmarks..."
-	go test -bench="BenchmarkConvert_(NP3|XMP|LRTemplate)" -benchmem ./internal/converter/ | tee benchmarks.txt
+	go test -bench="BenchmarkConvert_(NP3|XMP|LRTemplate)" -benchmem -run=^$$ ./internal/converter/ | tee benchmarks.txt
 	@echo ""
 	@echo "Results saved to benchmarks.txt"
 

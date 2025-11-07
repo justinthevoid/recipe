@@ -20,10 +20,10 @@ func TestVerboseFlag_ShortFlag(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "testdata/xmp")
+	testFile := findTestFile(t, "../../testdata/xmp")
 
 	// Run with -v flag
-	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v")
+	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v", "--overwrite")
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +56,7 @@ func TestVerboseFlag_LongFlag(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "testdata/xmp")
+	testFile := findTestFile(t, "../../testdata/xmp")
 
 	// Run with --verbose flag
 	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "--verbose")
@@ -92,10 +92,10 @@ func TestVerboseConversion_AllStepsLogged(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "testdata/xmp")
+	testFile := findTestFile(t, "../../testdata/xmp")
 
 	// Run with verbose flag
-	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v")
+	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v", "--overwrite")
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -139,10 +139,10 @@ func TestVerboseConversion_StructuredFields(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "testdata/xmp")
+	testFile := findTestFile(t, "../../testdata/xmp")
 
 	// Run with verbose flag
-	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v")
+	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v", "--overwrite")
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -185,7 +185,7 @@ func TestNormalMode_NoVerboseLogs(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "testdata/xmp")
+	testFile := findTestFile(t, "../../testdata/xmp")
 
 	// Run WITHOUT verbose flag
 	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3")
@@ -229,9 +229,9 @@ func buildBinary(t *testing.T) string {
 func findTestFile(t *testing.T, dir string) string {
 	t.Helper()
 
-	files, err := filepath.Glob(filepath.Join(dir, "*"))
+	files, err := filepath.Glob(filepath.Join(dir, "*.xmp"))
 	if err != nil || len(files) == 0 {
-		t.Fatalf("No test files found in %s", dir)
+		t.Fatalf("No XMP test files found in %s", dir)
 	}
 
 	return files[0]

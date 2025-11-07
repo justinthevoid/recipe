@@ -149,9 +149,15 @@ func DetectFormat(input []byte) (string, error) {
 		return FormatNP3, nil
 	}
 
-	// Check for XMP: XML structure + Camera Raw Settings namespace
-	if bytes.Contains(input, []byte("<?xml")) &&
-		(bytes.Contains(input, []byte("crs:")) || bytes.Contains(input, []byte("x:xmpmeta"))) {
+	// Check for XMP: XML structure OR XMP metadata wrapper
+	// XMP files may start with <?xml (standalone) or <x:xmpmeta (embedded)
+	// Look for crs: tags (e.g., <crs:Exposure>) OR xmlns:crs namespace declaration
+	hasCRS := bytes.Contains(input, []byte("crs:")) || bytes.Contains(input, []byte("xmlns:crs"))
+
+	if bytes.Contains(input, []byte("<?xml")) && hasCRS {
+		return FormatXMP, nil
+	}
+	if bytes.Contains(input, []byte("x:xmpmeta")) && hasCRS {
 		return FormatXMP, nil
 	}
 
