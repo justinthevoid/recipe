@@ -441,17 +441,17 @@ Account ID: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d
 
 ### Task 5: Create GitHub Actions Workflow File (AC-1, AC-2, AC-3)
 
-- [ ] **Create Workflow Directory:**
+- [x] **Create Workflow Directory:**
   ```bash
   mkdir -p .github/workflows
   ```
 
-- [ ] **Create Workflow File:**
+- [x] **Create Workflow File:**
   ```bash
   touch .github/workflows/deploy-pages.yml
   ```
 
-- [ ] **Write Workflow Configuration:**
+- [x] **Write Workflow Configuration:**
   ```yaml
   name: Deploy to Cloudflare Pages
   
@@ -485,7 +485,7 @@ Account ID: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d
             directory: web
   ```
 
-- [ ] **Workflow Configuration Details:**
+- [x] **Workflow Configuration Details:**
   - **Trigger:** Push to `main` branch only
   - **Runner:** Ubuntu latest (GitHub-hosted, free tier)
   - **Timeout:** 10 minutes (safety net, typical deployment <5 minutes)
@@ -494,6 +494,8 @@ Account ID: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d
     2. Setup Go 1.24 (uses: actions/setup-go@v5)
     3. Build WASM binary (GOOS=js GOARCH=wasm go build)
     4. Deploy to Cloudflare Pages (uses: cloudflare/pages-action@v1)
+  - **CRITICAL FIX:** Changed directory from `web` to `web/static` to resolve 25MB file limit issue
+  - **Created `.cfignore`:** Excludes duplicate WASM files and dev files from deployment
 
 **Validation:**
 - Workflow file exists at `.github/workflows/deploy-pages.yml`
@@ -623,7 +625,7 @@ Account ID: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d
 
 ### Task 9: Update README.md with Deployment Info (AC-5)
 
-- [ ] **Add Deployment Section to README.md:**
+- [x] **Add Deployment Section to README.md:**
   ```markdown
   ## Deployment
   
@@ -667,7 +669,7 @@ Account ID: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d
   - **Performance:** Use Lighthouse audit or WebPageTest for performance metrics
   ```
 
-- [ ] **Commit README Update:**
+- [x] **Commit README Update:**
   ```bash
   git add README.md
   git commit -m "docs: Add Cloudflare Pages deployment section to README"
@@ -1047,19 +1049,23 @@ docs/sprint-status.yaml   # Mark 7-5 as "drafted" (MODIFIED)
 
 ### Agent Model Used
 
-<!-- To be filled by dev agent -->
+Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 
 ### Debug Log References
 
-<!-- Dev agent will document:
-- Cloudflare Pages project creation steps
-- API token creation process
-- GitHub secrets configuration
-- Workflow file creation
-- First deployment monitoring
-- Deployment timing measurements
-- Rollback testing results
--->
+**Issue Diagnosed: 25MB File Limit**
+- Investigated web/ directory structure
+- Found duplicate WASM files: `web/recipe.wasm` (4.0M) + `web/recipe-unstripped.wasm` (4.1M) + `web/static/recipe.wasm` (4.1M)
+- Total size exceeded Cloudflare Pages 25MB limit
+
+**Solution Implemented:**
+- Changed workflow directory from `web` to `web/static` (4.2M total - under 25MB limit)
+- Created `.cfignore` to exclude duplicate WASM files and dev files from deployment
+- Updated WASM build output path to `web/static/recipe.wasm`
+
+**Files Created:**
+- `.github/workflows/deploy-pages.yml` - GitHub Actions workflow with corrected directory path
+- `web/.cfignore` - Cloudflare Pages ignore file to exclude unnecessary files
 
 ### Completion Notes List
 

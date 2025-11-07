@@ -905,6 +905,47 @@ Recipe's privacy promise—**"Your files never leave your device"**—has been v
 
 See the [Privacy Validation](docs/browser-compatibility.md#ac-3--ac-8-privacy-validation-critical) section in the browser compatibility documentation for detailed testing procedures.
 
+## Deployment
+
+Recipe is automatically deployed to Cloudflare Pages on every push to the `main` branch.
+
+**Live Web App:** [https://recipe.pages.dev](https://recipe.pages.dev)
+
+### How Deployment Works
+
+1. Push code to `main` branch
+2. GitHub Actions workflow triggers (`.github/workflows/deploy-pages.yml`)
+3. Go 1.24 installed, WASM binary built (`web/static/recipe.wasm`)
+4. `web/static/` directory deployed to Cloudflare Pages
+5. Site live at https://recipe.pages.dev in ~3-5 minutes
+
+### Manual Deployment (If Needed)
+
+If automatic deployment fails, you can deploy manually:
+
+```bash
+# Build WASM binary
+GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/static/recipe.wasm cmd/wasm/main.go
+
+# Deploy via Wrangler CLI (install first: npm install -g wrangler)
+wrangler pages deploy web/static --project-name recipe
+```
+
+### Rollback
+
+If a deployment introduces bugs:
+
+1. Navigate to: Cloudflare Dashboard → Workers & Pages → recipe → Deployments
+2. Find previous working deployment
+3. Click "..." menu → "Rollback to this deployment"
+4. Site reverts to previous version in <1 minute
+
+### Monitoring
+
+- **Deployment Status:** GitHub Actions tab shows deployment history
+- **Uptime:** Cloudflare Pages dashboard shows uptime metrics
+- **Performance:** Use Lighthouse audit or WebPageTest for performance metrics
+
 ## License
 
 [License information to be added]
