@@ -23,6 +23,25 @@ type SplitToning struct {
 	Balance             int `json:"balance,omitempty" xml:"balance,omitempty"`     // Balance: -100 to +100
 }
 
+// ColorGradingZone represents color adjustments for a specific tonal zone
+// (Highlights, Midtones, or Shadows) in Nikon's Flexible Color Picture Control.
+type ColorGradingZone struct {
+	Hue        int `json:"hue,omitempty" xml:"hue,omitempty"`               // Hue: 0-360 degrees
+	Chroma     int `json:"chroma,omitempty" xml:"chroma,omitempty"`         // Chroma: -100 to +100
+	Brightness int `json:"brightness,omitempty" xml:"brightness,omitempty"` // Brightness: -100 to +100
+}
+
+// ColorGrading represents Nikon's Flexible Color Picture Control color grading system.
+// Allows independent color adjustments in Highlights, Midtones, and Shadows zones,
+// plus global Blending and Balance controls. This is an NP3-specific feature.
+type ColorGrading struct {
+	Highlights ColorGradingZone `json:"highlights,omitempty" xml:"highlights,omitempty"` // Highlights zone (bright areas)
+	Midtone    ColorGradingZone `json:"midtone,omitempty" xml:"midtone,omitempty"`       // Midtone zone (mid-brightness)
+	Shadows    ColorGradingZone `json:"shadows,omitempty" xml:"shadows,omitempty"`       // Shadows zone (dark areas)
+	Blending   int              `json:"blending,omitempty" xml:"blending,omitempty"`     // Blending: 0-100 (controls zone transition smoothness)
+	Balance    int              `json:"balance,omitempty" xml:"balance,omitempty"`       // Balance: -100 to +100 (shifts overall color balance)
+}
+
 // CameraProfile represents camera calibration settings.
 type CameraProfile struct {
 	RedHue         int `json:"redHue,omitempty" xml:"redHue,omitempty"`               // Red hue adjustment
@@ -60,10 +79,11 @@ type UniversalRecipe struct {
 	Saturation int `json:"saturation,omitempty" xml:"saturation,omitempty"` // Saturation: -100 to +100
 
 	// Sharpening
-	Sharpness       int     `json:"sharpness,omitempty" xml:"sharpness,omitempty"`             // Sharpness amount: 0-150
-	SharpnessRadius float64 `json:"sharpnessRadius,omitempty" xml:"sharpnessRadius,omitempty"` // Sharpness radius: 0.5-3.0
-	SharpnessDetail int     `json:"sharpnessDetail,omitempty" xml:"sharpnessDetail,omitempty"` // Sharpness detail: 0-100
-	SharpnessMasking int    `json:"sharpnessMasking,omitempty" xml:"sharpnessMasking,omitempty"` // Sharpness masking: 0-100
+	Sharpness          int     `json:"sharpness,omitempty" xml:"sharpness,omitempty"`                   // Sharpness amount: 0-150
+	SharpnessRadius    float64 `json:"sharpnessRadius,omitempty" xml:"sharpnessRadius,omitempty"`       // Sharpness radius: 0.5-3.0
+	SharpnessDetail    int     `json:"sharpnessDetail,omitempty" xml:"sharpnessDetail,omitempty"`       // Sharpness detail: 0-100
+	SharpnessMasking   int     `json:"sharpnessMasking,omitempty" xml:"sharpnessMasking,omitempty"`     // Sharpness masking: 0-100
+	MidRangeSharpening float64 `json:"midRangeSharpening,omitempty" xml:"midRangeSharpening,omitempty"` // Mid-range sharpening: -5.0 to +5.0 (NP3-specific)
 
 	// White Balance
 	Temperature *int `json:"temperature,omitempty" xml:"temperature,omitempty"` // Temperature in Kelvin (nullable)
@@ -78,6 +98,10 @@ type UniversalRecipe struct {
 	Blue    ColorAdjustment `json:"blue,omitempty" xml:"blue,omitempty"`       // Blue HSL adjustments
 	Purple  ColorAdjustment `json:"purple,omitempty" xml:"purple,omitempty"`   // Purple HSL adjustments
 	Magenta ColorAdjustment `json:"magenta,omitempty" xml:"magenta,omitempty"` // Magenta HSL adjustments
+
+	// Color Grading (NP3-specific)
+	// Advanced color control system with independent adjustments for Highlights, Midtones, and Shadows
+	ColorGrading *ColorGrading `json:"colorGrading,omitempty" xml:"colorGrading,omitempty"` // Nikon Flexible Color Picture Control color grading
 
 	// Tone Curve (Parametric)
 	ToneCurveShadows      int `json:"toneCurveShadows,omitempty" xml:"toneCurveShadows,omitempty"`           // Tone curve shadows: -100 to +100

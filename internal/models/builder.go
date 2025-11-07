@@ -182,6 +182,16 @@ func (b *RecipeBuilder) WithSharpnessMasking(value int) *RecipeBuilder {
 	return b
 }
 
+// WithMidRangeSharpening sets the mid-range sharpening value with validation (NP3-specific).
+func (b *RecipeBuilder) WithMidRangeSharpening(value float64) *RecipeBuilder {
+	if err := ValidateMidRangeSharpening(value); err != nil {
+		b.errors = append(b.errors, err)
+	} else {
+		b.recipe.MidRangeSharpening = value
+	}
+	return b
+}
+
 // WithTemperature sets the temperature value (nullable).
 func (b *RecipeBuilder) WithTemperature(value int) *RecipeBuilder {
 	b.recipe.Temperature = &value
@@ -275,6 +285,64 @@ func (b *RecipeBuilder) WithMagentaHSL(hue, saturation, luminance int) *RecipeBu
 	} else {
 		b.recipe.Magenta = ColorAdjustment{Hue: hue, Saturation: saturation, Luminance: luminance}
 	}
+	return b
+}
+
+// WithColorGrading sets Nikon Flexible Color Picture Control color grading with validation (NP3-specific).
+// Takes pre-constructed ColorGradingZone structs for each tonal zone plus global blending and balance parameters.
+func (b *RecipeBuilder) WithColorGrading(highlights, midtone, shadows ColorGradingZone, blending, balance int) *RecipeBuilder {
+	// Validate highlights zone
+	if err := ValidateColorGradingHue(highlights.Hue); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("highlights: %w", err))
+	}
+	if err := ValidateColorGradingChroma(highlights.Chroma); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("highlights: %w", err))
+	}
+	if err := ValidateColorGradingBrightness(highlights.Brightness); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("highlights: %w", err))
+	}
+
+	// Validate midtone zone
+	if err := ValidateColorGradingHue(midtone.Hue); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("midtone: %w", err))
+	}
+	if err := ValidateColorGradingChroma(midtone.Chroma); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("midtone: %w", err))
+	}
+	if err := ValidateColorGradingBrightness(midtone.Brightness); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("midtone: %w", err))
+	}
+
+	// Validate shadows zone
+	if err := ValidateColorGradingHue(shadows.Hue); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("shadows: %w", err))
+	}
+	if err := ValidateColorGradingChroma(shadows.Chroma); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("shadows: %w", err))
+	}
+	if err := ValidateColorGradingBrightness(shadows.Brightness); err != nil {
+		b.errors = append(b.errors, fmt.Errorf("shadows: %w", err))
+	}
+
+	// Validate global parameters
+	if err := ValidateColorGradingBlending(blending); err != nil {
+		b.errors = append(b.errors, err)
+	}
+	if err := ValidateColorGradingBalance(balance); err != nil {
+		b.errors = append(b.errors, err)
+	}
+
+	// Set the color grading if no errors
+	if len(b.errors) == 0 {
+		b.recipe.ColorGrading = &ColorGrading{
+			Highlights: highlights,
+			Midtone:    midtone,
+			Shadows:    shadows,
+			Blending:   blending,
+			Balance:    balance,
+		}
+	}
+
 	return b
 }
 

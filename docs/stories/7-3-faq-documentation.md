@@ -1304,3 +1304,125 @@ docs/index.md    # Add FAQ to documentation index (MODIFIED - if exists)
 ## Change Log
 
 - **2025-11-06:** Story created from Epic 7 Tech Spec (Third story in Epic 7, answers user questions about legal, privacy, and conversion quality)
+- **2025-11-07:** Implementation completed - All 6 ACs met, FAQ document created with comprehensive answers, landing page integration complete, README and docs/index.md updated
+
+---
+
+## Implementation Notes (2025-11-07)
+
+### Summary
+
+✅ **Story Complete** - All acceptance criteria verified and met.
+
+**Deliverables:**
+1. ✅ `docs/faq.md` created with 7 comprehensive questions (6 required + extras)
+2. ✅ Landing page already has FAQ section with link to full FAQ (Task 2 complete)
+3. ✅ README.md updated with FAQ section and top 3 questions
+4. ✅ `docs/index.md` updated with FAQ entry in "For Users" section
+5. ✅ All cross-references verified (Stories 7-2, 7-4, 2-9, Epic 1 Retrospective)
+
+### Acceptance Criteria Validation
+
+**AC-1: Legal Answer ✅**
+- Reverse engineering context explained (Nikon .np3 undocumented)
+- Fair use and DMCA 1201 exemptions cited
+- No affiliation statement present
+- Private use recommended (conservative approach)
+- "Not legal advice" disclaimer included
+- Links to DMCA 1201 and Fair Use working
+
+**AC-2: Privacy Answer ✅**
+- Confirms YES, files 100% private
+- WebAssembly architecture explained (client-side processing)
+- Zero server uploads, no network requests confirmed
+- No tracking, no analytics, no cookies, no data collection
+- Simple technical explanation (WASM runs on user's computer)
+- Proof method: Network monitoring verification
+- Links to Privacy Promise (landing page) and Architecture docs
+
+**AC-3: Format Limitations Answer ✅**
+- NP3 simpler format explained (in-camera use)
+- Examples of unmappable features: Tone Curves, Grain, Vignette, Split Toning, Clarity, Dehaze
+- What DOES convert: Core adjustments (Exposure, Contrast, Saturation), HSL (24 parameters), Color Grading (11 params), exact offset mapping for 48 parameters (Phase 2)
+- Recipe's behavior: Warns user, converts what it can, skips unmappable
+- Link to Format Compatibility Matrix working
+
+**AC-4: Accuracy Answer ✅**
+- 98%+ accuracy target for core adjustments (Phase 2: exact offset mapping)
+- Accuracy breakdown: Direct mappings (98%+), Approximations (90-95%), Unmappable (N/A)
+- Validation methods: Round-trip testing (100% success 73/73 files), Visual validation, 1,531 sample files tested
+- What affects accuracy: 1:1 mappings vs approximations vs format limitations
+- Best practices: Visual validation, understand limitations, expect 98%+ for core
+- Links to Format Compatibility Matrix and Epic 1 Retrospective working
+
+**AC-5: Clear and Concise ✅**
+- All answers follow structure: Short Answer (1-2 sentences) → Details (2-8 paragraphs) → References
+- Clear structure: Headings, tables, bullet lists for scannable content
+- Non-technical language: Photographer-friendly, WASM explained, technical terms defined
+- Actionable: Next steps, links to details, recommendations provided
+
+**AC-6: Update Process Defined ✅**
+- Process defined for continuous improvement (Monitor GitHub Issues, 3+ times → Add to FAQ)
+- "Last Updated" date at top of FAQ (2025-11-07)
+- Change log included tracking initial creation
+- Maintenance process documented in FAQ Maintenance section
+
+### Files Modified
+
+**NEW:**
+- `docs/faq.md` (351 lines) - Comprehensive FAQ with 7 questions:
+  1. Is Recipe legal? (reverse engineering) - AC-1
+  2. Is my data private? (WASM, zero uploads) - AC-2
+  3. How accurate is conversion? (98%+ Phase 2) - AC-4
+  4. Why don't parameters convert? (format limitations) - AC-3
+  5. What browsers are supported? (technical)
+  6. Can I use Recipe offline? (technical)
+  7. How do I report bugs? (technical)
+
+**MODIFIED:**
+- `web/index.html` - FAQ section already present (lines 122-165) with link to docs/faq.md - Task 2 complete
+- `README.md` - Added FAQ section with top 3 questions and link to full FAQ (lines 26-34)
+- `docs/index.md` - Added FAQ entry in "For Users" section (line 25)
+
+### Cross-Reference Verification
+
+**Story 7-4 Legal Disclaimer:**
+- ✅ Verified alignment - FAQ legal answer references legal disclaimer link
+- ✅ Conservative approach consistent (private use recommended)
+- ✅ No legal advice disclaimer present in both
+
+**Story 2-9 Privacy Messaging:**
+- ✅ Verified alignment - FAQ privacy answer matches WASM architecture explanation
+- ✅ Zero tracking/uploads consistent messaging
+- ✅ User verifiable (network monitoring) mentioned in both
+
+**Story 7-2 Format Compatibility Matrix:**
+- ✅ Verified alignment - FAQ unmappable features match matrix content
+- ✅ 98%+ accuracy metric consistent (Phase 2: exact offset mapping for 48 parameters)
+- ✅ Link to matrix working
+
+**Epic 1 Retrospective:**
+- ✅ Verified alignment - FAQ cites 1,531 sample files tested, 100% round-trip success (73/73 NP3 files)
+- ✅ 98%+ accuracy metrics consistent with Phase 2 enhancements
+- ✅ Link to retrospective working
+
+### Quality Metrics
+
+- **Readability:** Non-technical language, photographer-friendly
+- **Structure:** Short Answer → Details → References (all 7 questions)
+- **Length:** 2-8 paragraphs per answer (appropriate depth)
+- **Cross-References:** 4 internal doc links, 2 external legal links
+- **Mobile-Responsive:** Markdown tables and formatting compatible
+- **Actionable:** Next steps and recommendations in all answers
+
+### Post-Launch Plan
+
+- Monitor GitHub Issues for common questions (tag with `faq-candidate`)
+- Add questions asked 3+ times to FAQ
+- Quarterly FAQ review and update
+- Update "Last Updated" date with each change
+- Track changes in FAQ change log
+
+---
+
+**Status:** ✅ READY FOR REVIEW - All ACs met, documentation complete, cross-references verified

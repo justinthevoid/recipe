@@ -54,47 +54,162 @@ func Generate(recipe *models.UniversalRecipe) ([]byte, error) {
 
 // convertToNP3Parameters converts UniversalRecipe parameters to NP3 ranges.
 //
-// Conversion formulas (based on story 1-2 parser implementation):
-//   - Sharpness: 0-150 → 0-9 (divide by 10, round)
-//   - Contrast: -100/+100 → -3/+3 (divide by 33, round)
-//   - Saturation: -100/+100 → -3/+3 (divide by 33, round)
-//   - Brightness: Exposure field maps to NP3 brightness (-1.0 to +1.0)
-//   - Hue: Currently using neutral default (no direct mapping in UniversalRecipe)
+// Phase 2 Enhancement: Now converts all 48 parameters using exact offset mappings
+// discovered through TypeScript implementation research.
+//
+// Conversion formulas (reverse of parser mappings in parse.go:845-952):
+//   - Basic Adjustments (2): sharpening, clarity
+//   - Advanced Adjustments (7): mid-range sharpening, contrast, highlights, shadows, whites, blacks, saturation
+//   - Color Blender (24): 8 colors × 3 values (hue, chroma/saturation, brightness/luminance)
+//   - Color Grading (11): 3 zones + 2 global params
+//   - Tone Curve (3): control points
 func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, error) {
 	params := &np3Parameters{}
 
-	// Convert Sharpness: UniversalRecipe (0-150) → NP3 (0-9)
-	// Parser uses: np3Value * 10 = universalValue
-	// Generator reverses: universalValue / 10 = np3Value
-	params.sharpening = recipe.Sharpness / 10
-	if params.sharpening > 9 {
-		params.sharpening = 9
+	// === Basic Adjustments (2 parameters) ===
+
+	// Convert Sharpness: UniversalRecipe (0-150) → NP3 (-3.0 to +9.0)
+	// Parser uses: (np3Value + 3.0) * 12.5 = universalValue
+	// Generator reverses: (universalValue / 12.5) - 3.0 = np3Value
+	params.sharpening = (float64(recipe.Sharpness) / 12.5) - 3.0
+	if params.sharpening > 9.0 {
+		params.sharpening = 9.0
+	} else if params.sharpening < -3.0 {
+		params.sharpening = -3.0
 	}
 
-	// Convert Contrast: UniversalRecipe (-100/+100) → NP3 (-3/+3)
-	// Parser uses: np3Value * 33 = universalValue
-	// Generator reverses: universalValue / 33 = np3Value
-	params.contrast = recipe.Contrast / 33
-	if params.contrast > 3 {
-		params.contrast = 3
-	} else if params.contrast < -3 {
-		params.contrast = -3
+	// Convert Clarity: UniversalRecipe (-100 to +100) → NP3 (-5.0 to +5.0)
+	// Parser uses: np3Value * 20 = universalValue
+	// Generator reverses: universalValue / 20 = np3Value
+	params.clarity = float64(recipe.Clarity) / 20.0
+	if params.clarity > 5.0 {
+		params.clarity = 5.0
+	} else if params.clarity < -5.0 {
+		params.clarity = -5.0
 	}
 
-	// Convert Saturation: UniversalRecipe (-100/+100) → NP3 (-3/+3)
-	// Parser uses: np3Value * 33 = universalValue
-	// Generator reverses: universalValue / 33 = np3Value
-	params.saturation = recipe.Saturation / 33
-	if params.saturation > 3 {
-		params.saturation = 3
-	} else if params.saturation < -3 {
-		params.saturation = -3
+	// === Advanced Adjustments (7 parameters) ===
+
+	// Mid-Range Sharpening: Direct mapping (-5.0 to +5.0)
+	params.midRangeSharpening = recipe.MidRangeSharpening
+	if params.midRangeSharpening > 5.0 {
+		params.midRangeSharpening = 5.0
+	} else if params.midRangeSharpening < -5.0 {
+		params.midRangeSharpening = -5.0
 	}
 
-	// Convert Brightness: UniversalRecipe Exposure field → NP3 brightness (-1.0 to +1.0)
-	// Parser maps NP3 brightness to UniversalRecipe Exposure
+	// Contrast, Highlights, Shadows, Whites, Blacks, Saturation: Direct mapping (-100 to +100)
+	params.contrast = recipe.Contrast
+	if params.contrast > 100 {
+		params.contrast = 100
+	} else if params.contrast < -100 {
+		params.contrast = -100
+	}
+
+	params.highlights = recipe.Highlights
+	if params.highlights > 100 {
+		params.highlights = 100
+	} else if params.highlights < -100 {
+		params.highlights = -100
+	}
+
+	params.shadows = recipe.Shadows
+	if params.shadows > 100 {
+		params.shadows = 100
+	} else if params.shadows < -100 {
+		params.shadows = -100
+	}
+
+	params.whiteLevel = recipe.Whites
+	if params.whiteLevel > 100 {
+		params.whiteLevel = 100
+	} else if params.whiteLevel < -100 {
+		params.whiteLevel = -100
+	}
+
+	params.blackLevel = recipe.Blacks
+	if params.blackLevel > 100 {
+		params.blackLevel = 100
+	} else if params.blackLevel < -100 {
+		params.blackLevel = -100
+	}
+
+	params.saturation = recipe.Saturation
+	if params.saturation > 100 {
+		params.saturation = 100
+	} else if params.saturation < -100 {
+		params.saturation = -100
+	}
+
+	// === Color Blender (24 parameters) ===
+	// UniversalRecipe ColorAdjustment maps directly to NP3 Color Blender (hue, chroma, brightness)
+
+	params.redHue = recipe.Red.Hue
+	params.redChroma = recipe.Red.Saturation
+	params.redBrightness = recipe.Red.Luminance
+
+	params.orangeHue = recipe.Orange.Hue
+	params.orangeChroma = recipe.Orange.Saturation
+	params.orangeBrightness = recipe.Orange.Luminance
+
+	params.yellowHue = recipe.Yellow.Hue
+	params.yellowChroma = recipe.Yellow.Saturation
+	params.yellowBrightness = recipe.Yellow.Luminance
+
+	params.greenHue = recipe.Green.Hue
+	params.greenChroma = recipe.Green.Saturation
+	params.greenBrightness = recipe.Green.Luminance
+
+	params.cyanHue = recipe.Aqua.Hue
+	params.cyanChroma = recipe.Aqua.Saturation
+	params.cyanBrightness = recipe.Aqua.Luminance
+
+	params.blueHue = recipe.Blue.Hue
+	params.blueChroma = recipe.Blue.Saturation
+	params.blueBrightness = recipe.Blue.Luminance
+
+	params.purpleHue = recipe.Purple.Hue
+	params.purpleChroma = recipe.Purple.Saturation
+	params.purpleBrightness = recipe.Purple.Luminance
+
+	params.magentaHue = recipe.Magenta.Hue
+	params.magentaChroma = recipe.Magenta.Saturation
+	params.magentaBrightness = recipe.Magenta.Luminance
+
+	// === Color Grading (11 parameters) ===
+	// Direct mapping from UniversalRecipe ColorGrading
+
+	if recipe.ColorGrading != nil {
+		params.highlightsZone = recipe.ColorGrading.Highlights
+		params.midtoneZone = recipe.ColorGrading.Midtone
+		params.shadowsZone = recipe.ColorGrading.Shadows
+		params.blending = recipe.ColorGrading.Blending
+		params.balance = recipe.ColorGrading.Balance
+	}
+
+	// === Tone Curve (3 parameters) ===
+	// Convert UniversalRecipe PointCurve to NP3 format
+
+	if len(recipe.PointCurve) > 0 {
+		params.toneCurvePointCount = len(recipe.PointCurve)
+		if params.toneCurvePointCount > 127 {
+			params.toneCurvePointCount = 127 // NP3 limit
+		}
+
+		params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
+		for i := 0; i < params.toneCurvePointCount; i++ {
+			params.toneCurvePoints[i] = toneCurvePoint{
+				position: 405 + (i * 2), // Offset calculation
+				value1:   uint8(recipe.PointCurve[i].Input),
+				value2:   uint8(recipe.PointCurve[i].Output),
+			}
+		}
+	}
+
+	// === Legacy Parameters (for heuristic fallback compatibility) ===
+
+	// Brightness: UniversalRecipe Exposure field → NP3 brightness (-1.0 to +1.0)
 	params.brightness = recipe.Exposure
-	// Clamp to NP3 range
 	if params.brightness > 1.0 {
 		params.brightness = 1.0
 	} else if params.brightness < -1.0 {
@@ -102,7 +217,6 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 	}
 
 	// Hue: No direct mapping in UniversalRecipe (only per-color hue adjustments)
-	// Use neutral default
 	params.hue = 0
 
 	// Retrieve raw binary data if available for perfect round-trip preservation
@@ -284,23 +398,18 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 		copy(data[20:24], []byte{0x00, 0x00, 0x00, 0x14})    // Name length = 20 (0x14)
 	}
 
-	// Only write heuristic data if we don't have raw data
+	// Only write legacy data structures if we don't have raw data
 	// (raw data already has correct values and writing would corrupt chunks)
 	if params.rawData == nil || len(params.rawData) == 0 {
-		// Write heuristic data FIRST (for parser compatibility)
-		// Offsets 60-63: Reserved (already zeros)
+		// Phase 2: Legacy heuristic data generation (generateColorData, generateToneCurveData)
+		// has been removed in favor of exact offset writing. The old heuristic approach
+		// wrote data to offsets 100-299 (color) and 150-499 (tone curve), but Phase 2
+		// uses exact offsets for all 48 parameters instead.
+		//
+		// The following legacy functions are still needed for basic file structure:
 
-		// Write raw parameter bytes at offsets 64-79 (parser reads these)
+		// Write raw parameter bytes at offsets 64-79 (legacy structure)
 		writeRawParameterBytes(data, params)
-
-		// Offsets 80-99: Reserved (already zeros)
-
-		// Generate color data at offsets 100-299 (parser analyzes for saturation)
-		colorEndOffset := generateColorData(data, params.saturation)
-
-		// Generate tone curve data starting after color data (parser analyzes for contrast)
-		// Start at minimum offset 150 (where parser begins reading) or after color data ends
-		generateToneCurveData(data, params.contrast, colorEndOffset)
 
 		// Write preset name at offset 24-43 (20 bytes, matching real NP3 files)
 		if presetName != "" {
@@ -323,6 +432,15 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 		// parameter values in their value bytes (hybrid format)
 		writeChunks(data, params)
 	}
+
+	// === Phase 2: Write all parameters to exact offsets ===
+	// Write exact offset data regardless of whether we have rawData, to ensure
+	// current parameter values are written to the correct locations
+	writeBasicAdjustments(data, params)
+	writeAdvancedAdjustments(data, params)
+	writeColorBlender(data, params)
+	writeColorGrading(data, params)
+	writeToneCurve(data, params)
 
 	// Return the complete 480-byte buffer (matching real .np3 files)
 	return data, nil
@@ -481,5 +599,218 @@ func generateToneCurveData(data []byte, contrast int, colorEndOffset int) {
 		data[offset] = 1
 		data[offset+1] = 1
 		offset += 2
+	}
+}
+
+// === Phase 2: Exact Offset Writers ===
+// These functions write all 48 parameters to exact byte offsets discovered through
+// TypeScript implementation research. They mirror the extraction functions in parse.go.
+
+// writeBasicAdjustments writes sharpening and clarity to exact offsets using Scaled4 encoding.
+//
+// Offsets:
+//   - Sharpening: offset 82, Scaled4 encoding (-3.0 to +9.0)
+//   - Clarity: offset 92, Scaled4 encoding (-5.0 to +5.0)
+//
+// Encoding: Scaled4 = (value * 4.0) + 0x80
+func writeBasicAdjustments(data []byte, params *np3Parameters) {
+	// Sharpening (offset 82)
+	if len(data) > OffsetSharpening {
+		data[OffsetSharpening] = EncodeScaled4(params.sharpening)
+	}
+
+	// Clarity (offset 92)
+	if len(data) > OffsetClarity {
+		data[OffsetClarity] = EncodeScaled4(params.clarity)
+	}
+}
+
+// writeAdvancedAdjustments writes 7 advanced parameters to exact offsets using Scaled4 and Signed8 encodings.
+//
+// Offsets:
+//   - Mid-Range Sharpening: offset 242, Scaled4 (-5.0 to +5.0)
+//   - Contrast: offset 272, Signed8 (-100 to +100)
+//   - Highlights: offset 282, Signed8 (-100 to +100)
+//   - Shadows: offset 292, Signed8 (-100 to +100)
+//   - White Level: offset 302, Signed8 (-100 to +100)
+//   - Black Level: offset 312, Signed8 (-100 to +100)
+//   - Saturation: offset 322, Signed8 (-100 to +100)
+func writeAdvancedAdjustments(data []byte, params *np3Parameters) {
+	// Mid-Range Sharpening (offset 242, Scaled4)
+	if len(data) > OffsetMidRangeSharpening {
+		data[OffsetMidRangeSharpening] = EncodeScaled4(params.midRangeSharpening)
+	}
+
+	// Contrast (offset 272, Signed8)
+	if len(data) > OffsetContrast {
+		data[OffsetContrast] = EncodeSigned8(params.contrast)
+	}
+
+	// Highlights (offset 282, Signed8)
+	if len(data) > OffsetHighlights {
+		data[OffsetHighlights] = EncodeSigned8(params.highlights)
+	}
+
+	// Shadows (offset 292, Signed8)
+	if len(data) > OffsetShadows {
+		data[OffsetShadows] = EncodeSigned8(params.shadows)
+	}
+
+	// White Level (offset 302, Signed8)
+	if len(data) > OffsetWhiteLevel {
+		data[OffsetWhiteLevel] = EncodeSigned8(params.whiteLevel)
+	}
+
+	// Black Level (offset 312, Signed8)
+	if len(data) > OffsetBlackLevel {
+		data[OffsetBlackLevel] = EncodeSigned8(params.blackLevel)
+	}
+
+	// Saturation (offset 322, Signed8)
+	if len(data) > OffsetSaturation {
+		data[OffsetSaturation] = EncodeSigned8(params.saturation)
+	}
+}
+
+// writeColorBlender writes 24 color blender parameters (8 colors × 3 values) to exact offsets.
+//
+// Offsets: 332-355 (sequential, 3 bytes per color)
+// Encoding: Signed8 for all values (-100 to +100)
+func writeColorBlender(data []byte, params *np3Parameters) {
+	// Red (offsets 332-334)
+	if len(data) > OffsetRedBrightness {
+		data[OffsetRedHue] = EncodeSigned8(params.redHue)
+		data[OffsetRedChroma] = EncodeSigned8(params.redChroma)
+		data[OffsetRedBrightness] = EncodeSigned8(params.redBrightness)
+	}
+
+	// Orange (offsets 335-337)
+	if len(data) > OffsetOrangeBrightness {
+		data[OffsetOrangeHue] = EncodeSigned8(params.orangeHue)
+		data[OffsetOrangeChroma] = EncodeSigned8(params.orangeChroma)
+		data[OffsetOrangeBrightness] = EncodeSigned8(params.orangeBrightness)
+	}
+
+	// Yellow (offsets 338-340)
+	if len(data) > OffsetYellowBrightness {
+		data[OffsetYellowHue] = EncodeSigned8(params.yellowHue)
+		data[OffsetYellowChroma] = EncodeSigned8(params.yellowChroma)
+		data[OffsetYellowBrightness] = EncodeSigned8(params.yellowBrightness)
+	}
+
+	// Green (offsets 341-343)
+	if len(data) > OffsetGreenBrightness {
+		data[OffsetGreenHue] = EncodeSigned8(params.greenHue)
+		data[OffsetGreenChroma] = EncodeSigned8(params.greenChroma)
+		data[OffsetGreenBrightness] = EncodeSigned8(params.greenBrightness)
+	}
+
+	// Cyan (offsets 344-346)
+	if len(data) > OffsetCyanBrightness {
+		data[OffsetCyanHue] = EncodeSigned8(params.cyanHue)
+		data[OffsetCyanChroma] = EncodeSigned8(params.cyanChroma)
+		data[OffsetCyanBrightness] = EncodeSigned8(params.cyanBrightness)
+	}
+
+	// Blue (offsets 347-349)
+	if len(data) > OffsetBlueBrightness {
+		data[OffsetBlueHue] = EncodeSigned8(params.blueHue)
+		data[OffsetBlueChroma] = EncodeSigned8(params.blueChroma)
+		data[OffsetBlueBrightness] = EncodeSigned8(params.blueBrightness)
+	}
+
+	// Purple (offsets 350-352)
+	if len(data) > OffsetPurpleBrightness {
+		data[OffsetPurpleHue] = EncodeSigned8(params.purpleHue)
+		data[OffsetPurpleChroma] = EncodeSigned8(params.purpleChroma)
+		data[OffsetPurpleBrightness] = EncodeSigned8(params.purpleBrightness)
+	}
+
+	// Magenta (offsets 353-355)
+	if len(data) > OffsetMagentaBrightness {
+		data[OffsetMagentaHue] = EncodeSigned8(params.magentaHue)
+		data[OffsetMagentaChroma] = EncodeSigned8(params.magentaChroma)
+		data[OffsetMagentaBrightness] = EncodeSigned8(params.magentaBrightness)
+	}
+}
+
+// writeColorGrading writes 11 color grading parameters to exact offsets using Hue12 and Signed8 encodings.
+//
+// Offsets:
+//   - Highlights Zone: 368-371 (2-byte hue + 1-byte chroma + 1-byte brightness)
+//   - Midtone Zone: 372-375 (2-byte hue + 1-byte chroma + 1-byte brightness)
+//   - Shadows Zone: 376-379 (2-byte hue + 1-byte chroma + 1-byte brightness)
+//   - Blending: 384 (direct value 0-100)
+//   - Balance: 386 (Signed8 -100 to +100)
+func writeColorGrading(data []byte, params *np3Parameters) {
+	// Highlights zone (offsets 368-371)
+	if len(data) > OffsetHighlightsBrightness {
+		byte1, byte2 := EncodeHue12(params.highlightsZone.Hue)
+		data[OffsetHighlightsHue] = byte1
+		data[OffsetHighlightsHue+1] = byte2
+		data[OffsetHighlightsChroma] = EncodeSigned8(params.highlightsZone.Chroma)
+		data[OffsetHighlightsBrightness] = EncodeSigned8(params.highlightsZone.Brightness)
+	}
+
+	// Midtone zone (offsets 372-375)
+	if len(data) > OffsetMidtoneBrightness {
+		byte1, byte2 := EncodeHue12(params.midtoneZone.Hue)
+		data[OffsetMidtoneHue] = byte1
+		data[OffsetMidtoneHue+1] = byte2
+		data[OffsetMidtoneChroma] = EncodeSigned8(params.midtoneZone.Chroma)
+		data[OffsetMidtoneBrightness] = EncodeSigned8(params.midtoneZone.Brightness)
+	}
+
+	// Shadows zone (offsets 376-379)
+	if len(data) > OffsetShadowsBrightness {
+		byte1, byte2 := EncodeHue12(params.shadowsZone.Hue)
+		data[OffsetShadowsHue] = byte1
+		data[OffsetShadowsHue+1] = byte2
+		data[OffsetShadowsChroma] = EncodeSigned8(params.shadowsZone.Chroma)
+		data[OffsetShadowsBrightness] = EncodeSigned8(params.shadowsZone.Brightness)
+	}
+
+	// Blending (offset 384, direct value 0-100)
+	if len(data) > OffsetColorGradingBlending {
+		data[OffsetColorGradingBlending] = uint8(params.blending)
+	}
+
+	// Balance (offset 386, Signed8 -100 to +100)
+	if len(data) > OffsetColorGradingBalance {
+		data[OffsetColorGradingBalance] = EncodeSigned8(params.balance)
+	}
+}
+
+// writeToneCurve writes tone curve control points to exact offsets.
+//
+// Offsets:
+//   - Point Count: offset 404 (direct value 0-255)
+//   - Control Points: offset 405 (2 bytes per point: input, output)
+//   - Raw Curve: offset 460 (257 × 16-bit big-endian values)
+func writeToneCurve(data []byte, params *np3Parameters) {
+	// Point count (offset 404)
+	if len(data) > OffsetToneCurvePointCount {
+		data[OffsetToneCurvePointCount] = uint8(params.toneCurvePointCount)
+
+		// Control points (offset 405, 2 bytes per point)
+		if params.toneCurvePointCount > 0 && len(params.toneCurvePoints) > 0 {
+			for i := 0; i < params.toneCurvePointCount && i < len(params.toneCurvePoints); i++ {
+				offset := OffsetToneCurvePoints + (i * 2)
+				if len(data) > offset+1 {
+					data[offset] = params.toneCurvePoints[i].value1
+					data[offset+1] = params.toneCurvePoints[i].value2
+				}
+			}
+		}
+	}
+
+	// Raw curve (offset 460, 257 × 16-bit big-endian)
+	// Note: This is optional and typically not written unless we have raw curve data
+	if len(params.toneCurveRaw) == 257 && len(data) >= OffsetToneCurveRaw+514 {
+		for i := 0; i < 257; i++ {
+			offset := OffsetToneCurveRaw + (i * 2)
+			data[offset] = uint8(params.toneCurveRaw[i] >> 8)   // High byte
+			data[offset+1] = uint8(params.toneCurveRaw[i] & 0xFF) // Low byte
+		}
 	}
 }

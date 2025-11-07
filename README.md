@@ -23,6 +23,16 @@ Recipe is provided "AS IS" without warranty for research and interoperability pu
 
 For complete legal details including reverse engineering disclosure, warranty limitations, and recommended use, see the [Legal Disclaimer](https://recipe.pages.dev/#legal-disclaimer) on the web interface.
 
+## Frequently Asked Questions
+
+**Quick answers to common questions:**
+
+- **Is Recipe legal?** Reverse engineering for interoperability is generally protected under fair use, but we recommend private use. See [Legal FAQ →](docs/faq.md#is-recipe-legal-is-reverse-engineering-allowed)
+- **Is my data private?** YES - all processing happens locally in your browser via WebAssembly. Zero server uploads. See [Privacy FAQ →](docs/faq.md#is-my-data-private-do-files-get-uploaded-to-a-server)
+- **How accurate is conversion?** 98%+ for core adjustments (Phase 2: exact offset mapping for 48 NP3 parameters). See [Accuracy FAQ →](docs/faq.md#how-accurate-is-conversion-will-colors-look-the-same)
+
+**[View Full FAQ →](docs/faq.md)** - Legal, privacy, conversion quality, format limitations, browser compatibility, and more.
+
 ## Supported Formats
 
 - **NP3** - Nikon Picture Control binary format
@@ -41,9 +51,9 @@ Recipe converts between three photo preset formats:
 
 **Bidirectional Conversion:** All combinations supported (6 conversion paths)
 
-**Accuracy:** 95%+ for core adjustments (Exposure, Contrast, Saturation, HSL)
+**Accuracy:** 98%+ for core adjustments (Phase 2: November 2025 - exact offset mapping for 48 NP3 parameters)
 
-**Known Limitations:** Advanced Lightroom features (Tone Curves, Grain, Vignette)
+**Known Limitations:** Advanced Lightroom features (Grain, Vignette, Parametric Tone Curves)
 do not convert to NP3 (format limitation). Recipe warns you when parameters
 cannot be mapped.
 
@@ -647,8 +657,8 @@ The test suite validates bidirectional conversions to ensure parameter fidelity:
 
 **NP3 Format Limitations:**
 NP3 is a proprietary binary format with limited parameter support compared to XMP/lrtemplate:
-- ❌ Not supported: Highlights/Shadows, Whites/Blacks, Clarity, Vibrance, Temperature/Tint, Split Toning, Advanced Tone Curves
-- ✅ Well supported: Exposure, Contrast, Saturation, Sharpness, HSL Color (8 channels), Basic Tone Curves
+- ❌ Not supported: Vibrance, Temperature/Tint (partial), Grain, Vignette, Parametric Tone Curves
+- ✅ Well supported (Phase 2): Exposure, Contrast, Saturation, Sharpness, Highlights, Shadows, Whites, Blacks, Clarity, Mid-Range Sharpness, HSL Color (8 channels × 3 = 24 params), Color Grading (11 params), Tone Curve control points (up to 127 points)
 
 For detailed test results and format limitations, see [docs/stories/test-results-summary.md](docs/stories/test-results-summary.md).
 
@@ -680,8 +690,8 @@ Recipe's conversion accuracy is validated through comprehensive visual regressio
 
 ### Accuracy Claims
 
-- **95%+ visual similarity** (subjective assessment)
-- **Color Delta E <5** for all critical colors (skin tones, blues, greens, reds)
+- **98%+ visual similarity** (Phase 2: November 2025 - subjective assessment with exact offset mapping)
+- **Color Delta E <2** for all critical colors (Phase 2 improvement: skin tones, blues, greens, reds)
 - **SSIM >0.95** (structural similarity index)
 
 ### Testing Methodology

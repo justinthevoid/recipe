@@ -139,6 +139,21 @@ type Description struct {
 	SplitToningHighlightSaturation string `xml:"SplitToningHighlightSaturation,attr"`
 	SplitToningBalance             string `xml:"SplitToningBalance,attr"`
 
+	// Color Grading (Phase 2) - Lightroom 2019+ Color Grading panel
+	ColorGradeHighlightHue string `xml:"ColorGradeHighlightHue,attr"`
+	ColorGradeHighlightSat string `xml:"ColorGradeHighlightSat,attr"`
+	ColorGradeHighlightLum string `xml:"ColorGradeHighlightLum,attr"`
+	ColorGradeMidtoneHue   string `xml:"ColorGradeMidtoneHue,attr"`
+	ColorGradeMidtoneSat   string `xml:"ColorGradeMidtoneSat,attr"`
+	ColorGradeMidtoneLum   string `xml:"ColorGradeMidtoneLum,attr"`
+	ColorGradeShadowHue    string `xml:"ColorGradeShadowHue,attr"`
+	ColorGradeShadowSat    string `xml:"ColorGradeShadowSat,attr"`
+	ColorGradeShadowLum    string `xml:"ColorGradeShadowLum,attr"`
+	ColorGradeBlending     string `xml:"ColorGradeBlending,attr"`
+	ColorGradeGlobalHue    string `xml:"ColorGradeGlobalHue,attr"`
+	ColorGradeGlobalSat    string `xml:"ColorGradeGlobalSat,attr"`
+	ColorGradeGlobalLum    string `xml:"ColorGradeGlobalLum,attr"`
+
 	// Tone Curve (stored as string, to be parsed separately if needed)
 	ToneCurve string `xml:"ToneCurve,attr"`
 }
@@ -264,6 +279,9 @@ type xmpParameters struct {
 	splitHighlightHue        int
 	splitHighlightSaturation int
 	splitBalance             int
+
+	// Color Grading (Phase 2)
+	colorGrading *models.ColorGrading
 
 	// Tone Curve (stored as string for now)
 	toneCurve string
@@ -404,6 +422,12 @@ func extractParameters(desc *Description) (*xmpParameters, error) {
 		return nil, err
 	}
 
+	// Extract Color Grading (Phase 2)
+	params.colorGrading, err = extractColorGrading(desc)
+	if err != nil {
+		return nil, err
+	}
+
 	// Store tone curve as-is for now (to be parsed later if needed)
 	params.toneCurve = desc.ToneCurve
 
@@ -465,6 +489,76 @@ func extractColorAdjustment(hue, saturation, luminance, colorName string) (model
 	}
 
 	return adj, nil
+}
+
+// extractColorGrading extracts Color Grading parameters from XMP Description (Phase 2).
+// Returns nil if no color grading parameters are present.
+func extractColorGrading(desc *Description) (*models.ColorGrading, error) {
+	// Check if any color grading parameters exist
+	hasColorGrading := desc.ColorGradeHighlightHue != "" || desc.ColorGradeHighlightSat != "" || desc.ColorGradeHighlightLum != "" ||
+		desc.ColorGradeMidtoneHue != "" || desc.ColorGradeMidtoneSat != "" || desc.ColorGradeMidtoneLum != "" ||
+		desc.ColorGradeShadowHue != "" || desc.ColorGradeShadowSat != "" || desc.ColorGradeShadowLum != "" ||
+		desc.ColorGradeBlending != "" || desc.ColorGradeGlobalHue != "" || desc.ColorGradeGlobalSat != "" || desc.ColorGradeGlobalLum != ""
+
+	if !hasColorGrading {
+		return nil, nil
+	}
+
+	cg := &models.ColorGrading{}
+	var err error
+
+	// Extract Highlights zone
+	cg.Highlights.Hue, err = parseInt(desc.ColorGradeHighlightHue, "ColorGradeHighlightHue")
+	if err != nil && desc.ColorGradeHighlightHue != "" {
+		return nil, err
+	}
+	cg.Highlights.Chroma, err = parseInt(desc.ColorGradeHighlightSat, "ColorGradeHighlightSat")
+	if err != nil && desc.ColorGradeHighlightSat != "" {
+		return nil, err
+	}
+	cg.Highlights.Brightness, err = parseInt(desc.ColorGradeHighlightLum, "ColorGradeHighlightLum")
+	if err != nil && desc.ColorGradeHighlightLum != "" {
+		return nil, err
+	}
+
+	// Extract Midtone zone
+	cg.Midtone.Hue, err = parseInt(desc.ColorGradeMidtoneHue, "ColorGradeMidtoneHue")
+	if err != nil && desc.ColorGradeMidtoneHue != "" {
+		return nil, err
+	}
+	cg.Midtone.Chroma, err = parseInt(desc.ColorGradeMidtoneSat, "ColorGradeMidtoneSat")
+	if err != nil && desc.ColorGradeMidtoneSat != "" {
+		return nil, err
+	}
+	cg.Midtone.Brightness, err = parseInt(desc.ColorGradeMidtoneLum, "ColorGradeMidtoneLum")
+	if err != nil && desc.ColorGradeMidtoneLum != "" {
+		return nil, err
+	}
+
+	// Extract Shadows zone
+	cg.Shadows.Hue, err = parseInt(desc.ColorGradeShadowHue, "ColorGradeShadowHue")
+	if err != nil && desc.ColorGradeShadowHue != "" {
+		return nil, err
+	}
+	cg.Shadows.Chroma, err = parseInt(desc.ColorGradeShadowSat, "ColorGradeShadowSat")
+	if err != nil && desc.ColorGradeShadowSat != "" {
+		return nil, err
+	}
+	cg.Shadows.Brightness, err = parseInt(desc.ColorGradeShadowLum, "ColorGradeShadowLum")
+	if err != nil && desc.ColorGradeShadowLum != "" {
+		return nil, err
+	}
+
+	// Extract Blending and Balance
+	cg.Blending, err = parseInt(desc.ColorGradeBlending, "ColorGradeBlending")
+	if err != nil && desc.ColorGradeBlending != "" {
+		return nil, err
+	}
+
+	// Note: Global Hue/Sat/Lum are stored but currently not used in UniversalRecipe ColorGrading struct
+	// They may be added to Balance or stored in metadata for future use
+
+	return cg, nil
 }
 
 // validateParameters validates all extracted parameter values are within expected ranges
@@ -712,6 +806,17 @@ func buildRecipe(params *xmpParameters) (*models.UniversalRecipe, error) {
 		params.splitHighlightSaturation,
 		params.splitBalance,
 	)
+
+	// Set Color Grading (Phase 2)
+	if params.colorGrading != nil {
+		builder.WithColorGrading(
+			params.colorGrading.Highlights,
+			params.colorGrading.Midtone,
+			params.colorGrading.Shadows,
+			params.colorGrading.Blending,
+			params.colorGrading.Balance,
+		)
+	}
 
 	// Build and validate
 	recipe, err := builder.Build()

@@ -162,8 +162,9 @@ func TestExtractParameters(t *testing.T) {
 	}
 
 	// Verify default parameters are in valid NP3 ranges
-	if params.sharpening < 0 || params.sharpening > 9 {
-		t.Errorf("Sharpening %d out of NP3 range [0-9]", params.sharpening)
+	// Note: With exact offset extraction, sharpening range is -3.0 to +9.0
+	if params.sharpening < -3.0 || params.sharpening > 9.0 {
+		t.Errorf("Sharpening %.2f out of NP3 range [-3.0, +9.0]", params.sharpening)
 	}
 	if params.contrast < -3 || params.contrast > 3 {
 		t.Errorf("Contrast %d out of NP3 range [-3, +3]", params.contrast)
@@ -324,9 +325,9 @@ func TestValidateParametersEdgeCases(t *testing.T) {
 			name: "valid_max_values",
 			params: &np3Parameters{
 				sharpening: 9,
-				contrast:   3,
+				contrast:   100, // Phase 2: Signed8 direct mapping
 				brightness: 1.0,
-				saturation: 3,
+				saturation: 100, // Phase 2: Signed8 direct mapping
 				hue:        9,
 			},
 			expectError: false,
@@ -335,9 +336,9 @@ func TestValidateParametersEdgeCases(t *testing.T) {
 			name: "valid_min_values",
 			params: &np3Parameters{
 				sharpening: 0,
-				contrast:   -3,
+				contrast:   -100, // Phase 2: Signed8 direct mapping
 				brightness: -1.0,
-				saturation: -3,
+				saturation: -100, // Phase 2: Signed8 direct mapping
 				hue:        -9,
 			},
 			expectError: false,
@@ -357,7 +358,7 @@ func TestValidateParametersEdgeCases(t *testing.T) {
 			name: "invalid_contrast_too_high",
 			params: &np3Parameters{
 				sharpening: 5,
-				contrast:   4,
+				contrast:   101, // Phase 2: Max is 100
 				brightness: 0.0,
 				saturation: 0,
 				hue:        0,
@@ -381,7 +382,7 @@ func TestValidateParametersEdgeCases(t *testing.T) {
 				sharpening: 5,
 				contrast:   0,
 				brightness: 0.0,
-				saturation: -4,
+				saturation: -101, // Phase 2: Min is -100
 				hue:        0,
 			},
 			expectError: true,
@@ -469,8 +470,8 @@ func TestGenerate(t *testing.T) {
 		t.Errorf("Invalid magic bytes: expected %q, got %q", string(magicBytes), string(data[0:3]))
 	}
 
-	// Verify preset name is present
-	nameBytes := data[20:40]
+	// Verify preset name is present (Phase 2: name at offset 24-44, matching OffsetName constant)
+	nameBytes := data[24:44]
 	nameEnd := 0
 	for i, b := range nameBytes {
 		if b == 0 {
