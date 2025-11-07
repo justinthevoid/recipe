@@ -1,0 +1,284 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>1</storyId>
+    <title>Landing Page</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/7-1-landing-page.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer visiting Recipe for the first time</asA>
+    <iWant>a clear, professional landing page explaining what Recipe is and how to use it</iWant>
+    <soThat>I can quickly understand the tool's purpose, see the privacy promise, and start
+      converting presets within 60 seconds</soThat>
+    <tasks>
+      <task id="1" title="Design Landing Page Content Structure">
+        <subtask>Define page structure with 7 sections: hero, description, how-to-use, privacy,
+          formats, FAQ, footer</subtask>
+        <subtask>Write content for each section targeting non-technical photographers</subtask>
+        <subtask>Review content for jargon removal and clarity</subtask>
+      </task>
+      <task id="2" title="Implement Landing Page in HTML">
+        <subtask>Update web/index.html with new landing sections</subtask>
+        <subtask>Preserve existing converter UI from Epic 2</subtask>
+        <subtask>Add semantic HTML structure and navigation links</subtask>
+      </task>
+      <task id="3" title="Style Landing Page with CSS">
+        <subtask>Add styles for landing sections in web/static/style.css</subtask>
+        <subtask>Ensure mobile-responsive design (375px, 768px, 1920px breakpoints)</subtask>
+        <subtask>Maintain consistency with existing Epic 2 styles</subtask>
+      </task>
+      <task id="4" title="Create Format Compatibility Matrix">
+        <subtask>Create docs/format-compatibility-matrix.md with parameter mapping table</subtask>
+        <subtask>Document all 3 formats (NP3, XMP, lrtemplate) and bidirectional conversion paths</subtask>
+        <subtask>Link from landing page to detailed matrix</subtask>
+      </task>
+      <task id="5" title="Create FAQ Documentation">
+        <subtask>Create docs/faq.md covering legal, privacy, technical questions</subtask>
+        <subtask>Embed top 4 questions on landing page with link to full FAQ</subtask>
+      </task>
+      <task id="6" title="Update README.md">
+        <subtask>Add deployment URL section pointing to recipe.pages.dev</subtask>
+        <subtask>Add browser support section listing Chrome/Firefox/Safari</subtask>
+        <subtask>Update "For Developers" section with technical links</subtask>
+      </task>
+      <task id="7" title="Test Landing Page for Non-Technical Users">
+        <subtask>Recruit 1-2 non-technical users for comprehension test</subtask>
+        <subtask>Allow 60 seconds reading time, ask comprehension questions</subtask>
+        <subtask>Iterate on content if user fails to explain Recipe correctly</subtask>
+      </task>
+      <task id="8" title="Validate All Links">
+        <subtask>Manually click all documentation and technical links</subtask>
+        <subtask>Verify destinations correct and no 404 errors</subtask>
+      </task>
+      <task id="9" title="Deploy Landing Page">
+        <subtask>Commit changes to git (index.html, style.css, docs)</subtask>
+        <subtask>Push to main branch triggering Cloudflare deployment</subtask>
+        <subtask>Verify site live and all features working</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="AC-1" title="Project Description Section">
+      <criteria>Landing page contains clear "What is Recipe?" section</criteria>
+      <criteria>Describes Recipe as universal photo preset converter for NP3/XMP/lrtemplate formats</criteria>
+      <criteria>Written in non-technical language targeting Nikon Z photographers</criteria>
+      <criteria>Maximum 150 words, scannable structure with headline and 2-3 paragraphs</criteria>
+      <verification>Manual review for clarity, comprehension test with non-technical user</verification>
+    </ac>
+    <ac id="AC-2" title="Three-Step Usage Guide">
+      <criteria>Exactly 3 numbered steps documented: Upload, Convert, Download</criteria>
+      <criteria>Each step has concise description (one sentence)</criteria>
+      <criteria>Visual clarity with numbered list or icons</criteria>
+      <criteria>Visible on landing page without scrolling</criteria>
+      <verification>Manual review of step count and placement</verification>
+    </ac>
+    <ac id="AC-3" title="Privacy Promise Prominently Displayed">
+      <criteria>Privacy statement headline: "100% Client-Side Processing" or "Your Files Never Leave
+        Your Device"</criteria>
+      <criteria>Explains WebAssembly processing, no server uploads, zero tracking</criteria>
+      <criteria>Visually distinct section (border, background, icon)</criteria>
+      <criteria>Positioned early on page (users see within 3 seconds)</criteria>
+      <criteria>Links to browser compatibility privacy validation</criteria>
+      <verification>Manual review of visibility and messaging clarity</verification>
+    </ac>
+    <ac id="AC-4" title="Format Compatibility Matrix Accessible">
+      <criteria>Compatibility matrix linked or embedded on landing page</criteria>
+      <criteria>Shows 3 formats with bidirectional conversion support</criteria>
+      <criteria>Mentions 95%+ accuracy for core parameters</criteria>
+      <criteria>Link to detailed matrix in docs/ directory</criteria>
+      <verification>Click link, verify matrix loads and displays correctly</verification>
+    </ac>
+    <ac id="AC-5" title="FAQ Section Linked or Embedded">
+      <criteria>FAQ section exists with minimum 4 questions: legal, privacy, features, accuracy</criteria>
+      <criteria>Answers are 2-4 sentences each, concise and clear</criteria>
+      <criteria>Link to complete FAQ documentation</criteria>
+      <verification>Read answers for clarity, verify link works</verification>
+    </ac>
+    <ac id="AC-6" title="Readable by Non-Technical Users">
+      <criteria>No technical jargon without explanation</criteria>
+      <criteria>Clear headings and scannable structure</criteria>
+      <criteria>Mobile-responsive layout (tested at 375px, 768px, 1920px)</criteria>
+      <criteria>Minimum 16px font size, touch-friendly buttons (44px height)</criteria>
+      <verification>User comprehension test: non-technical user can explain Recipe after 60 seconds</verification>
+    </ac>
+    <ac id="AC-7" title="Links to Technical Documentation">
+      <criteria>Footer contains "For Developers" section with technical links</criteria>
+      <criteria>Links to GitHub repository, architecture docs, format specifications</criteria>
+      <criteria>All links working and point to correct documentation</criteria>
+      <verification>Click each link, verify destination loads</verification>
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD.md" section="Executive Summary, Success Criteria">
+        Recipe is a privacy-first, browser-based photo preset converter for Nikon Z photographers to
+        use Lightroom presets on their cameras. Key value proposition: 95%+ color accuracy, 100%
+        client-side processing via WebAssembly, first-of-its-kind bidirectional NP3↔XMP↔lrtemplate
+        conversion. Target audience: Nikon Z-series photographers, especially Z f users wanting
+        access to vast Lightroom preset library.
+      </doc>
+      <doc path="docs/tech-spec-epic-7.md" section="FR-7.1 Landing Page">
+        7 acceptance criteria for landing page: project description, 3-step usage guide, privacy
+        promise, format compatibility matrix, FAQ, non-technical readability, technical
+        documentation links. Content must be scannable, jargon-free, and enable users to start
+        converting within 60 seconds. Privacy messaging critical to differentiate from server-based
+        competitors.
+      </doc>
+      <doc path="docs/architecture.md" section="Deployment Architecture">
+        Recipe deploys to Cloudflare Pages (static hosting, global CDN, auto HTTPS). Web interface
+        consists of vanilla HTML/CSS/JS with WASM binary for client-side conversion. Zero server
+        infrastructure, zero tracking. Browser compatibility: Chrome 131+, Firefox 132+, Safari
+        18.0+, Edge 131+ (90%+ market coverage).
+      </doc>
+      <doc path="docs/PRD.md" section="What Makes This Special">
+        Privacy by design is core differentiator. Files processed entirely in-browser via
+        WebAssembly. No installation, no server uploads, no waiting. "The Magic Moment":
+        photographer drags Lightroom preset into Recipe, clicks Convert, downloads NP3 file in
+        seconds, loads on camera - 95%+ color accuracy. Pure privacy, instant results.
+      </doc>
+      <doc path="docs/tech-spec-epic-7.md" section="NFR-7.3 Documentation Load Time">
+        Landing page must load in &lt;2 seconds first visit, &lt;500ms cached. HTML size &lt;50KB,
+        total page size &lt;200KB. Time to First Contentful Paint &lt;1.5 seconds. Cloudflare CDN
+        latency &lt;100ms globally. No JavaScript frameworks for documentation sections (vanilla
+        HTML/CSS only).
+      </doc>
+      <doc path="docs/tech-spec-epic-2.md" section="Epic 2 Web Interface">
+        Epic 2 delivered functional web converter with drag-drop upload, format detection, parameter
+        preview, target format selection, WASM conversion, file download, error handling, privacy
+        messaging, and responsive design. All stories (2-1 through 2-10) complete and
+        production-ready. Story 7-1 adds documentation layers to existing converter UI.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="web/index.html" kind="html"
+        reason="Existing web interface structure to be enhanced with landing page sections">
+        Contains header with hero section, privacy badge, file upload drop zone, parameter display,
+        conversion controls, download button, and footer with privacy FAQ. Story 7-1 adds: project
+        description section, 3-step usage guide, format compatibility table, technical documentation
+        links in footer.
+      </artifact>
+      <artifact path="web/static/style.css" kind="css"
+        reason="Existing styles for web interface to be extended with landing page styles">
+        Contains styles for header/hero, drop zone, status banners, error messages, parameter
+        panels, conversion controls, privacy badge, privacy FAQ, footer. Story 7-1 adds: styles for
+        new landing sections, responsive breakpoints for mobile (375px, 768px), typography for
+        documentation content.
+      </artifact>
+      <artifact path="README.md" kind="markdown"
+        reason="Repository documentation to be updated with deployment URLs and browser support">
+        Current content: building CLI, usage examples, development instructions. Story 7-1 adds: web
+        interface section with recipe.pages.dev URL, browser support section
+        (Chrome/Firefox/Safari), privacy guarantee messaging, "For Developers" section with
+        architecture/format spec links.
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="go">
+        <package name="go" version="1.25.1" usage="WASM compilation for browser-based conversion" />
+      </ecosystem>
+      <ecosystem name="web">
+        <package name="vanilla-html-css-js"
+          usage="No framework dependencies - static HTML/CSS/JS for documentation" />
+        <package name="webassembly" usage="Client-side conversion engine (compiled from Go)" />
+      </ecosystem>
+      <ecosystem name="deployment">
+        <package name="cloudflare-pages" usage="Static site hosting and global CDN" />
+        <package name="github-actions" usage="CI/CD for automated deployment (Story 7-5)" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint category="content">No technical jargon without explanation - target audience is
+      photographers, not developers. Use "runs in your browser" instead of "WebAssembly", "color
+      grading" instead of "parameter mapping"</constraint>
+    <constraint category="privacy">Privacy-first messaging mandatory - prominently display "Your
+      files never leave your device" promise. Link to browser compatibility validation as proof.</constraint>
+    <constraint category="performance">Landing page load time &lt;2 seconds (first visit), &lt;500ms
+      (cached). HTML &lt;50KB, total page &lt;200KB. No JavaScript frameworks for documentation
+      content.</constraint>
+    <constraint category="design">Mobile-responsive required - test at 375px (mobile), 768px
+      (tablet), 1920px (desktop). Minimum 16px font, 44px touch targets. Maintain Epic 2 design
+      consistency.</constraint>
+    <constraint category="accessibility">Scannable structure with clear headings (H1→H2→H3).
+      Non-technical users must understand Recipe purpose within 60 seconds. WCAG AAA compliance
+      inherited from Epic 2 Story 2-10.</constraint>
+    <constraint category="integration">Preserve all Epic 2 converter functionality - landing
+      sections prepend existing upload/conversion UI. No breaking changes to web/index.html
+      structure or CSS classes.</constraint>
+    <constraint category="legal">Include reverse engineering disclosure and no-warranty statement
+      (Story 7-4 Legal Disclaimer). Recommend private use until legal assessment complete.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Cloudflare Pages Deployment" kind="deployment">
+      <signature>Push to main branch → GitHub Actions builds WASM → Deploys web/ directory to
+        Cloudflare Pages → Live at https://recipe.pages.dev</signature>
+      <path>Configured in Story 7-5</path>
+    </interface>
+    <interface name="Web Navigation" kind="html-links">
+      <signature>Landing page internal links: #privacyFAQ (privacy section), #formats
+        (compatibility), #developers (footer tech links). External links: GitHub repository,
+        architecture docs, browser compatibility.</signature>
+      <path>web/index.html</path>
+    </interface>
+    <interface name="Documentation Structure" kind="markdown">
+      <signature>docs/format-compatibility-matrix.md - Parameter mapping table for
+        NP3/XMP/lrtemplate. docs/faq.md - Legal, privacy, technical Q&amp;A. README.md -
+        Installation and deployment URLs.</signature>
+      <path>docs/ directory</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Manual testing approach for documentation quality and user comprehension. No automated tests
+      for static content. Testing standards: (1) Content review by SM for clarity, accuracy, jargon
+      removal. (2) Non-technical user comprehension test - 1-2 photographers read landing page for
+      60 seconds, then answer: "What does Recipe do?", "How do you use it?", "Is your data
+      private?". Pass criteria: user can explain in their own words. (3) Link validation - manually
+      click all links, verify destinations load, no 404 errors. (4) Responsive design test - open in
+      browser at 1920px, 768px, 375px viewports, verify layout adapts, text readable, buttons
+      accessible. (5) Lighthouse audit - performance &gt;90, accessibility 100 (WCAG AAA), best
+      practices &gt;90. (6) Deployment verification - visit recipe.pages.dev, confirm landing page
+      live, all sections render correctly.
+    </standards>
+    <locations>
+      <location>Manual testing - no test files required</location>
+      <location>Lighthouse reports stored in docs/test-reports/ (optional)</location>
+      <location>User comprehension test notes in story completion record</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1">Content Clarity Test - Non-technical user reads "What is Recipe?" section,
+        explains it back. Success: mentions preset conversion, Nikon cameras, Lightroom presets, no
+        server uploads.</idea>
+      <idea ac="AC-2">Usage Guide Completeness - Count steps in "How to Use" section. Success:
+        exactly 3 steps (Upload, Convert, Download), each with one-sentence description.</idea>
+      <idea ac="AC-3">Privacy Visibility Test - Fresh user loads landing page, time how long to find
+        privacy promise. Success: user notices "Your files never leave your device" within 3
+        seconds.</idea>
+      <idea ac="AC-4">Matrix Accessibility Test - User looks for format support info, clicks
+        compatibility matrix link. Success: finds link within 10 seconds, matrix loads showing 3
+        formats.</idea>
+      <idea ac="AC-5">FAQ Findability Test - User has question "Is this legal?", searches FAQ.
+        Success: finds answer in &lt;30 seconds, answer is 2-4 sentences, cites fair use.</idea>
+      <idea ac="AC-6">Mobile Responsive Test - Open landing page on phone (375px), verify readable
+        text, no horizontal scroll, buttons tappable. Success: all content accessible, no zoom
+        required.</idea>
+      <idea ac="AC-7">Developer Link Test - Advanced user looks for technical docs, clicks GitHub
+        link in footer. Success: link works, opens repository in new tab.</idea>
+      <idea>Lighthouse Performance Audit - Run lighthouse audit on deployed landing page. Target:
+        Performance &gt;90, Accessibility 100, Best Practices &gt;90, SEO &gt;80.</idea>
+      <idea>Browser Compatibility Spot Check - Open recipe.pages.dev in Chrome, Firefox, Safari.
+        Verify landing page renders identically, no layout issues.</idea>
+      <idea>Content Length Validation - Count words in "What is Recipe?" section. Success: 100-150
+        words (scannable, not overwhelming).</idea>
+    </ideas>
+  </tests>
+</story-context>

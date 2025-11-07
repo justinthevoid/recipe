@@ -1,0 +1,443 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2-8</storyId>
+    <title>Error Handling UI</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-8-error-handling-ui.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>clear error messages when something goes wrong</iWant>
+    <soThat>I know what happened and how to fix it</soThat>
+    <tasks>
+      <task id="1">Create error-handler.js module for centralized error handling</task>
+      <task id="2">Implement ERROR_MESSAGES library with all error types (10+ errors)</task>
+      <task id="3">Implement showError() function with error UI rendering</task>
+      <task id="4">Create error panel UI component (header, body, details, actions)</task>
+      <task id="5">Add technical details collapsible section</task>
+      <task id="6">Implement recovery action buttons (retry, reset, continue, help)</task>
+      <task id="7">Add error logging to console with full context</task>
+      <task id="8">Implement checkBrowserCompatibility() for unsupported browsers</task>
+      <task id="9">Integrate with all existing stories (wrap operations in try-catch)</task>
+      <task id="10">Add event listeners for errorRetry and errorReset</task>
+      <task id="11">Add CSS styling for error panel (red theme, fixed position)</task>
+      <task id="12">Add HTML container for error display</task>
+      <task id="13">Test all error scenarios (10 error types)</task>
+      <task id="14">User test error messages with non-technical users</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" title="Centralized Error Display Component">
+      <requirement>Create single error display component for all error types</requirement>
+      <requirement>Location: Below page header, above main content (always visible, fixed position)</requirement>
+      <requirement>Style: Red background, white text, icon, dismissible</requirement>
+      <requirement>Contains: Error icon (⚠️), user-friendly message, technical details
+        (collapsible), action buttons</requirement>
+      <test>Trigger any error, verify error panel appears at top, red background, clear message,
+        action buttons visible</test>
+    </criterion>
+
+    <criterion id="AC-2" title="Comprehensive Error Message Library">
+      <requirement>Define user-friendly messages for all error types: WASM loading, invalid file,
+        file too large, file read, format detection, parameter extraction, conversion, download,
+        browser compatibility, network errors</requirement>
+      <requirement>Error format: User-friendly message, What went wrong (simple), What to try
+        (actionable), Technical details (collapsible)</requirement>
+      <requirement>No technical jargon in user-facing messages</requirement>
+      <requirement>All messages include actionable next step</requirement>
+      <test>Review all 10+ error messages, verify no jargon, all have actionable steps, technical
+        details available</test>
+    </criterion>
+
+    <criterion id="AC-3" title="Error Recovery Actions">
+      <requirement>Try Again: Re-attempt last action (dispatch errorRetry event)</requirement>
+      <requirement>Reset: Clear all data, return to default state (dispatch errorReset event)</requirement>
+      <requirement>Help: Link to troubleshooting guide/FAQ (open in new tab)</requirement>
+      <requirement>Dismiss: Close error message but keep data/state (hide error panel)</requirement>
+      <test>Trigger conversion error → Try Again (re-attempts), Reset (clears UI), Help (opens FAQ),
+        Dismiss (hides error)</test>
+    </criterion>
+
+    <criterion id="AC-4" title="Error Logging (Console + Optional Telemetry)">
+      <requirement>Log all errors to console with context: error type, technical + user message,
+        timestamp, user action, file metadata</requirement>
+      <requirement>Never log sensitive data (file contents, user info)</requirement>
+      <requirement>Optional telemetry placeholder (not implemented in MVP)</requirement>
+      <test>Trigger any error, open DevTools, verify full context logged, no sensitive data,
+        timestamp and action present</test>
+    </criterion>
+
+    <criterion id="AC-5" title="Error Boundaries (Prevent Full UI Crash)">
+      <requirement>Wrap critical components in error boundaries</requirement>
+      <requirement>If component crashes, show fallback UI (not white screen)</requirement>
+      <requirement>Fallback: "Something went wrong", "Please refresh the page", "If problem
+        persists, contact support"</requirement>
+      <requirement>Log component crash to console</requirement>
+      <test>Simulate component crash, verify fallback UI displays, error logged, refresh recovers</test>
+    </criterion>
+
+    <criterion id="AC-6" title="Browser Compatibility Error Handling">
+      <requirement>Detect unsupported browsers (IE11, old Chrome &lt;90)</requirement>
+      <requirement>Show message: "Recipe requires a modern browser. Please upgrade to Chrome,
+        Firefox, or Safari."</requirement>
+      <requirement>Detect missing APIs: WebAssembly, FileReader, Blob</requirement>
+      <requirement>Show specific error for missing API</requirement>
+      <test>Test in IE11 or simulate with DevTools, verify "Unsupported browser" message, test with
+        WASM disabled, verify specific error</test>
+    </criterion>
+
+    <criterion id="AC-7" title="Network Error Handling (WASM Loading)">
+      <requirement>If WASM fails to load: show "Unable to load converter. Please check your internet
+        connection."</requirement>
+      <requirement>Provide retry button</requirement>
+      <requirement>Log error to console</requirement>
+      <requirement>Handle slow loading (&gt;5s): show "Loading converter... (this may take a
+        moment)"</requirement>
+      <test>Simulate network error (DevTools offline), verify error message, retry button works,
+        re-enable network → retry succeeds</test>
+    </criterion>
+
+    <criterion id="AC-8" title="User Testing (Error Message Clarity)">
+      <requirement>Test error messages with non-technical users (photographers)</requirement>
+      <requirement>Verify messages understandable without technical knowledge</requirement>
+      <requirement>Verify action buttons are clear</requirement>
+      <requirement>Iterate based on feedback</requirement>
+      <test>Show error messages to 3 non-technical users, ask "What went wrong?" and "What would you
+        do?", iterate if confused</test>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <artifact>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Story 2-8: Error Handling UI</section>
+        <snippet>Simple story (1-2 days). Deliverables: Error display component, error message
+          mapping (technical → user-friendly), retry/reset actions. User-friendly messages are
+          contextual and actionable. Error Categories: WASM load, invalid file, conversion,
+          download, browser compatibility.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Decision 4: Error Handling Strategy</section>
+        <snippet>Inline error messages + console logging. Alerts are intrusive and block UI. Console
+          logs help debugging but users don't see them. Inline messages user-friendly and
+          contextual. Error Categories: WASM Load Failure (red banner), Invalid File (red banner),
+          Conversion Error (red banner with details).</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Error Handling Philosophy</section>
+        <snippet>Users need clear explanation of what went wrong (not technical jargon), actionable
+          next steps (retry? upload different file?), confidence that data is safe. Bad error:
+          "TypeError: Cannot read property 'length' of undefined". Good error: "Unable to read file.
+          Please try uploading again."</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Error Handling Pattern</section>
+        <snippet>Wrapped errors with custom ConversionError type (stdlib errors). Type-safe error
+          checking, format-specific context, no dependencies. Error messages show user-friendly text
+          to users, technical details to console.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/stories/2-6-wasm-conversion-execution.md</path>
+        <title>Story 2-6: WASM Conversion Execution</title>
+        <section>AC-4: Handle Conversion Errors</section>
+        <snippet>Error message mapping: "NP3 magic bytes invalid" → "File appears corrupted or not a
+          valid NP3 preset." "XMP parse error" → "Unable to parse XMP file. File may be corrupted."
+          User-friendly errors only, technical to console, don't crash UI, error is recoverable.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/stories/2-6-wasm-conversion-execution.md</path>
+        <title>Story 2-6: WASM Conversion Execution</title>
+        <section>Error Message Philosophy</section>
+        <snippet>Principle: Show user-friendly errors to users, technical errors to console.
+          Example: Technical error (for developers): "NP3 parse error: invalid magic bytes at offset
+          0x00". User-friendly error (for photographers): "File appears corrupted or not a valid NP3
+          preset." Why? Users don't care about "magic bytes" or "offset 0x00".</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/stories/2-7-file-download-trigger.md</path>
+        <title>Story 2-7: File Download Trigger</title>
+        <section>AC-6: Handle Download Errors</section>
+        <snippet>If download fails (browser blocks, no disk space): Show error "Download failed.
+          Please check your browser settings and try again." Log technical error to console. Keep
+          download button enabled (allow retry). Handle browser popup blockers.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/stories/2-2-file-upload-handling.md</path>
+        <title>Story 2-2: File Upload Handling</title>
+        <section>Error Scenarios</section>
+        <snippet>Invalid file type (not .np3, .xmp, .lrtemplate): Show error. File too large
+          (&gt;10MB): Show error. File read error (browser security, corrupted file): Show error
+          with retry option.</snippet>
+      </artifact>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>web/static/wasm-loader.js</path>
+        <kind>module</kind>
+        <symbol>initializeWASM</symbol>
+        <lines>all</lines>
+        <reason>WASM loading logic. Can fail with network error or browser incompatibility. Needs
+          error handling integration for "wasm-load-failed" error type.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/file-handler.js</path>
+        <kind>module</kind>
+        <symbol>handleFile</symbol>
+        <lines>all</lines>
+        <reason>File upload handling from Story 2-2. Can fail with "invalid-file-type",
+          "file-too-large", "file-read-error". Needs error handling integration.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/format-detector.js</path>
+        <kind>module</kind>
+        <symbol>detectFileFormat</symbol>
+        <lines>all</lines>
+        <reason>Format detection from Story 2-3. Can fail with "format-detection-failed". Needs
+          error handling integration.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/parameter-display.js</path>
+        <kind>module</kind>
+        <symbol>displayParameters</symbol>
+        <lines>all</lines>
+        <reason>Parameter extraction from Story 2-4. Can fail with "parameter-extraction-failed".
+          Needs error handling integration (non-blocking, allow continue).</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/converter.js</path>
+        <kind>module</kind>
+        <symbol>convertFile</symbol>
+        <lines>all</lines>
+        <reason>Conversion logic from Story 2-6. Can fail with "conversion-failed" plus
+          ConversionError with user-friendly messages. Primary error handling integration point.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/downloader.js</path>
+        <kind>module</kind>
+        <symbol>handleDownload</symbol>
+        <lines>all</lines>
+        <reason>Download logic from Story 2-7. Can fail with "download-failed". Needs error handling
+          integration.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/main.js</path>
+        <kind>application-main</kind>
+        <symbol>all event listeners</symbol>
+        <lines>all</lines>
+        <reason>Central integration point. All event listeners need try-catch wrapping with error
+          handler integration. Handles errorRetry and errorReset events.</reason>
+      </artifact>
+      <artifact>
+        <path>web/index.html</path>
+        <kind>html-structure</kind>
+        <symbol>errorContainer</symbol>
+        <lines>all</lines>
+        <reason>Error container element (to be added). Fixed position at top of page, initially
+          hidden, populated by error-handler.js.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/style.css</path>
+        <kind>stylesheet</kind>
+        <symbol>.error-panel</symbol>
+        <lines>all</lines>
+        <reason>Error panel styling. Red theme (#fed7d7 background, #742a2a text), fixed position,
+          dismissible, collapsible details.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <javascript>
+        <package name="ES6 Modules" version="native">import/export for modular code</package>
+        <package name="DOM API" version="native">createElement, innerHTML for dynamic error UI</package>
+        <package name="Custom Events" version="native">errorRetry, errorReset events for recovery
+          actions</package>
+        <package name="Console API" version="native">console.error() for error logging with context</package>
+        <package name="Date API" version="native">new Date().toISOString() for error timestamps</package>
+      </javascript>
+      <browser>
+        <requirement name="CustomEvent" version="2012+">Required for errorRetry and errorReset
+          events</requirement>
+        <requirement name="innerHTML" version="all">Required for dynamic error UI rendering</requirement>
+        <requirement name="console.error" version="all">Required for error logging</requirement>
+        <requirement name="textContent" version="all">Required for safe HTML escaping (XSS
+          prevention)</requirement>
+      </browser>
+      <story-dependencies>
+        <story id="2-1" title="HTML Drag-Drop UI">Provides invalid file type detection</story>
+        <story id="2-2" title="File Upload Handling">Provides file read errors, file too large
+          errors</story>
+        <story id="2-3" title="Format Detection">Provides format detection failure errors</story>
+        <story id="2-4" title="Parameter Preview Display">Provides parameter extraction errors
+          (non-blocking)</story>
+        <story id="2-6" title="WASM Conversion Execution">Provides conversion errors with
+          ConversionError type and user-friendly messages</story>
+        <story id="2-7" title="File Download Trigger">Provides download failure errors</story>
+        <story id="wasm-loader" title="WASM Loader">Provides WASM loading errors, browser
+          compatibility errors</story>
+      </story-dependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Cross-cutting concern - integrates with all Stories 2-1 through
+      2-7</constraint>
+    <constraint type="architecture">Centralized error handling - single error-handler.js module,
+      single ERROR_MESSAGES library</constraint>
+    <constraint type="architecture">Event-driven recovery - dispatch errorRetry and errorReset
+      events, don't call functions directly</constraint>
+    <constraint type="ui">Error panel fixed position at top of page (z-index: 1000)</constraint>
+    <constraint type="ui">Error panel always visible (not scrolled off screen)</constraint>
+    <constraint type="ui">Maximum width: 600px, 90% on mobile</constraint>
+    <constraint type="messaging">User-friendly messages only - no technical jargon, stack traces, or
+      error codes in UI</constraint>
+    <constraint type="messaging">Technical details collapsible - hidden by default, developers can
+      expand</constraint>
+    <constraint type="messaging">All messages actionable - include "What to try" guidance</constraint>
+    <constraint type="security">XSS prevention - use textContent for user-generated content, never
+      innerHTML for error messages</constraint>
+    <constraint type="security">Never log sensitive data - no file contents, no user information, no
+      API keys</constraint>
+    <constraint type="logging">All errors to console with full context (type, message, timestamp,
+      action, metadata)</constraint>
+    <constraint type="recovery">Non-destructive retry - retry action doesn't lose user data or state</constraint>
+    <constraint type="recovery">Reset is destructive - clears all state, returns to initial UI (page
+      reload acceptable)</constraint>
+    <constraint type="compatibility">Browser detection before WASM loading - fail fast with clear
+      message</constraint>
+    <constraint type="compatibility">Detect missing APIs (WebAssembly, FileReader, Blob) and show
+      specific errors</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>showError()</name>
+      <kind>function</kind>
+      <signature>showError(errorType: string, error?: Error): void</signature>
+      <path>web/static/error-handler.js (to be created)</path>
+      <description>Main error display function. Looks up error type in ERROR_MESSAGES, logs to
+        console, renders error UI. Called by all modules when errors occur.</description>
+    </interface>
+    <interface>
+      <name>hideError()</name>
+      <kind>function</kind>
+      <signature>hideError(): void</signature>
+      <path>web/static/error-handler.js (to be created)</path>
+      <description>Hides error panel. Called by dismiss button or when user takes recovery action.</description>
+    </interface>
+    <interface>
+      <name>checkBrowserCompatibility()</name>
+      <kind>function</kind>
+      <signature>checkBrowserCompatibility(): boolean</signature>
+      <path>web/static/error-handler.js (to be created)</path>
+      <description>Checks for required browser features (WebAssembly, FileReader, Blob). Returns
+        false and shows error if unsupported. Called on app initialization.</description>
+    </interface>
+    <interface>
+      <name>errorRetry event</name>
+      <kind>custom-event</kind>
+      <signature>CustomEvent('errorRetry')</signature>
+      <path>web/static/error-handler.js</path>
+      <description>Dispatched when user clicks "Try Again" button. Listened to by main.js to
+        re-attempt last operation.</description>
+    </interface>
+    <interface>
+      <name>errorReset event</name>
+      <kind>custom-event</kind>
+      <signature>CustomEvent('errorReset')</signature>
+      <path>web/static/error-handler.js</path>
+      <description>Dispatched when user clicks "Reset" button. Listened to by main.js to clear all
+        state (typically triggers page reload).</description>
+    </interface>
+    <interface>
+      <name>ERROR_MESSAGES</name>
+      <kind>constant-object</kind>
+      <signature>ERROR_MESSAGES: {[errorType: string]: {title, message, reason, action, recovery}}</signature>
+      <path>web/static/error-handler.js (to be created)</path>
+      <description>Centralized error message library. Maps error type keys to user-friendly message
+        objects. Contains 10+ error types for all failure scenarios.</description>
+    </interface>
+    <interface>
+      <name>ConversionError</name>
+      <kind>error-class</kind>
+      <signature>class ConversionError extends Error {userMessage: string}</signature>
+      <path>web/static/converter.js (Story 2-6)</path>
+      <description>Custom error from Story 2-6. Contains userMessage property with user-friendly
+        error text. Used for conversion failures.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Manual testing of all 10+ error scenarios (each error type triggered and verified)</standard>
+      <standard>Console inspection for error logging (verify full context, no sensitive data)</standard>
+      <standard>Visual verification of error panel (appearance, styling, positioning)</standard>
+      <standard>Recovery action testing (retry, reset, help, dismiss all functional)</standard>
+      <standard>Browser compatibility testing (IE11 or simulation, old Chrome, missing APIs)</standard>
+      <standard>User testing with non-technical users (3+ photographers, verify message clarity)</standard>
+      <standard>XSS security testing (verify user-generated content properly escaped)</standard>
+      <standard>Error boundary testing (simulate component crashes, verify fallback UI)</standard>
+    </standards>
+
+    <locations>
+      <location>web/static/error-handler.js (unit tests can be added inline or separate test file)</location>
+      <location>Browser console (verify error logging, check for sensitive data leaks)</location>
+      <location>DevTools Elements panel (inspect error panel DOM, verify XSS prevention)</location>
+      <location>All existing story modules (integration testing - trigger errors in each module)</location>
+    </locations>
+
+    <ideas>
+      <idea ac="AC-1">Test centralized error display: Trigger any error, verify panel appears at
+        top, fixed position, red theme</idea>
+      <idea ac="AC-2">Test all error types: Systematically trigger each of 10+ error types, verify
+        correct message displayed, technical details available</idea>
+      <idea ac="AC-3">Test recovery actions: Retry (re-attempts operation), Reset (clears
+        UI/reloads), Help (opens FAQ), Dismiss (hides panel)</idea>
+      <idea ac="AC-4">Test error logging: Trigger errors, verify console logs include timestamp,
+        error type, user action, file metadata, no sensitive data</idea>
+      <idea ac="AC-5">Test error boundaries: Simulate component crash (throw error in render),
+        verify fallback UI, page refresh recovers</idea>
+      <idea ac="AC-6">Test browser compatibility: Test in IE11 or simulate, verify "Unsupported
+        browser" error, test with WebAssembly disabled</idea>
+      <idea ac="AC-7">Test network errors: DevTools offline mode, load page, verify "Unable to load
+        converter" error, retry works when online</idea>
+      <idea ac="AC-8">User test error messages: Show 3 non-technical users error messages, ask
+        comprehension questions, iterate based on feedback</idea>
+      <idea>Test WASM load failure: Block recipe.wasm in DevTools Network tab, verify error shown
+        with retry option</idea>
+      <idea>Test invalid file type: Upload .jpg file, verify "Invalid File Type" error with Reset
+        and Help actions</idea>
+      <idea>Test file too large: Create 15MB file, upload, verify "File Too Large" error with
+        explanation</idea>
+      <idea>Test format detection failure: Upload file with random bytes, verify "Unknown Format"
+        error</idea>
+      <idea>Test parameter extraction failure: Upload corrupted XMP, verify "Unable to Read
+        Parameters" with "Continue Anyway" option</idea>
+      <idea>Test conversion failure: Upload corrupted NP3 (invalid magic bytes), convert, verify
+        "Conversion Failed" error</idea>
+      <idea>Test download failure: Block downloads in browser settings, convert file, attempt
+        download, verify "Download Failed" error</idea>
+      <idea>Test technical details toggle: Click "Show Technical Details", verify expands, click
+        "Hide", verify collapses</idea>
+      <idea>Test XSS prevention: Inject HTML in filename or error message, verify properly escaped
+        (no script execution)</idea>
+      <idea>Test error panel dismiss: Click × button, verify panel hides, state preserved, can
+        continue working</idea>
+      <idea>Test multiple errors: Trigger error, dismiss, trigger different error, verify new error
+        shown (old one cleared)</idea>
+    </ideas>
+  </tests>
+</story-context>

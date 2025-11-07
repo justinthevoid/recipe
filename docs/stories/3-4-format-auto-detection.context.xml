@@ -1,0 +1,300 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>3.4</storyId>
+    <title>Format Auto-Detection Utilities</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-4-format-auto-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>CLI user converting presets</asA>
+    <iWant>the tool to automatically detect file formats from extensions and content</iWant>
+    <soThat>I don't have to manually specify the source format with --from flag every time</soThat>
+    <tasks>
+      - Task 1: Create Format Detection Module (AC-1, AC-4)
+      - Task 2: Implement Content-Based Detection (AC-2, AC-5)
+      - Task 3: Implement Format Validation (AC-3, AC-6)
+      - Task 4: Add Comprehensive Unit Tests (All ACs)
+      - Task 5: Add Integration Tests (AC-5)
+      - Task 6: Add Performance Benchmarks (AC-7)
+      - Task 7: Update Documentation
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1" title="Extension-Based Format Detection">
+      - detectFormat(filePath string) function accepts file path
+      - Detects format from extension: .np3 → "np3", .xmp → "xmp", .lrtemplate → "lrtemplate"
+      - Case-insensitive matching (.XMP = .xmp = .Xmp)
+      - Returns error if extension is unrecognized
+      - Returns error if file has no extension
+    </ac>
+
+    <ac id="2" title="Content-Based Format Detection (Fallback)">
+      - detectFormatFromBytes(data []byte) function accepts file content
+      - Detects NP3: Magic bytes "NCP" (ASCII) at start + minimum 300 bytes
+      - Detects XMP: XML structure (&lt;?xml) + Camera Raw namespace (crs: or x:xmpmeta)
+      - Detects lrtemplate: Lua table syntax (s = { at start after trimming whitespace)
+      - Returns error if content doesn't match any known format
+      - Used as fallback when extension detection fails or is ambiguous
+    </ac>
+
+    <ac id="3" title="Validate Format String">
+      - validateFormat(format string) function validates format identifier
+      - Accepts: "np3", "xmp", "lrtemplate"
+      - Rejects any other string with descriptive error
+      - Used by convert command to validate user input
+    </ac>
+
+    <ac id="4" title="Format Constants">
+      - Define format constants for type safety: const FormatNP3 = "np3", FormatXMP = "xmp",
+      FormatLRTemplate = "lrtemplate"
+      - Used throughout CLI codebase instead of string literals
+      - Prevents typos and magic strings
+      - Exported for use in other CLI modules
+    </ac>
+
+    <ac id="5" title="Integration with Converter Package">
+      - Reuses converter.DetectFormat() for content-based detection
+      - detectFormatFromBytes() wraps converter.DetectFormat() to maintain thin CLI layer
+      - No format detection logic duplicated from internal/converter
+      - CLI layer adds file path handling and extension detection
+    </ac>
+
+    <ac id="6" title="Error Messages">
+      - Extension detection errors: "Unknown file format: {ext} (expected .np3, .xmp, or
+      .lrtemplate)"
+      - Content detection errors: "Unable to detect format from file content (size: {size} bytes)"
+      - Validation errors: "Unsupported format: {format} (must be 'np3', 'xmp', or 'lrtemplate')"
+      - Errors wrapped with helpful context for user
+    </ac>
+
+    <ac id="7" title="Performance">
+      - Extension-based detection: &lt;1ms (instant)
+      - Content-based detection: &lt;5ms for typical file (&lt;50KB)
+      - No performance regression from converter package
+      - Minimal memory allocations (no unnecessary copying)
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Technical Specification: Epic 3 - CLI Interface</title>
+        <section>Services and Modules</section>
+        <snippet>cmd/cli/format.go - Format detection utilities. Provides detectFormat(filePath
+          string) for extension-based detection and detectFormatFromBytes(data []byte) for
+          content-based fallback. Returns format string ("np3", "xmp", "lrtemplate"). Used by
+          convert command (Story 3-2) and batch command (Story 3-3). Performance: Extension &lt;1ms,
+          content &lt;5ms.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Technical Specification: Epic 3 - CLI Interface</title>
+        <section>APIs and Interfaces</section>
+        <snippet>Format detection APIs: detectFormat(filePath string) - extension-based,
+          detectFormatFromBytes(data []byte) - content inspection using converter.DetectFormat().
+          validateFormat(format string) - validation helper. All maintain thin CLI layer by wrapping
+          Epic 1 logic.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Pattern 3: Thin CLI layer pattern</section>
+        <snippet>CLI layer adds file path handling and extension detection, but defers to converter
+          package for content-based detection. No business logic duplication. All format detection
+          logic lives in internal/converter/converter.go DetectFormat() function.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-3.3: Format Auto-Detection</section>
+        <snippet>CLI detects input format automatically. User doesn't specify input format. CLI
+          determines format from extension/content. Clear error if format ambiguous. Reduces
+          cognitive load on user.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>library</kind>
+        <symbol>DetectFormat</symbol>
+        <lines>126-165</lines>
+        <reason>Epic 1's proven format detection implementation. Content-based detection using magic
+          bytes (NP3: "NCP"), XML namespace (XMP: "crs:" or "x:xmpmeta"), and Lua syntax
+          (lrtemplate: "s = {"). This is the SINGLE SOURCE OF TRUTH for format detection - CLI wraps
+          this function to maintain thin layer architecture.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>constants</kind>
+        <symbol>FormatNP3, FormatXMP, FormatLRTemplate</symbol>
+        <lines>11-15</lines>
+        <reason>Format constants defined in converter package. CLI should export matching constants
+          for type safety and consistency. Values: "np3", "xmp", "lrtemplate".</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>function</kind>
+        <symbol>validateFormat</symbol>
+        <lines>167-174</lines>
+        <reason>Format validation helper in converter package. CLI can reuse this pattern for its
+          own validation function. Checks if format string is one of supported values.</reason>
+      </artifact>
+      <artifact>
+        <path>cmd/wasm/main.go</path>
+        <kind>example</kind>
+        <symbol>detectFormatWrapper</symbol>
+        <lines>97-130</lines>
+        <reason>Example of wrapping converter.DetectFormat() for different interface (WASM). Shows
+          pattern: validate args, call converter.DetectFormat(), wrap error. CLI should follow
+          similar pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/file-handler.js</path>
+        <kind>example</kind>
+        <symbol>detectFileFormat</symbol>
+        <lines>62-95</lines>
+        <reason>Web interface format detection example. Calls WASM detectFormat() which wraps
+          converter.DetectFormat(). Shows error handling pattern and user messaging.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <stdlib>
+          <package name="path/filepath">Ext() function for extension extraction, clean path handling</package>
+          <package name="strings">ToLower() for case-insensitive extension matching</package>
+          <package name="fmt">Error formatting with context</package>
+          <package name="os">ReadFile() in tests to load real sample files</package>
+          <package name="testing">Standard Go test framework for unit and integration tests</package>
+        </stdlib>
+        <internal>
+          <package name="internal/converter">DetectFormat() function - CRITICAL dependency for
+            content-based detection. Format constants (FormatNP3, FormatXMP, FormatLRTemplate).</package>
+        </internal>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <architectural>
+      <constraint>Thin CLI Layer: Format detection must wrap converter.DetectFormat() for
+        content-based detection. NO duplication of format detection logic from internal/converter.</constraint>
+      <constraint>Single Source of Truth: internal/converter/converter.go DetectFormat() is the ONLY
+        place where magic bytes, XML parsing, and Lua syntax checking happens.</constraint>
+      <constraint>Type Safety: Export format constants (FormatNP3, FormatXMP, FormatLRTemplate)
+        matching converter package values to prevent magic strings.</constraint>
+      <constraint>Performance: Extension-based detection must be &lt;1ms (instant), content-based
+        detection &lt;5ms. Extension detection is preferred fast path.</constraint>
+    </architectural>
+    <implementation>
+      <constraint>Extension Priority: Always check file extension first before falling back to
+        content inspection. Most users have correctly named files.</constraint>
+      <constraint>Case Insensitive: File extension matching must be case-insensitive (.XMP = .xmp =
+        .Xmp) for user convenience.</constraint>
+      <constraint>Error Messages: All errors must be user-friendly with actionable suggestions. No
+        technical jargon like "magic bytes" or "EOF".</constraint>
+      <constraint>No File I/O: Format detection functions should accept file path (string) or data
+        ([]byte), never do file reading internally. Caller responsibility.</constraint>
+    </implementation>
+    <testing>
+      <constraint>Real Files: All tests must use real sample files from testdata/ directory. No
+        synthetic test data.</constraint>
+      <constraint>Integration: CLI format detection must match converter package detection for same
+        input. Validate with comparison tests.</constraint>
+      <constraint>Coverage: Achieve &gt;95% code coverage. Test all three formats, case variations,
+        unknown extensions, empty files, corrupted content.</constraint>
+      <constraint>Benchmarks: Performance targets validated via Go benchmarks. Extension &lt;1μs,
+        content &lt;5ms.</constraint>
+    </testing>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>detectFormat</name>
+      <kind>function</kind>
+      <signature>detectFormat(filePath string) (string, error)</signature>
+      <path>cmd/cli/format.go</path>
+      <description>Extension-based format detection (fast path). Extracts file extension using
+        filepath.Ext(), converts to lowercase, maps to format constant. Returns error for unknown or
+        missing extension.</description>
+    </interface>
+    <interface>
+      <name>detectFormatFromBytes</name>
+      <kind>function</kind>
+      <signature>detectFormatFromBytes(data []byte) (string, error)</signature>
+      <path>cmd/cli/format.go</path>
+      <description>Content-based format detection (fallback). Wraps converter.DetectFormat() to
+        maintain thin CLI layer. Used when extension is ambiguous or missing. Returns format string
+        or error.</description>
+    </interface>
+    <interface>
+      <name>validateFormat</name>
+      <kind>function</kind>
+      <signature>validateFormat(format string) error</signature>
+      <path>cmd/cli/format.go</path>
+      <description>Format string validation. Accepts "np3", "xmp", "lrtemplate". Returns descriptive
+        error for invalid formats with suggestions.</description>
+    </interface>
+    <interface>
+      <name>converter.DetectFormat</name>
+      <kind>library function (Epic 1)</kind>
+      <signature>DetectFormat(input []byte) (string, error)</signature>
+      <path>internal/converter/converter.go</path>
+      <description>Core format detection logic from Epic 1. Examines magic bytes (NP3: "NCP"), XML
+        structure (XMP: &lt;?xml + crs:), Lua syntax (lrtemplate: s = {). This is the single source
+        of truth - CLI wraps this for content detection.</description>
+    </interface>
+    <interface>
+      <name>Format Constants</name>
+      <kind>exported constants</kind>
+      <signature>const FormatNP3 = "np3"; const FormatXMP = "xmp"; const FormatLRTemplate =
+        "lrtemplate"</signature>
+      <path>cmd/cli/format.go</path>
+      <description>Exported format identifiers for type safety. Match converter package constants
+        exactly. Used by convert command and batch processing.</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Go standard testing framework with table-driven tests. All format detection tests use real
+      sample files from testdata/ directory (22 NP3, 913 XMP, 544 lrtemplate). Integration tests
+      verify CLI detection matches converter package detection. Performance validated via Go
+      benchmarks (extension &lt;1μs, content &lt;5ms). Coverage goal: &gt;95% for format.go module.
+    </standards>
+    <locations>
+      <location>cmd/cli/format_test.go - Unit tests for extension detection, content detection,
+        validation</location>
+      <location>testdata/np3/*.np3 - 22 real NP3 files for integration testing</location>
+      <location>testdata/xmp/*.xmp - 913 real XMP files for integration testing</location>
+      <location>testdata/lrtemplate/*.lrtemplate - 544 real lrtemplate files for integration testing</location>
+    </locations>
+    <ideas>
+      <test ac="1">Extension-based detection: Test all three formats (.np3, .xmp, .lrtemplate), case
+        variations (.XMP, .Xmp), unknown extensions (.txt, .jpg), missing extension (file without
+        dot). Expected: Correct format returned for valid, error for invalid.</test>
+      <test ac="2">Content-based detection: Test NP3 magic bytes + size check, XMP XML structure +
+        namespace, lrtemplate Lua syntax, unknown content, empty files. Expected: Correct format
+        detected, error for unrecognized content.</test>
+      <test ac="3">Format validation: Test valid formats ("np3", "xmp", "lrtemplate"), invalid
+        formats ("invalid", "", "NP3" uppercase). Expected: Valid formats pass, invalid rejected
+        with clear error.</test>
+      <test ac="4">Format constants: Verify constants exist, have correct values, exported for use
+        by other CLI modules. Expected: FormatNP3="np3", FormatXMP="xmp",
+        FormatLRTemplate="lrtemplate".</test>
+      <test ac="5">Integration with converter: Verify detectFormatFromBytes() wraps
+        converter.DetectFormat(), CLI detection matches converter results for same input. Use real
+        files from testdata/. Expected: No code duplication, identical results.</test>
+      <test ac="6">Error messages: Test extension errors, content errors, validation errors. Verify
+        messages are user-friendly, include suggestions. Expected: "Unknown file format: .txt
+        (expected .np3, .xmp, or .lrtemplate)", "Unable to detect format from file content (size: X
+        bytes)", "Unsupported format: X (must be 'np3', 'xmp', or 'lrtemplate')".</test>
+      <test ac="7">Performance: Benchmark extension detection (should be &lt;1μs), content detection
+        (should be &lt;5ms). Run: go test -bench=. ./cmd/cli/. Expected: No performance regression
+        vs converter package.</test>
+    </ideas>
+  </tests>
+</story-context>

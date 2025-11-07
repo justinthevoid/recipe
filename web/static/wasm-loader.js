@@ -1,6 +1,8 @@
 // wasm-loader.js - WASM Module Initialization
-// Epic 2, Story 2-1: HTML Drag-Drop UI
+// Epic 2, Stories 2-1 & 2-8: HTML Drag-Drop UI & Error Handling
 // Loads recipe.wasm and exposes getVersion() to populate footer
+
+import { showError as showErrorPanel } from './error-handler.js';
 
 /**
  * Initialize the WASM module
@@ -65,19 +67,7 @@ export async function initializeWASM() {
         // Update version to show error
         versionEl.textContent = 'error';
 
-        // Show user-friendly error message
-        showError(`Unable to initialize converter. Please refresh the page and try again.`);
-    }
-}
-
-/**
- * Display error message to user
- * @param {string} message - Error message to display
- */
-function showError(message) {
-    const errorEl = document.getElementById('errorMessage');
-    if (errorEl) {
-        errorEl.textContent = message;
-        errorEl.style.display = 'block';
+        // Story 2-8: Show centralized error panel
+        showErrorPanel('wasm-load-failed', error);
     }
 }

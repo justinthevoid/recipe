@@ -1,0 +1,292 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>3.3</storyId>
+    <title>Batch Processing</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-3-batch-processing.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a photographer with hundreds of Lightroom presets</asA>
+    <iWant>to convert multiple preset files in parallel via the command line</iWant>
+    <soThat>I can efficiently migrate my entire preset library to Nikon Z format in seconds instead
+      of minutes</soThat>
+    <tasks>
+      <task id="1">Implement Worker Pool Pattern (AC-2)</task>
+      <task id="2">Implement Batch Command (AC-1, AC-6)</task>
+      <task id="3">Implement Progress Tracking (AC-4)</task>
+      <task id="4">Implement Result Aggregation (AC-7)</task>
+      <task id="5">Implement Error Handling (AC-5, AC-9)</task>
+      <task id="6">Performance Benchmarking (AC-3)</task>
+      <task id="7">Integration Testing (All ACs)</task>
+      <task id="8">Update Documentation</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1">Batch Mode with Glob Patterns - Command accepts glob pattern, expands to
+      file list, processes all matched files in parallel, writes output to same directory, exit code
+      0 if all succeed</criterion>
+    <criterion id="AC-2">Parallel Processing with Worker Pool - Uses goroutines + channels, worker
+      pool size defaults to runtime.NumCPU(), --parallel flag allows custom worker count, each
+      worker processes independently, results aggregated via channel</criterion>
+    <criterion id="AC-3">Performance Target - 100 Files in &lt;2 Seconds - Batch conversion of 100
+      files completes in under 2 seconds, measured with time command, parallel processing validated,
+      no degradation with mixed formats</criterion>
+    <criterion id="AC-4">Progress Indicator with Live Updates - Displays "Processing 45/100
+      files..." updates every 100ms or per file, final summary shows success/error counts and
+      duration, progress to stderr not stdout, no progress in JSON mode</criterion>
+    <criterion id="AC-5">Error Handling - Continue on Error - --continue-on-error flag (default
+      true) processes all files even if some fail, --fail-fast stops on first error, individual
+      errors logged but don't stop batch, final summary shows counts, exit code 1 if any errors</criterion>
+    <criterion id="AC-6">Custom Output Directory - --output-dir flag specifies output directory,
+      default is same directory as input, creates directory if missing, preserves input filename
+      with changed extension</criterion>
+    <criterion id="AC-7">Batch Result Aggregation - Collects results from all workers via channel,
+      aggregates success/error counts, tracks total duration, individual results available in JSON
+      mode, summary includes total/success/errors/duration</criterion>
+    <criterion id="AC-8">Glob Pattern Validation - Validates glob pattern expands to at least 1
+      file, error if no matches, error if pattern invalid, supports standard glob syntax (*, ?,
+      [abc], [a-z])</criterion>
+    <criterion id="AC-9">Overwrite Protection in Batch Mode - Same overwrite protection as single
+      file mode, --overwrite flag applies to all files, skips existing files with warning if not
+      set, summary shows skipped count</criterion>
+    <criterion id="AC-10">Integration with Single File Convert (Story 3-2) - Reuses format detection
+      from format.go, reuses file I/O helpers, reuses success message formatting, maintains
+      architectural consistency, no code duplication</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Success Criteria - CLI Performance</section>
+        <snippet>10-100x performance improvement over Python version. Single file &lt;20ms (vs
+          50-200ms), batch 100 files &lt;2s (vs 5-20s). Cross-platform single binary distribution
+          for Windows, macOS, Linux.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>Services and Modules - cmd/cli/batch.go</section>
+        <snippet>Batch processing orchestration module handles file glob patterns, parallel CPU
+          utilization, and progress tracking. Worker pool pattern for parallel processing with
+          goroutines + channels.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>Workflows and Sequencing - Batch Conversion Flow</section>
+        <snippet>Parse CLI flags → Glob pattern to file list → Create worker pool (N =
+          runtime.NumCPU()) → Start progress tracking → Distribute files to workers → Each worker:
+          Read, Detect, Convert, Write → Aggregate results → Display summary</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>NFR - Performance</section>
+        <snippet>Batch Processing: Convert 100 files in &lt;2 seconds using parallel processing.
+          Worker pool pattern with fixed-size pool of goroutines, jobs distributed via channel.
+          Memory efficiency: &lt;100MB for 1,000 file batch operations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - CLI Interface</title>
+        <section>Data Models and Contracts - BatchResult</section>
+        <snippet>BatchResult struct contains TotalFiles, SuccessCount, ErrorCount, SkippedCount,
+          TotalDuration, and Results array of ConversionResult. Used for batch operation aggregation
+          and JSON output.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Project Structure - cmd/cli/</section>
+        <snippet>CLI entry points in cmd/ use internal/converter as single source of truth. All
+          business logic in internal/converter, CLI only handles I/O and formatting. Thin CLI layer
+          pattern with stateless operations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Core Technology - Go Concurrency</section>
+        <snippet>Go goroutines and channels provide efficient parallel processing. Worker pool
+          pattern: fixed-size pool of goroutines processing jobs from channel. Thread-safe stateless
+          converter enables concurrent conversions without synchronization.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/3-2-convert-command.md</path>
+        <title>Story 3.2 - Convert Command Implementation</title>
+        <section>Dev Notes - Reusable Components</section>
+        <snippet>Format detection: detectFormat() and validateFormat() from cmd/cli/format.go. File
+          I/O helpers: generateOutputPath(), checkOutputExists(), ensureOutputDir(). Output
+          formatting: formatBytes(), formatDuration() for human-readable display.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>library</kind>
+        <symbol>Convert</symbol>
+        <lines>47-117</lines>
+        <reason>Core conversion API that batch processing will call for each file. Thread-safe
+          stateless function enabling parallel execution. Performs validate → parse → generate flow.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>library</kind>
+        <symbol>DetectFormat</symbol>
+        <lines>131-156</lines>
+        <reason>Auto-detects format from file content (magic bytes, XML structure, Lua syntax). Will
+          be reused by batch processing for format detection before conversion.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/error.go</path>
+        <kind>library</kind>
+        <symbol>ConversionError</symbol>
+        <lines>all</lines>
+        <reason>Structured error type for conversion failures. Batch processing needs to collect and
+          aggregate these errors for summary reporting.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>all</lines>
+        <reason>Universal intermediate representation used by all conversions. Understanding this
+          model helps with debugging conversion results in batch operations.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <package name="github.com/spf13/cobra" version="latest">Cobra CLI framework - provides
+          command structure, flag parsing, help generation</package>
+        <package name="runtime" version="stdlib">Used for runtime.NumCPU() to determine default
+          worker pool size</package>
+        <package name="sync" version="stdlib">WaitGroup and atomic operations for worker pool
+          synchronization</package>
+        <package name="sync/atomic" version="stdlib">Atomic counter for thread-safe progress
+          tracking</package>
+        <package name="path/filepath" version="stdlib">Glob pattern expansion (filepath.Glob) and
+          cross-platform path handling</package>
+        <package name="time" version="stdlib">Duration tracking for batch timing and performance
+          measurement</package>
+        <package name="encoding/json" version="stdlib">JSON marshaling for --json output mode
+          (BatchResult struct)</package>
+        <package name="os" version="stdlib">File I/O operations (os.ReadFile, os.WriteFile)</package>
+        <package name="fmt" version="stdlib">Output formatting and error messages</package>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Thin CLI Layer - All business logic stays in internal/converter, CLI only handles
+      I/O, flag parsing, and output formatting</constraint>
+    <constraint>No Global State - Worker pool uses channels for coordination, no shared mutable
+      state between goroutines</constraint>
+    <constraint>Error Wrapping - Preserve underlying errors with ConversionError context for
+      debugging</constraint>
+    <constraint>Overwrite Protection - Same pattern as single file mode (Story 3-2), requires
+      --overwrite flag to replace existing files</constraint>
+    <constraint>Reuse Story 3-2 Helpers - MUST reuse format detection, file I/O helpers, and output
+      formatting from Story 3-2 to avoid code duplication</constraint>
+    <constraint>Thread Safety - All converter calls must be thread-safe and stateless to enable
+      concurrent batch processing</constraint>
+    <constraint>Performance Target - 100 files in &lt;2 seconds on modern hardware (validation
+      required via benchmarks)</constraint>
+    <constraint>Progress to Stderr - Progress indicators output to stderr, final results to stdout
+      (separation for scripting)</constraint>
+    <constraint>Exit Codes - 0=success, 1=error (unless --continue-on-error allows completion with
+      errors)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>converter.Convert</name>
+      <kind>function</kind>
+      <signature>func Convert(input []byte, from, to string) ([]byte, error)</signature>
+      <path>internal/converter/converter.go</path>
+      <usage>Called by each worker goroutine for individual file conversions in batch mode</usage>
+    </interface>
+    <interface>
+      <name>filepath.Glob</name>
+      <kind>stdlib-function</kind>
+      <signature>func Glob(pattern string) (matches []string, err error)</signature>
+      <path>path/filepath (stdlib)</path>
+      <usage>Expands glob pattern (e.g., "*.xmp") to list of matching file paths for batch
+        processing</usage>
+    </interface>
+    <interface>
+      <name>runtime.NumCPU</name>
+      <kind>stdlib-function</kind>
+      <signature>func NumCPU() int</signature>
+      <path>runtime (stdlib)</path>
+      <usage>Determines default worker pool size - number of CPU cores available for parallel
+        processing</usage>
+    </interface>
+    <interface>
+      <name>BatchFlags</name>
+      <kind>struct</kind>
+      <signature>type BatchFlags struct { To string; OutputDir string; Parallel int; Verbose bool;
+        JSON bool; ContinueOnError bool; Overwrite bool }</signature>
+      <path>cmd/cli/batch.go (to be created)</path>
+      <usage>Flag structure for batch command options, passed to batch processing orchestration</usage>
+    </interface>
+    <interface>
+      <name>BatchResult</name>
+      <kind>struct</kind>
+      <signature>type BatchResult struct { TotalFiles int; SuccessCount int; ErrorCount int;
+        SkippedCount int; TotalDuration time.Duration; Results []ConversionResult }</signature>
+      <path>cmd/cli/batch.go (to be created)</path>
+      <usage>Aggregates results from all workers for final summary and JSON output</usage>
+    </interface>
+    <interface>
+      <name>ConversionResult</name>
+      <kind>struct</kind>
+      <signature>type ConversionResult struct { InputFile string; OutputFile string; SourceFormat
+        string; TargetFormat string; Success bool; Skipped bool; Error string; Duration
+        time.Duration; FileSize int64 }</signature>
+      <path>cmd/cli/types.go (from Story 3-2)</path>
+      <usage>Individual file conversion result, used in both single and batch modes</usage>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Epic 3 testing follows standard Go testing patterns with table-driven tests. Unit tests for
+      worker pool logic and aggregation functions. Integration tests execute full CLI with real
+      sample files from testdata/. Performance benchmarks validate &lt;2s target for 100 files.
+      Cross-platform tests ensure consistent behavior on Windows/macOS/Linux. Manual tests verify
+      progress indicator UX and error message clarity.
+    </standards>
+    <locations>
+      <location>cmd/cli/batch_test.go - Unit tests for worker pool, aggregation logic, flag parsing</location>
+      <location>cmd/cli/batch_integration_test.go - End-to-end CLI execution with 100 real sample
+        files</location>
+      <location>testdata/xmp/ - 913 sample XMP files for validation</location>
+      <location>testdata/np3/ - 22 sample NP3 files for validation</location>
+      <location>testdata/lrtemplate/ - 544 sample lrtemplate files for validation</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1">Test glob pattern expansion with wildcards (*.xmp, *.{xmp,np3}, **/*.xmp)</idea>
+      <idea ac="AC-2">Test worker pool with different sizes (1, 4, 8, runtime.NumCPU())</idea>
+      <idea ac="AC-3">Benchmark 100 files with time command, verify &lt;2s target, compare
+        sequential vs parallel</idea>
+      <idea ac="AC-4">Test progress indicator updates correctly (count increments, final summary
+        displays)</idea>
+      <idea ac="AC-5">Test continue-on-error with mixed valid/invalid files, verify all attempted</idea>
+      <idea ac="AC-5">Test fail-fast mode stops on first error, verify remaining files not processed</idea>
+      <idea ac="AC-6">Test output-dir creates missing directories, preserves input filenames</idea>
+      <idea ac="AC-7">Test result aggregation matches individual results, JSON output has all fields</idea>
+      <idea ac="AC-8">Test glob validation with no matches returns error, invalid pattern returns
+        error</idea>
+      <idea ac="AC-9">Test overwrite protection in batch (skip existing without --overwrite, replace
+        with flag)</idea>
+      <idea ac="AC-10">Verify no code duplication from Story 3-2 (format detection, I/O helpers
+        reused)</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>6.2</storyId>
+    <title>Visual Regression Testing</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/6-2-visual-regression-testing.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Recipe developer</asA>
+    <iWant>a visual regression testing framework that compares converted presets visually with
+      reference images</iWant>
+    <soThat>I can validate color accuracy beyond parameter comparison and ensure creative intent is
+      preserved across format conversions</soThat>
+    <tasks>
+      <task>Task 1: Select and Prepare Reference Images (AC-1) - 5 high-quality photos covering
+        portrait, landscape, vintage, B&amp;W, HDR scenarios</task>
+      <task>Task 2: Select Representative Presets (AC-2) - 10 presets (3 subtle, 4 moderate, 3
+        dramatic) covering exposure, HSL, tone curves, split toning</task>
+      <task>Task 3: Generate Reference Outputs (AC-2) - Apply presets in Lightroom/NX Studio, export
+        as 16-bit TIFF (Adobe RGB, lossless)</task>
+      <task>Task 4: Convert Presets and Generate Test Outputs (AC-3) - Convert via Recipe, apply in
+        target application, export with same settings</task>
+      <task>Task 5: Manual Visual Comparison (AC-4) - Side-by-side comparison with ≥95% visual
+        similarity target</task>
+      <task>Task 6: Calculate Color Delta E (AC-4) - Use ImageMagick for SSIM, optional Python
+        script for delta E (&lt;5 threshold)</task>
+      <task>Task 7: Document Known Differences (AC-5) - Identify unmappable features (grain,
+        vignette, split toning limits in NP3)</task>
+      <task>Task 8: Create Visual Regression Report (AC-7) - Comprehensive report with metrics
+        table, side-by-side images, known differences</task>
+      <task>Task 9: Update User Documentation - Add visual regression section to README, FAQ with
+        accuracy claims</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1">
+      <title>Reference Image Library</title>
+      <items>
+        <item>At least 5 reference images (portrait, landscape, vintage, B&amp;W, HDR)</item>
+        <item>Stored in testdata/visual-regression/images/</item>
+        <item>High quality (≥12MP, RAW or high-quality JPEG)</item>
+        <item>Diverse color profiles (skin tones, blue skies, green foliage, sunset reds)</item>
+        <item>Documented in testdata/visual-regression/README.md</item>
+      </items>
+    </criterion>
+
+    <criterion id="AC-2">
+      <title>Reference Preset Application</title>
+      <items>
+        <item>At least 10 representative presets tested (subtle → dramatic range)</item>
+        <item>Applied to reference images in source application (Lightroom/NX Studio)</item>
+        <item>Reference outputs exported as 16-bit TIFF (lossless)</item>
+        <item>Stored in testdata/visual-regression/reference/</item>
+        <item>Metadata recorded (preset name, source format, application version)</item>
+      </items>
+    </criterion>
+
+    <criterion id="AC-3">
+      <title>Converted Preset Application</title>
+      <items>
+        <item>Converted presets applied in target application</item>
+        <item>Test outputs exported as 16-bit TIFF (matching reference settings)</item>
+        <item>Stored in testdata/visual-regression/test/</item>
+        <item>Same image processing pipeline as reference (no extra adjustments)</item>
+        <item>Metadata recorded (conversion path, Recipe version)</item>
+      </items>
+    </criterion>
+
+    <criterion id="AC-4">
+      <title>Image Comparison Metrics</title>
+      <items>
+        <item>Visual similarity ≥95% (subjective assessment)</item>
+        <item>Color delta E &lt;5 for critical colors (reds, blues, greens, skin tones)</item>
+        <item>SSIM calculated and documented</item>
+        <item>Pixel-level difference maps generated (optional)</item>
+        <item>Results documented in docs/visual-regression-results.md</item>
+        <item>Delta E thresholds: &lt;1 imperceptible, 1-3 minor, 3-5 noticeable (acceptable), &gt;5
+          significant</item>
+      </items>
+    </criterion>
+
+    <criterion id="AC-5">
+      <title>Known Differences Documentation</title>
+      <items>
+        <item>Known unmappable features documented (grain, vignette in NP3)</item>
+        <item>Visual impact quantified (delta E, SSIM)</item>
+        <item>Workarounds or approximations documented</item>
+        <item>User-facing documentation updated with limitations</item>
+        <item>Community can validate limitations independently</item>
+      </items>
+    </criterion>
+
+    <criterion id="AC-6">
+      <title>Automated Image Comparison (Optional, Deferred)</title>
+      <items>
+        <item>ImageMagick or similar tool for comparison</item>
+        <item>Delta E calculated programmatically</item>
+        <item>Difference maps generated</item>
+        <item>Results exported as JSON for tracking</item>
+        <item>Comparison script in scripts/visual-regression/</item>
+      </items>
+    </criterion>
+
+    <criterion id="AC-7">
+      <title>Visual Regression Report</title>
+      <items>
+        <item>Results in docs/visual-regression-results.md</item>
+        <item>Side-by-side images (reference vs test)</item>
+        <item>Metrics table (delta E, SSIM for each preset-image combo)</item>
+        <item>Known differences section</item>
+        <item>Recommendations for future improvements</item>
+        <item>Report updated with each Recipe release</item>
+      </items>
+    </criterion>
+
+    <criterion id="AC-8">
+      <title>CI/CD Integration (Future Enhancement, Deferred to Post-MVP)</title>
+      <items>
+        <item>Automated visual regression tests in CI/CD (if automated)</item>
+        <item>Results compared to baseline (detect regressions)</item>
+        <item>PR blocked if visual fidelity degrades &gt;10%</item>
+        <item>Manual override with justification</item>
+        <item>Baseline updated when accuracy improves</item>
+      </items>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification: Validation &amp; Testing</title>
+        <section>AC-5: Visual Regression Testing (Manual)</section>
+        <snippet>Visual regression complements automated testing (Story 6-1) by validating that
+          conversions "look right" beyond parameter equality. Target: ≥95% visual similarity, color
+          delta E &lt;5 for critical colors, at least 5 representative presets tested. Manual
+          process acceptable for MVP; automation deferred to post-MVP.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification: Validation &amp; Testing</title>
+        <section>Visual Regression Workflow</section>
+        <snippet>Manual workflow: (1) Prepare reference images and apply preset in source app, (2)
+          Convert preset via Recipe, (3) Apply converted preset in target app, (4) Compare images
+          using ImageMagick/SSIM, (5) Calculate color delta E, (6) Document results. Each test cycle
+          takes ~30 minutes for 5-10 presets.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Success Criteria: Color Accuracy &amp; Fidelity</section>
+        <snippet>95%+ accuracy when users compare converted presets side-by-side with originals.
+          Visual inspection shows minimal color drift. Tone curves, HSL adjustments, and calibration
+          preserve creative intent. This is the core promise of Recipe - conversions must "look
+          right" to photographers.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Pattern 7: Testing Strategy</section>
+        <snippet>Table-driven tests using 1,501 real sample files from testdata/ validate
+          parameter-level accuracy. Round-trip testing ensures bidirectional conversion fidelity.
+          Visual regression (Story 6-2) complements automated tests by validating color accuracy
+          subjectively - proving conversions preserve creative intent.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification</title>
+        <section>Data Models: VisualRegressionResult</section>
+        <snippet>Type VisualRegressionResult captures delta E (color difference metric), pass
+          threshold (5.0 for critical colors), and pass/fail status. Delta E calculated using
+          CIEDE2000 formula: &lt;1 imperceptible, 1-3 minor, 3-5 noticeable (acceptable), &gt;5
+          significant (requires investigation).</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/6-1-automated-test-suite.md</path>
+        <title>Story 6-1: Automated Test Suite</title>
+        <section>Learnings</section>
+        <snippet>Automated tests (Story 6-1) validate parameter-level accuracy (e.g., Contrast = +15
+          in both files) but cannot validate "looks right". Visual regression (Story 6-2)
+          complements by proving conversions preserve creative intent when applied to actual photos.
+          Both required for 95%+ accuracy claim.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification</title>
+        <section>Known Differences Documentation</section>
+        <snippet>Some features don't map 1:1 between formats. Grain effect not supported in NP3
+          (Lightroom feature only). Vignette not available in NP3 Picture Control. Split toning
+          limited in NP3 (only hue, no saturation control). All limitations must be documented with
+          visual impact assessment.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>service</kind>
+        <symbol>Convert</symbol>
+        <reason>Core conversion API used to convert presets for visual regression testing. Converts
+          between np3, xmp, lrtemplate formats using hub-and-spoke UniversalRecipe pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <reason>NP3 parser extracts parameters from Nikon Picture Control binary format. Visual
+          regression validates these parsed parameters produce correct visual output when applied in
+          NX Studio.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/generate.go</path>
+        <kind>generator</kind>
+        <symbol>Generate</symbol>
+        <reason>NP3 generator creates binary files from UniversalRecipe. Visual regression validates
+          generated NP3 files load correctly in NX Studio and produce expected visual output.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <reason>XMP parser extracts parameters from Lightroom CC presets. Visual regression uses XMP
+          presets as reference source for comparison with converted NP3 output.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/generate.go</path>
+        <kind>generator</kind>
+        <symbol>Generate</symbol>
+        <reason>XMP generator creates Lightroom presets from UniversalRecipe. Visual regression
+          validates reverse conversion (NP3 → XMP) produces correct visual output.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/lrtemplate/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <reason>Lrtemplate parser for Lightroom Classic presets. Visual regression may test
+          lrtemplate → NP3 conversion paths to validate broader format coverage.</reason>
+      </artifact>
+      <artifact>
+        <path>testdata/xmp/</path>
+        <kind>test-data</kind>
+        <symbol>N/A</symbol>
+        <reason>913 XMP sample files available for selecting representative presets for visual
+          regression testing. Provides diverse preset library covering subtle to dramatic
+          adjustments.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/xmp_test.go</path>
+        <kind>test</kind>
+        <symbol>TestGenerateRoundTrip</symbol>
+        <reason>Round-trip test validates parameter fidelity (tolerance ±1). Visual regression
+          complements this by validating visual output matches expectations when presets applied to
+          photos.</reason>
+      </artifact>
+      <artifact>
+        <path>cmd/cli/main.go</path>
+        <kind>cli</kind>
+        <symbol>N/A</symbol>
+        <reason>CLI used to convert presets for visual regression testing workflow: `recipe convert
+          testdata/xmp/preset.xmp --to np3 --output test.np3`. Enables batch conversion for test
+          preparation.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>Standard library only (no external dependencies for core conversion); Go 1.24+ for WASM
+        support and enhanced type system</go>
+      <external>
+        <tool>Adobe Lightroom CC or Classic (required for applying XMP/lrtemplate presets to
+          reference images)</tool>
+        <tool>Nikon NX Studio (required for applying NP3 presets to reference images, free download
+          from Nikon)</tool>
+        <tool>ImageMagick (optional, for automated SSIM calculation and visual diff generation)</tool>
+        <tool>Python 3.x + PIL + colormath (optional, for automated delta E calculation using
+          CIEDE2000 formula)</tool>
+      </external>
+      <testdata>
+        <item>High-quality reference photos (5 minimum: portrait, landscape, vintage, B&amp;W, HDR)</item>
+        <item>Representative presets from testdata/xmp/ (10 presets covering subtle to dramatic
+          adjustments)</item>
+        <item>All test data committed to repository for reproducibility and community validation</item>
+      </testdata>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Visual regression testing is manual for MVP (automation deferred to post-MVP)</constraint>
+    <constraint>Testing requires access to Adobe Lightroom CC/Classic and Nikon NX Studio
+      applications</constraint>
+    <constraint>Reference images must be high quality (≥12MP) with diverse color profiles</constraint>
+    <constraint>Export settings must be consistent (16-bit TIFF, Adobe RGB, lossless compression)</constraint>
+    <constraint>Delta E &lt;5 threshold for critical colors (reds, blues, greens, skin tones)</constraint>
+    <constraint>Visual similarity ≥95% subjective assessment required</constraint>
+    <constraint>Known unmappable features (grain, vignette, split toning limits) must be documented</constraint>
+    <constraint>All test data (images, reference outputs, test outputs) committed to repository</constraint>
+    <constraint>Process is time-intensive (~30 minutes per test cycle for 5-10 presets)</constraint>
+    <constraint>Manual process acceptable because visual validation is inherently subjective</constraint>
+    <constraint>Results must be documented in docs/visual-regression-results.md with side-by-side
+      images</constraint>
+    <constraint>Community must be able to validate results independently (transparent test data)</constraint>
+    <constraint>This story is purely validation and documentation - no code changes to conversion
+      engine</constraint>
+    <constraint>Complements Story 6-1 (automated test suite) which validates parameter-level
+      accuracy</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>converter.Convert</name>
+      <kind>function</kind>
+      <signature>func Convert(input []byte, from, to string) ([]byte, error)</signature>
+      <path>internal/converter/converter.go</path>
+      <description>Core conversion API used to convert presets for visual regression testing.
+        Stateless, format-agnostic conversion engine.</description>
+    </interface>
+    <interface>
+      <name>np3.Parse</name>
+      <kind>function</kind>
+      <signature>func Parse(data []byte) (*model.UniversalRecipe, error)</signature>
+      <path>internal/formats/np3/parse.go</path>
+      <description>Parses NP3 binary format into UniversalRecipe. Visual regression validates parsed
+        parameters produce correct visual output.</description>
+    </interface>
+    <interface>
+      <name>np3.Generate</name>
+      <kind>function</kind>
+      <signature>func Generate(recipe *model.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/np3/generate.go</path>
+      <description>Generates NP3 binary from UniversalRecipe. Visual regression validates generated
+        files load correctly in NX Studio.</description>
+    </interface>
+    <interface>
+      <name>xmp.Parse</name>
+      <kind>function</kind>
+      <signature>func Parse(data []byte) (*model.UniversalRecipe, error)</signature>
+      <path>internal/formats/xmp/parse.go</path>
+      <description>Parses XMP XML format into UniversalRecipe. Visual regression uses XMP as
+        reference source for comparison.</description>
+    </interface>
+    <interface>
+      <name>xmp.Generate</name>
+      <kind>function</kind>
+      <signature>func Generate(recipe *model.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/xmp/generate.go</path>
+      <description>Generates XMP XML from UniversalRecipe. Visual regression validates reverse
+        conversion (NP3 → XMP) accuracy.</description>
+    </interface>
+    <interface>
+      <name>ImageMagick compare</name>
+      <kind>external-tool</kind>
+      <signature>compare -metric SSIM reference.tiff test.tiff null:</signature>
+      <path>external</path>
+      <description>Optional automated SSIM (Structural Similarity Index) calculation. Returns float
+        0-1 where &gt;0.95 is excellent similarity.</description>
+    </interface>
+    <interface>
+      <name>colormath delta_e_cie2000</name>
+      <kind>python-library</kind>
+      <signature>delta_e_cie2000(lab_color_1, lab_color_2) -&gt; float</signature>
+      <path>external</path>
+      <description>Optional automated color delta E calculation using CIEDE2000 formula. Threshold:
+        &lt;5 for critical colors acceptable.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Visual regression testing is manual for MVP and complements the automated test suite
+      (Story 6-1). Testing framework: (1) Reference Preparation: Apply presets in source application
+      (Lightroom/NX Studio), export as 16-bit TIFF, (2) Conversion: Use Recipe CLI to convert
+      presets to target format, (3) Test Output: Apply converted presets in target application,
+      export with identical settings, (4) Comparison: Side-by-side visual assessment + optional
+      automated metrics (SSIM, delta E), (5) Documentation: Record results in
+      docs/visual-regression-results.md with metrics table and images. Quality gates: Visual
+      similarity ≥95%, delta E &lt;5 for critical colors, SSIM &gt;0.95. All test data committed to
+      repository for community validation and reproducibility. This story creates NEW test
+      infrastructure but does not modify existing code. Pure validation and documentation effort.</standards>
+    <locations>
+      <location>testdata/visual-regression/images/ (reference photos)</location>
+      <location>testdata/visual-regression/reference/ (reference outputs from source applications)</location>
+      <location>testdata/visual-regression/test/ (test outputs from converted presets)</location>
+      <location>scripts/visual-regression/ (optional automation scripts for SSIM and delta E)</location>
+      <location>docs/visual-regression-results.md (comprehensive test results report)</location>
+      <location>docs/known-conversion-limitations.md (unmappable features documentation)</location>
+    </locations>
+    <ideas>
+      <idea id="1" ac="AC-1">Select 5 diverse reference images - Validate images are high quality
+        (≥12MP, RAW or high-quality JPEG) - Verify coverage of color profiles (skin tones, blue
+        skies, green foliage, sunset reds) - Confirm images documented in
+        testdata/visual-regression/README.md - Test: Attempt to parse images in photo viewer, verify
+        metadata shows resolution and color space</idea>
+      <idea id="2" ac="AC-2">Generate reference outputs from 10 representative presets - Validate
+        presets cover intensity range (3 subtle, 4 moderate, 3 dramatic) - Verify export settings
+        are consistent (16-bit TIFF, Adobe RGB, lossless) - Confirm metadata recorded (preset name,
+        source format, application version) - Test: Open reference TIFF in photo editor, verify bit
+        depth and color space match specification</idea>
+      <idea id="3" ac="AC-3">Generate test outputs from converted presets - Validate conversion
+        succeeds for all test presets via Recipe CLI - Verify converted presets load correctly in
+        target application (no errors) - Confirm export settings match reference (16-bit TIFF, Adobe
+        RGB, lossless) - Test: Compare file sizes - reference and test should be similar if same
+        image and settings</idea>
+      <idea id="4" ac="AC-4">Calculate image comparison metrics - Manual visual comparison: Open
+        reference and test side-by-side, assess ≥95% similarity - Optional automated SSIM: Run
+        ImageMagick compare, verify &gt;0.95 threshold - Optional delta E: Run Python script, verify
+        &lt;5 for critical colors - Test: Spot-check metrics on known identical images (should be
+        delta E ~0, SSIM ~1.0)</idea>
+      <idea id="5" ac="AC-5">Document known differences - Identify presets with grain effect (XMP →
+        NP3 loses grain, NP3 doesn't support) - Identify presets with vignette (XMP → NP3 loses
+        vignette, not in Picture Control) - Identify presets with split toning (NP3 has limited
+        support, only hue not saturation) - Test: Apply preset with grain in Lightroom, convert to
+        NP3, apply in NX Studio - verify grain is missing</idea>
+      <idea id="6" ac="AC-7">Create comprehensive visual regression report - Validate report
+        includes summary metrics (excellent/good/acceptable/poor breakdown) - Verify side-by-side
+        images embedded (5-10 examples) - Confirm metrics table complete (delta E, SSIM for each
+        preset-image combo) - Test: Open report in Markdown viewer, verify all images render and
+        tables format correctly</idea>
+      <idea id="7" ac="All">Validate community can reproduce results - Verify all reference images
+        committed to repository - Verify all presets used are in testdata/ - Verify export settings
+        documented - Test: Follow documentation from scratch, attempt to reproduce one reference
+        output</idea>
+      <idea id="8" ac="All">Performance validation - Measure time for manual visual regression cycle
+        (5-10 presets) - Target: ~30 minutes per cycle (acceptable for manual process) - Document
+        time breakdown: preset application, export, comparison - Test: Time actual workflow
+        execution, compare to estimate</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "source_file": "sample.np3",
+    "source_format": "np3",
+    "parsed_at": "2025-11-06T21:47:53Z",
+    "recipe_version": "dev"
+  },
+  "parameters": {
+    "sourceFormat": "np3",
+    "sharpness": 30,
+    "sharpnessRadius": 1,
+    "red": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "orange": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "yellow": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "green": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "aqua": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "blue": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "purple": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "magenta": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "toneCurveShadowSplit": 25,
+    "toneCurveMidtoneSplit": 50,
+    "toneCurveHighlightSplit": 75,
+    "cameraProfile": {}
+  }
+}

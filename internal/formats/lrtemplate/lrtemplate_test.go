@@ -11,10 +11,27 @@ import (
 	"github.com/justin/recipe/internal/models"
 )
 
+// findFilesRecursive walks a directory tree and returns all files matching the given extension
+func findFilesRecursive(dir, ext string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && filepath.Ext(path) == ext {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
+}
+
 // TestParse tests parsing of lrtemplate files using table-driven tests
 func TestParse(t *testing.T) {
-	// Discover all lrtemplate sample files
-	files, err := filepath.Glob("../../../examples/lrtemplate/*.lrtemplate")
+	t.Parallel() // Enable parallel execution
+
+	// Discover all lrtemplate sample files recursively
+	files, err := findFilesRecursive("../../../examples/lrtemplate", ".lrtemplate")
 	if err != nil {
 		t.Fatalf("Failed to discover lrtemplate files: %v", err)
 	}
@@ -27,7 +44,10 @@ func TestParse(t *testing.T) {
 
 	// Test each file
 	for _, file := range files {
+		file := file // Capture loop variable for parallel execution
 		t.Run(filepath.Base(file), func(t *testing.T) {
+			t.Parallel() // Enable parallel execution of subtests
+
 			data, err := os.ReadFile(file)
 			if err != nil {
 				t.Fatalf("Failed to read file: %v", err)
@@ -1241,16 +1261,12 @@ func TestGenerate_ZeroValues(t *testing.T) {
 
 // TestRoundTrip tests parse → generate → parse produces identical output
 func TestRoundTrip(t *testing.T) {
-	// Discover all lrtemplate sample files
-	files, err := filepath.Glob("../../../examples/lrtemplate/*.lrtemplate")
+	t.Parallel() // Enable parallel execution
+
+	// Discover all lrtemplate sample files recursively
+	files, err := findFilesRecursive("../../../examples/lrtemplate", ".lrtemplate")
 	if err != nil {
 		t.Fatalf("Failed to discover lrtemplate files: %v", err)
-	}
-
-	// Add recursively discovered files
-	filesRecursive, err := filepath.Glob("../../../examples/lrtemplate/**/*.lrtemplate")
-	if err == nil {
-		files = append(files, filesRecursive...)
 	}
 
 	if len(files) == 0 {
@@ -1260,7 +1276,10 @@ func TestRoundTrip(t *testing.T) {
 	t.Logf("Testing round-trip with %d lrtemplate sample files", len(files))
 
 	for _, file := range files {
+		file := file // Capture loop variable for parallel execution
 		t.Run(filepath.Base(file), func(t *testing.T) {
+			t.Parallel() // Enable parallel execution of subtests
+
 			// Step 1: Parse original file
 			originalData, err := os.ReadFile(file)
 			if err != nil {

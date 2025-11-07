@@ -2,7 +2,6 @@ package converter
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/justin/recipe/internal/models"
@@ -11,14 +10,10 @@ import (
 // BenchmarkConvert_NP3_to_XMP measures NP3→XMP conversion performance
 func BenchmarkConvert_NP3_to_XMP(b *testing.B) {
 	// Find sample NP3 file
-	files, _ := filepath.Glob("../../../examples/np3/**/*.np3")
-	if len(files) == 0 {
-		b.Skip("No NP3 sample files found")
-	}
-
-	input, err := os.ReadFile(files[0])
+	sampleFile := "../../examples/np3/Denis Zeqiri/Classic Chrome.np3"
+	input, err := os.ReadFile(sampleFile)
 	if err != nil {
-		b.Fatalf("Read file failed: %v", err)
+		b.Skipf("No NP3 sample file found at %s: %v", sampleFile, err)
 	}
 
 	b.ResetTimer()
@@ -32,14 +27,10 @@ func BenchmarkConvert_NP3_to_XMP(b *testing.B) {
 
 // BenchmarkConvert_NP3_to_LRTemplate measures NP3→lrtemplate conversion performance
 func BenchmarkConvert_NP3_to_LRTemplate(b *testing.B) {
-	files, _ := filepath.Glob("../../../examples/np3/**/*.np3")
-	if len(files) == 0 {
-		b.Skip("No NP3 sample files found")
-	}
-
-	input, err := os.ReadFile(files[0])
+	sampleFile := "../../examples/np3/Denis Zeqiri/Classic Chrome.np3"
+	input, err := os.ReadFile(sampleFile)
 	if err != nil {
-		b.Fatalf("Read file failed: %v", err)
+		b.Skipf("No NP3 sample file found at %s: %v", sampleFile, err)
 	}
 
 	b.ResetTimer()
@@ -53,14 +44,10 @@ func BenchmarkConvert_NP3_to_LRTemplate(b *testing.B) {
 
 // BenchmarkConvert_XMP_to_NP3 measures XMP→NP3 conversion performance
 func BenchmarkConvert_XMP_to_NP3(b *testing.B) {
-	files, _ := filepath.Glob("../../../examples/xmp/**/*.xmp")
-	if len(files) == 0 {
-		b.Skip("No XMP sample files found")
-	}
-
-	input, err := os.ReadFile(files[0])
+	sampleFile := "../../examples/lrtemplate/015. PRESETPRO - Emulation K/00. E - auto tone.xmp"
+	input, err := os.ReadFile(sampleFile)
 	if err != nil {
-		b.Fatalf("Read file failed: %v", err)
+		b.Skipf("No XMP sample file found at %s: %v", sampleFile, err)
 	}
 
 	b.ResetTimer()
@@ -74,14 +61,10 @@ func BenchmarkConvert_XMP_to_NP3(b *testing.B) {
 
 // BenchmarkConvert_XMP_to_LRTemplate measures XMP→lrtemplate conversion performance
 func BenchmarkConvert_XMP_to_LRTemplate(b *testing.B) {
-	files, _ := filepath.Glob("../../../examples/xmp/**/*.xmp")
-	if len(files) == 0 {
-		b.Skip("No XMP sample files found")
-	}
-
-	input, err := os.ReadFile(files[0])
+	sampleFile := "../../examples/lrtemplate/015. PRESETPRO - Emulation K/00. E - auto tone.xmp"
+	input, err := os.ReadFile(sampleFile)
 	if err != nil {
-		b.Fatalf("Read file failed: %v", err)
+		b.Skipf("No XMP sample file found at %s: %v", sampleFile, err)
 	}
 
 	b.ResetTimer()
@@ -95,14 +78,10 @@ func BenchmarkConvert_XMP_to_LRTemplate(b *testing.B) {
 
 // BenchmarkConvert_LRTemplate_to_NP3 measures lrtemplate→NP3 conversion performance
 func BenchmarkConvert_LRTemplate_to_NP3(b *testing.B) {
-	files, _ := filepath.Glob("../../../examples/lrtemplate/**/*.lrtemplate")
-	if len(files) == 0 {
-		b.Skip("No lrtemplate sample files found")
-	}
-
-	input, err := os.ReadFile(files[0])
+	sampleFile := "../../examples/lrtemplate/Fujifilm Pro 400H.lrtemplate"
+	input, err := os.ReadFile(sampleFile)
 	if err != nil {
-		b.Fatalf("Read file failed: %v", err)
+		b.Skipf("No lrtemplate sample file found at %s: %v", sampleFile, err)
 	}
 
 	b.ResetTimer()
@@ -116,14 +95,10 @@ func BenchmarkConvert_LRTemplate_to_NP3(b *testing.B) {
 
 // BenchmarkConvert_LRTemplate_to_XMP measures lrtemplate→XMP conversion performance
 func BenchmarkConvert_LRTemplate_to_XMP(b *testing.B) {
-	files, _ := filepath.Glob("../../../examples/lrtemplate/**/*.lrtemplate")
-	if len(files) == 0 {
-		b.Skip("No lrtemplate sample files found")
-	}
-
-	input, err := os.ReadFile(files[0])
+	sampleFile := "../../examples/lrtemplate/Fujifilm Pro 400H.lrtemplate"
+	input, err := os.ReadFile(sampleFile)
 	if err != nil {
-		b.Fatalf("Read file failed: %v", err)
+		b.Skipf("No lrtemplate sample file found at %s: %v", sampleFile, err)
 	}
 
 	b.ResetTimer()

@@ -1,0 +1,386 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>1</storyId>
+    <title>Automated Test Suite</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/6-1-automated-test-suite.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Recipe developer</asA>
+    <iWant>a comprehensive automated test suite that validates conversion accuracy against all 1,501
+      sample files</iWant>
+    <soThat>I can ensure 95%+ conversion fidelity, detect regressions immediately, and maintain
+      confidence in the conversion engine as features are added</soThat>
+    <tasks> ### Task 1: Create Test File Structure (AC-6) - Create
+      `internal/formats/np3/np3_test.go` with table-driven pattern - Create
+      `internal/formats/xmp/xmp_test.go` with table-driven pattern - Create
+      `internal/formats/lrtemplate/lrtemplate_test.go` with table-driven pattern - Extract
+      `validateRecipe()` helper function ### Task 2: Implement Round-Trip Tests (AC-2) - Create
+      `internal/converter/roundtrip_test.go` - Implement `TestRoundTrip_NP3_XMP_NP3` with tolerance
+      ±1 - Implement `TestRoundTrip_XMP_lrtemplate_XMP` - Implement
+      `TestRoundTrip_NP3_lrtemplate_NP3` - Extract `compareRecipes()` helper function ### Task 3:
+      Implement Error Path Tests (AC-5) - Add `TestParseInvalidMagic` to each format test file - Add
+      `TestParseTruncatedFile` to each format test file - Add `TestParseOutOfRangeParameter` tests -
+      Verify error messages and ConversionError wrapping ### Task 4: Configure Coverage Reporting
+      (AC-3) - Add coverage files to `.gitignore` - Add `test`, `coverage`, `coverage-html` targets
+      to Makefile - Document coverage workflow in README ### Task 5: Optimize Test Performance
+      (AC-7) - Enable `t.Parallel()` in test files - Benchmark test suite execution - Verify <10 second total runtime
+
+### Task 6: Create Test Utilities Package (AC-6)
+- Create `internal/testutil/helpers.go`
+- Implement `CopyFile()` helper
+- Implement `CreateTempFile()` helper
+
+### Task 7: Validate All Acceptance Criteria
+- Run full test suite and verify all 1,501 files tested (AC-1)
+- Verify coverage ≥90% for all packages (AC-3)
+- Verify round-trip accuracy ≥95% (AC-2)
+- Verify test suite <10 seconds (AC-7)
+
+### Task 8: Update Documentation
+- Update README.md with Testing section
+- Add CONTRIBUTING.md section on testing requirements
+- Document test patterns in code comments
+    </tasks>
+  </story>
+
+  <acceptanceCriteria> ### AC-1: Complete Sample File Coverage ✅ All 22 NP3 files parse successfully
+    (100% success rate) ✅ All 913 XMP files parse successfully (100% success rate) ✅ All 566
+    lrtemplate files parse successfully (100% success rate) ✅ Each file tested as individual subtest
+    (1,501 subtests visible in output) ✅ Test suite completes in &lt;10 seconds ### AC-2: Round-Trip
+    Conversion Validation ✅ NP3 → XMP → NP3 produces functionally identical output (tolerance ±1 for
+    rounding) ✅ XMP → lrtemplate → XMP preserves all critical parameters (Exposure, Contrast,
+    Saturation, HSL) ✅ lrtemplate → NP3 → lrtemplate maintains parameter accuracy ≥95% ✅ All 6
+    conversion paths tested (NP3↔XMP, NP3↔lrtemplate, XMP↔lrtemplate) ✅ Failed round-trips report
+    specific parameter mismatches with expected vs actual values ### AC-3: Test Coverage Metrics ✅
+    Overall test coverage ≥90% ✅ `internal/converter` package coverage ≥90% ✅ `internal/formats/np3`
+    package coverage ≥90% ✅ `internal/formats/xmp` package coverage ≥90% ✅
+    `internal/formats/lrtemplate` package coverage ≥90% ✅ Coverage report exported to `coverage.out`
+    and `coverage.html` ✅ Uncovered lines documented with justification (if any) ### AC-4: Parameter
+    Range Validation ✅ All parameters fall within expected ranges ✅ Contrast: -100 to +100 (or
+    format-specific range) ✅ Saturation: -100 to +100 ✅ Exposure: -5.0 to +5.0 ✅ Sharpness: 0 to 150
+    ✅ HSL Hue/Saturation/Luminance: -100 to +100 ✅ Out-of-range values trigger test failure with
+    specific value logged ### AC-5: Error Path Testing ✅ Invalid magic bytes trigger clear error
+    (e.g., "invalid NP3 magic: expected 'NP', got 'XX'") ✅ Truncated files trigger size validation
+    error ✅ Malformed XML (XMP) triggers parse error with line number ✅ Invalid Lua syntax
+    (lrtemplate) triggers syntax error ✅ All errors wrapped in `ConversionError` type with
+    operation/format context ### AC-6: Test Organization and Structure ✅ Each format package has
+    test file: `np3_test.go`, `xmp_test.go`, `lrtemplate_test.go` ✅ Converter package has:
+    `converter_test.go`, `roundtrip_test.go` ✅ Tests follow table-driven pattern (loop over
+    `testdata/` files) ✅ Helper functions extracted: `validateRecipe()`, `compareRecipes()`,
+    `copyFile()` ✅ Test fixtures organized: `testdata/{np3,xmp,lrtemplate}/` subdirectories ✅
+    Consistent test naming: `TestParse`, `TestGenerate`, `TestRoundTrip_<Format>_<Format>` ### AC-7:
+    Fast Test Execution ✅ Total execution time &lt;10 seconds ✅ Format parser tests: &lt;3 seconds
+    (1,501 files) ✅ Round-trip tests: &lt;4 seconds ✅ No slow tests blocking developer workflow ✅
+    Parallel execution enabled (`go test -parallel=8`) ### AC-8: CI/CD Integration Foundation ✅
+    Tests runnable via `go test ./...` (no special setup) ✅ Coverage report generated via `go test
+    -coverprofile=coverage.out ./...` ✅ Exit code 0 on success, 1 on failure (standard Go behavior)
+    ✅ Output parseable by CI tools (TAP/JUnit format not required for MVP) ✅ No environment-specific
+    dependencies (runs on Linux, macOS, Windows)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Success Criteria - Reliability</section>
+        <snippet>99.9% successful conversions on valid input files, graceful error handling with
+          clear user messaging, automated validation against 1,501 test files</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-6.1 Automated Test Suite</section>
+        <snippet>Table-driven tests using 1,501 real sample files, round-trip validation (A → B → A
+          produces identical output), 95%+ accuracy validation, 90%+ test coverage for core
+          conversion logic</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Pattern 7: Testing Strategy</section>
+        <snippet>Table-driven tests with 1,501 real sample files from testdata/, round-trip
+          validation (A → B → A produces identical output), comprehensive coverage of all format
+          parsers, validates 95%+ accuracy goal</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification - Validation & Testing</title>
+        <section>AC-1: Automated Test Suite Coverage</section>
+        <snippet>100% parse success on all 1,501 valid sample files, test suite completes in <10 seconds, all format parsers have test files, 1,501 individual subtests visible</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification - Validation & Testing</title>
+        <section>AC-2: Round-Trip Conversion Validation</section>
+        <snippet>NP3 → XMP → NP3 produces functionally identical output (tolerance ±1), all 6
+          conversion paths tested, failed round-trips report specific parameter mismatches</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification - Validation & Testing</title>
+        <section>AC-3: Test Coverage Metrics</section>
+        <snippet>Overall coverage ≥90%, core packages ≥90%, coverage exported to coverage.out and
+          coverage.html</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification - Validation & Testing</title>
+        <section>Test Strategy Summary</section>
+        <snippet>Test pyramid: 70% unit tests (format parsers, 1,501 files), 25% integration tests
+          (round-trip conversions), 5% manual tests. Go testing package with table-driven tests,
+          subtests for granular reporting, coverage via go test -cover</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>service</kind>
+        <symbol>Convert()</symbol>
+        <lines>entire file</lines>
+        <reason>Main conversion API that will be tested by all test suites</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter_test.go</path>
+        <kind>test</kind>
+        <symbol>TestConvert_AllPaths</symbol>
+        <lines>1-101</lines>
+        <reason>Existing test pattern showing table-driven approach and file discovery pattern</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/error.go</path>
+        <kind>model</kind>
+        <symbol>ConversionError</symbol>
+        <lines>entire file</lines>
+        <reason>Error type that must be validated in error path tests (AC-5)</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe_test.go</path>
+        <kind>test</kind>
+        <symbol>TestUniversalRecipeJSONMarshaling, TestValidateExposure, etc.</symbol>
+        <lines>entire file</lines>
+        <reason>Existing validation test patterns that can be reused for parameter range validation
+          (AC-4)</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/</path>
+        <kind>directory</kind>
+        <symbol>parse.go, generate.go</symbol>
+        <lines>n/a</lines>
+        <reason>NP3 format parser/generator that needs comprehensive test coverage</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/</path>
+        <kind>directory</kind>
+        <symbol>parse.go, generate.go</symbol>
+        <lines>n/a</lines>
+        <reason>XMP format parser/generator that needs comprehensive test coverage</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/lrtemplate/</path>
+        <kind>directory</kind>
+        <symbol>parse.go, generate.go</symbol>
+        <lines>n/a</lines>
+        <reason>lrtemplate format parser/generator that needs comprehensive test coverage</reason>
+      </artifact>
+      <artifact>
+        <path>testdata/xmp/</path>
+        <kind>directory</kind>
+        <symbol>sample files</symbol>
+        <lines>n/a</lines>
+        <reason>913 XMP sample files for table-driven testing (AC-1)</reason>
+      </artifact>
+      <artifact>
+        <path>examples/np3/</path>
+        <kind>directory</kind>
+        <symbol>sample files</symbol>
+        <lines>n/a</lines>
+        <reason>22 NP3 sample files for table-driven testing (AC-1)</reason>
+      </artifact>
+      <artifact>
+        <path>examples/lrtemplate/</path>
+        <kind>directory</kind>
+        <symbol>sample files</symbol>
+        <lines>n/a</lines>
+        <reason>566 lrtemplate sample files for table-driven testing (AC-1)</reason>
+      </artifact>
+      <artifact>
+        <path>Makefile</path>
+        <kind>build</kind>
+        <symbol>test target</symbol>
+        <lines>entire file</lines>
+        <reason>Will be updated to add coverage targets (AC-3, Task 4)</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <stdlib>
+          <package name="testing" version="stdlib">Test framework, subtests, parallel execution,
+            benchmarking</package>
+          <package name="testing/iotest" version="stdlib">I/O testing utilities</package>
+          <package name="os" version="stdlib">File I/O for reading test fixtures</package>
+          <package name="path/filepath" version="stdlib">Glob pattern matching for test file
+            discovery</package>
+          <package name="strings" version="stdlib">Error message validation</package>
+          <package name="bytes" version="stdlib">Byte comparison for test assertions</package>
+        </stdlib>
+        <external>
+          <package name="github.com/spf13/cobra" version="v1.10.1">CLI framework (already installed,
+            not needed for tests)</package>
+        </external>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints> - **Zero External Test Dependencies**: Use only Go standard library `testing`
+    package (no testify, gomega, ginkgo, etc.) - **Table-Driven Pattern Required**: All format
+    parser tests must loop over sample files from testdata/examples directories - **Subtest
+    Isolation**: Each sample file must be tested in a separate subtest for granular failure
+    reporting - **Performance Requirement**: Complete test suite must finish in &lt;10 seconds
+    (AC-7)
+    - **Parallel Execution**: Tests must support `t.Parallel()` for concurrent execution
+    - **Coverage Threshold**: ≥90% coverage for internal/converter and internal/formats packages
+    (AC-3)
+    - **Round-Trip Tolerance**: Parameter comparison must use ±1 tolerance for rounding errors
+    (AC-2)
+    - **Error Message Clarity**: All error path tests must verify specific error messages mention
+    the failure cause
+    - **ConversionError Wrapping**: All format parsing errors must be wrapped in ConversionError
+    type (AC-5)
+    - **File Organization**: Test files must follow Go convention: {package}_test.go alongside
+    source files (AC-6)
+    - **No Test Data Modification**: Sample files in testdata/ and examples/ are immutable, version
+    controlled
+    - **Cross-Platform**: Tests must run on Linux, macOS, Windows without environment-specific setup
+    (AC-8)
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Convert API</name>
+      <kind>Function signature</kind>
+      <signature>func Convert(input []byte, fromFormat, toFormat string) ([]byte, error)</signature>
+      <path>internal/converter/converter.go</path>
+    </interface>
+    <interface>
+      <name>Format Parser Interface</name>
+      <kind>Function pattern</kind>
+      <signature>func Parse(data []byte) (*model.UniversalRecipe, error)</signature>
+      <path>internal/formats/{np3,xmp,lrtemplate}/parse.go</path>
+    </interface>
+    <interface>
+      <name>Format Generator Interface</name>
+      <kind>Function pattern</kind>
+      <signature>func Generate(recipe *model.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/{np3,xmp,lrtemplate}/generate.go</path>
+    </interface>
+    <interface>
+      <name>ConversionError Type</name>
+      <kind>Error type</kind>
+      <signature>type ConversionError struct { Operation string; Format string; Cause error }</signature>
+      <path>internal/converter/error.go</path>
+    </interface>
+    <interface>
+      <name>Go Testing Framework</name>
+      <kind>Standard library</kind>
+      <signature>func TestXxx(t *testing.T), t.Run(name, func), t.Parallel(), t.Error/Fatal/Log</signature>
+      <path>testing package (stdlib)</path>
+    </interface>
+    <interface>
+      <name>Coverage Tool</name>
+      <kind>CLI tool</kind>
+      <signature>go test -coverprofile=coverage.out ./...; go tool cover -func/-html</signature>
+      <path>go toolchain</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      **Go Standard Testing Framework:**
+      - Use `testing` package from Go stdlib (no external test frameworks)
+      - Table-driven tests for all format parsers (loop over sample files)
+      - Subtests for granular failure reporting (`t.Run()`)
+      - Parallel execution enabled (`t.Parallel()`) for fast test runs
+      - Helper functions marked with `t.Helper()` for cleaner stack traces
+
+      **Test Organization:**
+      - Test files named `{package}_test.go` (e.g., `np3_test.go`)
+      - Tests in same package as code under test (white-box testing)
+      - Helper functions extracted to reduce duplication (`validateRecipe()`, `compareRecipes()`)
+      - Test utilities in `internal/testutil/helpers.go`
+
+      **Coverage Standards:**
+      - Overall coverage ≥90% (enforced by CI/CD in Story 6-7)
+      - Core packages (converter, formats/*) ≥90% each
+      - Coverage reports generated via `go test -coverprofile=coverage.out`
+      - HTML reports for line-by-line coverage inspection
+
+      **Assertion Patterns:**
+      - Use `t.Error()` for non-fatal failures (continue test)
+      - Use `t.Fatal()` for fatal failures (stop test immediately)
+      - Clear error messages with context (expected vs actual, file path, parameter name)
+
+      **Test Isolation:**
+      - Each test independent (no shared state between tests)
+      - Temporary files cleaned up via `t.TempDir()`
+      - No test order dependencies (tests run in any order)
+    </standards>
+    <locations>
+      - `internal/converter/converter_test.go` - Existing conversion path tests
+      - `internal/converter/roundtrip_test.go` - NEW: Round-trip validation tests (AC-2)
+      - `internal/formats/np3/np3_test.go` - NEW: NP3 parser/generator tests (AC-1)
+      - `internal/formats/xmp/xmp_test.go` - NEW: XMP parser/generator tests (AC-1)
+      - `internal/formats/lrtemplate/lrtemplate_test.go` - NEW: lrtemplate parser/generator tests
+      (AC-1)
+      - `internal/models/recipe_test.go` - Existing model validation tests
+      - `internal/testutil/helpers.go` - NEW: Shared test utilities (AC-6)
+      - `testdata/xmp/` - 913 XMP sample files
+      - `examples/np3/` - 22 NP3 sample files
+      - `examples/lrtemplate/` - 566 lrtemplate sample files
+    </locations>
+    <ideas> **AC-1 Test Ideas (Complete Sample File Coverage):** - Create `TestParse()` in each
+      format test file that globs all sample files from testdata/examples - Each sample file tested
+      as individual subtest for granular reporting - Verify parse succeeds (no error) for all valid
+      files - Call `validateRecipe()` helper to check parameter ranges (AC-4) - Track test count to
+      verify all 1,501 files are discovered and tested **AC-2 Test Ideas (Round-Trip Conversion
+      Validation):** - Create `TestRoundTrip_NP3_XMP_NP3()` that parses NP3 → converts to XMP →
+      parses XMP → converts back to NP3 → compares original vs final - Implement `compareRecipes()`
+      helper that compares all critical parameters with tolerance ±1 - Report specific parameter
+      mismatches (expected vs actual, parameter name, tolerance) - Test all 6 conversion paths
+      (NP3↔XMP, NP3↔lrtemplate, XMP↔lrtemplate) - Use subset of sample files for round-trip (not all
+      1,501, maybe 10-20 representative files per format) **AC-3 Test Ideas (Test Coverage
+      Metrics):** - Add `coverage` target to Makefile: `go test -coverprofile=coverage.out ./...` -
+      Add `coverage-html` target: `go tool cover -html=coverage.out -o coverage.html` - Add coverage
+      files to `.gitignore` (coverage.out, coverage.html) - Document coverage workflow in README
+      (how to run, interpret results) **AC-4 Test Ideas (Parameter Range Validation):** - Implement
+      `validateRecipe(t *testing.T, recipe *model.UniversalRecipe)` helper - Check all critical
+      parameters: Contrast (-100 to +100), Saturation (-100 to +100), Exposure (-5.0 to +5.0),
+      Sharpness (0 to 150), HSL (-100 to +100) - Use `t.Errorf()` with specific parameter name and
+      value when out of range - Called from all format parser tests (AC-1) **AC-5 Test Ideas (Error
+      Path Testing):** - `TestParseInvalidMagic()`: Create file with wrong magic bytes, verify error
+      message mentions "invalid magic" - `TestParseTruncatedFile()`: Create file with only header,
+      verify error mentions "too small" or "truncated" - `TestParseMalformedXML()`: Create invalid
+      XML, verify parse error with line number (if applicable) - `TestParseInvalidLua()`: Create
+      invalid Lua syntax, verify syntax error - Verify all errors are wrapped in `ConversionError`
+      type with correct Operation and Format fields **AC-6 Test Ideas (Test Organization and
+      Structure):** - Create test files following pattern: np3_test.go, xmp_test.go,
+      lrtemplate_test.go - Extract helper functions: validateRecipe(), compareRecipes(), copyFile()
+      - Create testutil package with common utilities - Verify consistent naming: TestParse,
+      TestGenerate, TestRoundTrip_* **AC-7 Test Ideas (Fast Test Execution):** - Add `t.Parallel()`
+      to top-level test functions - Add `t.Parallel()` to subtests for concurrent execution -
+      Benchmark test suite: `time go test ./...` and verify <10 seconds
+- Profile slow tests and optimize if needed
+
+**AC-8 Test Ideas (CI/CD Integration Foundation):**
+- Verify `go test ./...` runs all tests (no special setup)
+- Verify exit code 0 on success, 1 on failure
+- Verify coverage report generated: `go test -coverprofile=coverage.out ./...`
+- Ensure no environment-specific dependencies (cross-platform compatibility)
+    </ideas>
+  </tests>
+</story-context>

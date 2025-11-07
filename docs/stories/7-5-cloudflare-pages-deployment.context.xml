@@ -1,0 +1,409 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>7.5</storyId>
+    <title>Cloudflare Pages Deployment</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/7-5-cloudflare-pages-deployment.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Recipe developer and maintainer</asA>
+    <iWant>automated Cloudflare Pages deployment that builds the WASM binary and deploys the web
+      interface whenever code is pushed to the main branch</iWant>
+    <soThat>the live Recipe web app is always up-to-date with the latest code without manual
+      deployment steps, and users access the latest features and bug fixes immediately</soThat>
+    <tasks>
+      ### Task 1: Create Cloudflare Pages Project (AC-3, AC-5)
+      - Log in to Cloudflare Dashboard and create account if needed (free tier)
+      - Create New Pages Project: Account Home → Workers &amp; Pages → Pages → Create application
+      - Connect GitHub Repository or use Direct Upload for manual deployment
+      - Configure Build Settings: Project Name "recipe", Production Branch "main", Build Output
+      Directory "web"
+      - Project URL will be https://recipe.pages.dev
+
+      ### Task 2: Create Cloudflare API Token (AC-6)
+      - Navigate to Cloudflare Dashboard → My Profile → API Tokens
+      - Create Custom Token with "Cloudflare Pages - Edit" permission
+      - Configure Account Resources to include Recipe account
+      - Copy token value (shown only once)
+
+      ### Task 3: Find Cloudflare Account ID (AC-6)
+      - Navigate to Cloudflare Dashboard → Account Home
+      - Account ID visible in URL or sidebar (32-character hexadecimal string)
+
+      ### Task 4: Configure GitHub Repository Secrets (AC-6)
+      - Navigate to GitHub Repository → Settings → Secrets and variables → Actions
+      - Add CLOUDFLARE_API_TOKEN secret (paste token from Task 2)
+      - Add CLOUDFLARE_ACCOUNT_ID secret (paste account ID from Task 3)
+
+      ### Task 5: Create GitHub Actions Workflow File (AC-1, AC-2, AC-3)
+      - Create .github/workflows/deploy-pages.yml
+      - Configure trigger: on push to main branch only
+      - Setup steps: Checkout repository, Setup Go 1.24, Build WASM, Deploy to Cloudflare Pages
+      - Use cloudflare/pages-action@v1 for deployment
+
+      ### Task 6: Commit and Push Workflow (AC-1)
+      - Add workflow file to Git
+      - Commit with descriptive message
+      - Push to main branch to trigger first deployment
+
+      ### Task 7: Monitor First Deployment (AC-4, AC-5, AC-7)
+      - Watch workflow execution in GitHub Actions tab
+      - Check for errors in build/deploy steps
+      - Verify deployment success and site accessibility at https://recipe.pages.dev
+      - Test WASM conversion functionality end-to-end
+
+      ### Task 8: Test Workflow Trigger Behavior (AC-1)
+      - Test push to feature branch (should NOT trigger deployment)
+      - Test push to main branch (should trigger deployment)
+      - Test pull request behavior (should NOT trigger until merged)
+
+      ### Task 9: Update README.md with Deployment Info (AC-5)
+      - Add Deployment section documenting live URL and deployment process
+      - Include manual deployment instructions and rollback procedure
+
+      ### Task 10: Update sprint-status.yaml
+      - Mark Story 7-5 as "drafted" in sprint-status.yaml
+      - Preserve all comments and structure
+
+      ### Task 11: Test Deployment Rollback (AC-7)
+      - Create test deployment with trivial change
+      - Access Cloudflare Pages Dashboard
+      - Test rollback to previous deployment
+      - Verify rollback completes successfully</tasks>
+  </story>
+
+  <acceptanceCriteria>
+    ### AC-1: GitHub Actions Workflow Triggers on Push to Main Branch
+    - Workflow file exists at .github/workflows/deploy-pages.yml
+    - Trigger configuration: on push to branches [main] only
+    - Workflow runs automatically on push to main (no manual trigger)
+    - Does NOT run on pushes to other branches or on PR creation
+    - Workflow run visible in GitHub Actions tab within 30 seconds
+
+    ### AC-2: Workflow Builds WASM Binary
+    - Go 1.24 toolchain setup using actions/setup-go@v5
+    - WASM build command: GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/recipe.wasm
+    cmd/wasm/main.go
+    - Build flags strip debug symbols to reduce binary size (~30%)
+    - Build step completes without errors, web/recipe.wasm file created
+
+    ### AC-3: Workflow Deploys web/ Directory to Cloudflare Pages
+    - Uses cloudflare/pages-action@v1 for deployment
+    - Deploys entire web/ folder (index.html, main.js, style.css, recipe.wasm)
+    - Project name "recipe" matches Cloudflare Pages project
+    - Authentication via CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets
+    - Deployment succeeds with no errors in logs
+
+    ### AC-4: Deployment Completes in &lt;5 Minutes
+    - Total duration from workflow start to Cloudflare deployment success &lt;5 minutes
+    - Timeout configuration set to 10 minutes as safety net
+    - Typical timing breakdown: Checkout &lt;10s, Setup Go &lt;1min, Build WASM &lt;2min, Deploy
+    &lt;2min
+
+    ### AC-5: Site is Accessible at https://recipe.pages.dev
+    - Production URL accessible via HTTPS (enforced, HTTP redirects)
+    - Site content loads: landing page, WASM binary, JavaScript, styles
+    - Functionality works: drag-and-drop, format detection, conversion, file download
+    - Performance: Initial load &lt;3s, subsequent loads &lt;500ms, global CDN latency &lt;100ms
+
+    ### AC-6: GitHub Repository Secrets Configured
+    - Required secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
+    - Secrets configured in Repository → Settings → Secrets and variables → Actions
+    - API token has "Cloudflare Pages - Edit" permission
+    - Secret values masked in workflow logs
+
+    ### AC-7: Deployment Status Visible in GitHub Commit Status
+    - Commit status indicator shows green checkmark (✓) for success, red X (✗) for failure
+    - Click commit status icon links to workflow run details
+    - Deployment URL visible if successful
+    - Email notification sent on workflow failure</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Deployment Infrastructure</section>
+        <snippet>Recipe provides three interfaces (CLI, TUI, Web) with privacy-first, client-side
+          architecture. Cloudflare Pages hosts the static web interface with zero-cost global CDN
+          deployment.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-7.md</path>
+        <title>Epic 7 Technical Specification - Documentation &amp; Deployment</title>
+        <section>NFR-7.1: Cloudflare Pages Deployment</section>
+        <snippet>Cloudflare Pages deployment completes in &lt;5 minutes from push to live. GitHub
+          Actions workflow builds WASM binary and deploys web/ directory. Uses free tier (unlimited
+          bandwidth, 500 builds/month).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Deployment Architecture</section>
+        <snippet>Cloudflare Pages integration: Deploys web/ directory, leverages automatic gzip
+          compression (WASM reduced 70%), provides global CDN with sub-100ms latency worldwide.
+          Zero-cost infrastructure using Cloudflare Pages and GitHub Actions free tiers.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/7-1-landing-page.md</path>
+        <title>Story 7.1: Landing Page</title>
+        <section>Landing Page Content</section>
+        <snippet>Landing page provides project description, 3-step usage guide, and privacy promise.
+          Deployed to Cloudflare Pages via Story 7-5.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/7-4-legal-disclaimer.md</path>
+        <title>Story 7.4: Legal Disclaimer</title>
+        <section>Legal Disclaimer Integration</section>
+        <snippet>Legal disclaimer section added to web/index.html covering reverse engineering
+          disclosure and no-warranty statement. First deployment after Story 7-4 will include
+          disclaimer on live site.</snippet>
+      </doc>
+      <doc>
+        <path>web/README.md</path>
+        <title>Web Interface Documentation</title>
+        <section>WASM Build Instructions</section>
+        <snippet>WASM build complete. Build command: GOOS=js GOARCH=wasm go build -o
+          web/static/recipe.wasm cmd/wasm/main.go. Web interface ready for Cloudflare Pages
+          deployment.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>Makefile</path>
+        <kind>build-config</kind>
+        <symbol>wasm target</symbol>
+        <lines>29</lines>
+        <reason>Existing WASM build target. GitHub Actions workflow will replicate this build
+          command: GOOS=js GOARCH=wasm go build -o web/recipe.wasm cmd/wasm/main.go with additional
+          -ldflags="-s -w" for size optimization.</reason>
+      </artifact>
+      <artifact>
+        <path>cmd/wasm/main.go</path>
+        <kind>wasm-entrypoint</kind>
+        <symbol>convertWrapper</symbol>
+        <lines>1-340</lines>
+        <reason>WASM entry point that exposes conversion functions to JavaScript. This file is
+          compiled to web/recipe.wasm during GitHub Actions deployment workflow. Provides convert()
+          function called by web/index.html.</reason>
+      </artifact>
+      <artifact>
+        <path>web/index.html</path>
+        <kind>web-page</kind>
+        <symbol>main landing page</symbol>
+        <lines>1-137</lines>
+        <reason>Main landing page deployed to Cloudflare Pages. Includes hero section, drag-drop UI,
+          privacy messaging, and WASM loading. This is the entry point users see at
+          https://recipe.pages.dev.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/build-wasm.sh</path>
+        <kind>build-script</kind>
+        <symbol>WASM build script</symbol>
+        <lines>8-10</lines>
+        <reason>Existing shell script for local WASM builds. GitHub Actions workflow will use
+          similar commands but inline in workflow YAML rather than calling this script.</reason>
+      </artifact>
+      <artifact>
+        <path>web/recipe.wasm</path>
+        <kind>wasm-binary</kind>
+        <symbol>Compiled WASM module</symbol>
+        <lines>N/A</lines>
+        <reason>Currently exists in repository (pre-built). GitHub Actions workflow will rebuild
+          this file on each deployment to ensure it matches latest code. Binary size target: &lt;5MB
+          compressed.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <package name="standard library" version="1.24+" purpose="WASM compilation toolchain" />
+      </go>
+      <github-actions>
+        <action name="actions/checkout" version="v4" purpose="Checkout repository in workflow" />
+        <action name="actions/setup-go" version="v5" purpose="Install Go 1.24 toolchain" />
+        <action name="cloudflare/pages-action" version="v1"
+          purpose="Deploy web/ directory to Cloudflare Pages" />
+      </github-actions>
+      <cloudflare>
+        <service name="Cloudflare Pages" tier="free"
+          purpose="Static hosting with global CDN (unlimited bandwidth, 500 builds/month)" />
+      </cloudflare>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **Deployment Timing:** Total workflow execution must complete in &lt;5 minutes (typical: 3-5
+    minutes). Timeout set to 10 minutes as safety net.
+    - **Free Tier Limits:** Cloudflare Pages free tier provides 500 builds/month. GitHub Actions
+    free tier provides unlimited minutes for public repositories on ubuntu runners.
+    - **Zero Server Uploads:** All files processed client-side via WASM. Cloudflare Pages hosts only
+    static files (HTML, JS, CSS, WASM binary).
+    - **Build Flags:** WASM binary must be built with -ldflags="-s -w" to strip debug symbols and
+    reduce size (~30% reduction).
+    - **Security:** GitHub secrets (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID) must be configured
+    before workflow runs. Secret values automatically masked in workflow logs.
+    - **Trigger Discipline:** Workflow must ONLY trigger on push to main branch, NOT on feature
+    branch pushes or PR creation (to avoid consuming build quota unnecessarily).
+    - **Project Name:** Cloudflare Pages project must be named "recipe" to match projectName in
+    workflow configuration.
+    - **Directory Structure:** Workflow deploys web/ directory. This must contain index.html,
+    main.js, style.css, and recipe.wasm (built during workflow).
+    - **Go Version:** Workflow uses Go 1.24 via actions/setup-go@v5. Must match project's go.mod
+    version requirement.
+    - **HTTPS Only:** Cloudflare Pages enforces HTTPS automatically. Production URL is
+    https://recipe.pages.dev (HTTP redirects to HTTPS).</constraints>
+
+  <interfaces>
+    <interface>
+      <name>GitHub Actions Workflow API</name>
+      <kind>CI/CD workflow configuration</kind>
+      <signature>
+        workflow:
+        name: Deploy to Cloudflare Pages
+        on:
+        push:
+        branches: [main]
+        jobs:
+        deploy:
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-go@v5 with go-version: '1.24'
+        - run: GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/recipe.wasm cmd/wasm/main.go
+        - uses: cloudflare/pages-action@v1 with apiToken, accountId, projectName: recipe, directory:
+        web
+      </signature>
+      <path>.github/workflows/deploy-pages.yml</path>
+    </interface>
+    <interface>
+      <name>Cloudflare Pages Action</name>
+      <kind>GitHub Action for Cloudflare Pages deployment</kind>
+      <signature>
+        inputs:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }} # Required
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }} # Required
+        projectName: recipe # Must match Cloudflare Pages project name
+        directory: web # Directory to deploy (contains index.html, recipe.wasm, etc.)
+        outputs:
+        url: https://recipe.pages.dev # Deployment URL
+      </signature>
+      <path>cloudflare/pages-action@v1</path>
+    </interface>
+    <interface>
+      <name>WASM Build Command</name>
+      <kind>Go compilation command</kind>
+      <signature>
+        GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/recipe.wasm cmd/wasm/main.go
+
+        Flags:
+        GOOS=js GOARCH=wasm: Target WebAssembly platform
+        -ldflags="-s -w": Strip debug symbols and DWARF info (reduces size ~30%)
+        -o web/recipe.wasm: Output path (deployed to Cloudflare Pages)
+        Input: cmd/wasm/main.go (WASM entry point)
+        Output: web/recipe.wasm (compiled WASM binary, target size &lt;5MB compressed)
+      </signature>
+      <path>cmd/wasm/main.go → web/recipe.wasm</path>
+    </interface>
+    <interface>
+      <name>Cloudflare Pages Deployment</name>
+      <kind>Static hosting service</kind>
+      <signature>
+        Project: recipe
+        Production Branch: main
+        Build Output Directory: web/
+        URL: https://recipe.pages.dev
+        Features:
+        - Global CDN (250+ data centers)
+        - Automatic HTTPS with managed TLS certificates
+        - Automatic gzip/brotli compression
+        - Rollback capability (one-click in dashboard)
+        - Preview deployments (optional, for PR testing)
+      </signature>
+      <path>https://recipe.pages.dev</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Epic 7 stories primarily involve documentation and CI/CD configuration with limited automated
+      testing.
+      Testing strategy for Story 7-5 focuses on manual verification and integration testing:
+
+      **Manual Testing:**
+      - Workflow trigger verification (push to main triggers, push to feature branch does not)
+      - WASM build success (check GitHub Actions logs for build completion)
+      - Deployment success (verify Cloudflare Pages dashboard shows new deployment)
+      - Site accessibility (visit https://recipe.pages.dev, verify page loads)
+      - End-to-end functionality (upload file, convert, download - smoke test)
+
+      **GitHub Actions Testing:**
+      - Secret validation (remove secrets, verify workflow fails with clear error)
+      - Build failure handling (break cmd/wasm/main.go, verify workflow fails and commit status
+      shows red X)
+      - Timeout behavior (introduce delay, verify workflow times out at 10 minutes)
+
+      **Integration Testing:**
+      - Full deployment flow from code push to live site
+      - Rollback procedure (test in Cloudflare dashboard)
+      - Performance measurement (deployment time &lt;5 minutes)
+
+      **No automated unit tests** for workflow configuration (YAML syntax validation only).
+    </standards>
+    <locations>
+      - No automated test files for Story 7-5 (CI/CD configuration)
+      - Manual testing checklist in story document (Task 7, Task 8, Task 11)
+      - Workflow logs provide validation evidence (GitHub Actions → workflow run → logs)
+    </locations>
+    <ideas>
+      ### Test Ideas Mapped to Acceptance Criteria
+
+      **AC-1: GitHub Actions Workflow Triggers on Push to Main Branch**
+      - TEST-1.1: Push commit to main branch → verify workflow appears in Actions tab within 30s
+      - TEST-1.2: Push commit to feature branch → verify workflow does NOT trigger
+      - TEST-1.3: Create PR from feature branch → verify workflow does NOT trigger on PR creation
+      - TEST-1.4: Merge PR to main → verify workflow triggers after merge
+
+      **AC-2: Workflow Builds WASM Binary**
+      - TEST-2.1: Check workflow logs for "Setup Go" step → verify Go 1.24 installed
+      - TEST-2.2: Check workflow logs for "Build WASM" step → verify command executes successfully
+      - TEST-2.3: Verify web/recipe.wasm mentioned in logs (file created)
+      - TEST-2.4: Break cmd/wasm/main.go intentionally → verify build fails with error message
+      **AC-3: Workflow Deploys web/ Directory to Cloudflare Pages**
+      - TEST-3.1: Check workflow logs for "Deploy to Cloudflare Pages" step → verify deployment
+      succeeds
+      - TEST-3.2: Navigate to Cloudflare Pages dashboard → verify new deployment listed
+      - TEST-3.3: Remove CLOUDFLARE_API_TOKEN secret → verify workflow fails with authentication
+      error
+      - TEST-3.4: Check deployed site → verify all files present (index.html, recipe.wasm, main.js,
+      style.css)
+
+      **AC-4: Deployment Completes in &lt;5 Minutes**
+      - TEST-4.1: Measure total workflow duration from start to completion → target &lt;5 minutes
+      - TEST-4.2: Document timing breakdown (checkout, setup, build, deploy) from logs
+      - TEST-4.3: Verify timeout configuration (workflow should fail if exceeds 10 minutes)
+
+      **AC-5: Site is Accessible at https://recipe.pages.dev**
+      - TEST-5.1: Visit https://recipe.pages.dev → verify page loads (HTTP 200)
+      - TEST-5.2: Verify HTTPS enforced (HTTP redirects to HTTPS)
+      - TEST-5.3: Test conversion functionality → upload .xmp file, convert to .np3, download
+      - TEST-5.4: Run Lighthouse audit → verify initial load &lt;3 seconds
+
+      **AC-6: GitHub Repository Secrets Configured**
+      - TEST-6.1: Navigate to Repository → Settings → Secrets → verify both secrets present
+      - TEST-6.2: Check workflow logs → verify secret values masked (not visible in plain text)
+      - TEST-6.3: Test workflow with valid secrets → verify deployment succeeds
+      - TEST-6.4: Remove secrets → verify workflow fails with clear error message
+
+      **AC-7: Deployment Status Visible in GitHub Commit Status**
+      - TEST-7.1: After successful deployment → verify green checkmark on commit page
+      - TEST-7.2: Click commit status icon → verify links to workflow run
+      - TEST-7.3: After failed deployment → verify red X on commit page
+      - TEST-7.4: While deployment in progress → verify yellow dot displayed
+    </ideas>
+  </tests>
+</story-context>

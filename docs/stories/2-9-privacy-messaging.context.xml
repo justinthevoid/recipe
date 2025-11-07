@@ -1,0 +1,409 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2-9</storyId>
+    <title>Privacy Messaging</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-9-privacy-messaging.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>clear assurance that my presets are private</iWant>
+    <soThat>I feel confident Recipe won't leak my proprietary editing styles to competitors or third
+      parties</soThat>
+    <tasks>
+      <task id="1">Create privacy-messaging.js module for privacy education</task>
+      <task id="2">Add privacy badge to header (🔒 100% Privacy - Your files never leave your
+        device)</task>
+      <task id="3">Implement showPrivacyReminder() for post-upload message</task>
+      <task id="4">Implement showConversionPrivacyMessage() for post-conversion reminder</task>
+      <task id="5">Create Privacy FAQ section with 6 Q&amp;A items (collapsible)</task>
+      <task id="6">Implement initializePrivacyFAQ() for toggle functionality</task>
+      <task id="7">Add privacy badge click handler (scroll to FAQ)</task>
+      <task id="8">Add GitHub link in footer (open source transparency)</task>
+      <task id="9">Add WebAssembly explainer section (non-technical language)</task>
+      <task id="10">Implement privacy status message container (auto-fade after 5s)</task>
+      <task id="11">Add CSS styling for privacy badge, FAQ, status messages</task>
+      <task id="12">Add HTML elements for privacy badge, FAQ, footer links</task>
+      <task id="13">Integrate with fileLoaded event (show privacy reminder)</task>
+      <task id="14">Integrate with conversionComplete event (show privacy message)</task>
+      <task id="15">Verify no analytics/tracking in DevTools Network tab</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" title="Privacy Badge in Header">
+      <requirement>Display privacy badge below main title</requirement>
+      <requirement>Badge text: "🔒 100% Privacy - Your files never leave your device"</requirement>
+      <requirement>Badge style: Green background (#c6f6d5), subtle, always visible</requirement>
+      <requirement>Badge clickable: scrolls to Privacy FAQ section</requirement>
+      <test>Load page, verify privacy badge visible in header, click badge → scrolls to FAQ section</test>
+    </criterion>
+
+    <criterion id="AC-2" title="Privacy Messaging on File Upload">
+      <requirement>Show privacy reminder when file is uploaded: "✓ File loaded. Processing locally
+        in your browser - no server upload."</requirement>
+      <requirement>Display briefly (3-5 seconds), then fade out</requirement>
+      <requirement>Subtle, non-intrusive (doesn't interrupt workflow)</requirement>
+      <test>Upload file, verify privacy message appears after file loads, fades out after ~3-5
+        seconds</test>
+    </criterion>
+
+    <criterion id="AC-3" title="Privacy Reminder After Conversion">
+      <requirement>Include privacy message in conversion success: "✓ Conversion complete! Your
+        preset was converted entirely in your browser."</requirement>
+      <requirement>Emphasize no data uploaded or stored</requirement>
+      <requirement>Optional link to Privacy FAQ</requirement>
+      <test>Complete conversion flow, verify success message includes privacy reminder</test>
+    </criterion>
+
+    <criterion id="AC-4" title="Privacy FAQ Section">
+      <requirement>Create expandable FAQ section in footer (collapsible)</requirement>
+      <requirement>6 Q&amp;A items covering: server uploads, file tracking, WASM explanation,
+        auditability, analytics, browser safety</requirement>
+      <requirement>FAQ toggle button: "Privacy FAQ ▼" → "Hide Privacy FAQ ▲"</requirement>
+      <requirement>Link from privacy badge to FAQ (scroll + auto-expand)</requirement>
+      <test>Scroll to footer, click "Privacy FAQ ▼" → section expands, read all Q&amp;A, click badge
+        in header → jumps to FAQ</test>
+    </criterion>
+
+    <criterion id="AC-5" title="Technical Transparency (Explain WASM)">
+      <requirement>Brief WebAssembly explanation in FAQ: "Recipe uses WebAssembly (WASM) to run the
+        conversion engine in your browser. WASM is a safe, sandboxed technology..."</requirement>
+      <requirement>Link to external WebAssembly resource (https://webassembly.org/)</requirement>
+      <requirement>Avoid technical jargon (plain language for non-technical users)</requirement>
+      <test>Read WASM explanation in FAQ, verify understandable to non-technical users, click
+        external link → opens in new tab</test>
+    </criterion>
+
+    <criterion id="AC-6" title="Open Source Transparency">
+      <requirement>Display GitHub link in footer: "📂 Open Source - View the code on GitHub"</requirement>
+      <requirement>Emphasize auditability in FAQ: "All Recipe code is public. You can verify exactly
+        what it does."</requirement>
+      <requirement>Link to Recipe repository (opens in new tab)</requirement>
+      <test>Click GitHub link in footer, verify opens Recipe repository in new tab, repository is
+        public</test>
+    </criterion>
+
+    <criterion id="AC-7" title="No Tracking or Analytics">
+      <requirement>Option 1 (Preferred): No analytics at all</requirement>
+      <requirement>Never use third-party trackers (Google Analytics, Facebook Pixel, etc.)</requirement>
+      <requirement>FAQ explicitly states: "Recipe doesn't use tracking or analytics. No cookies, no
+        telemetry, no fingerprinting."</requirement>
+      <test>Open DevTools → Network tab, load page, complete conversion flow, verify no requests to
+        analytics services, no cookies set</test>
+    </criterion>
+
+    <criterion id="AC-8" title="Privacy Policy (Optional)">
+      <requirement>Optional: Add minimal privacy policy page or section</requirement>
+      <requirement>Content: "Recipe doesn't collect, store, or transmit your files. Recipe doesn't
+        use cookies or tracking. Recipe is a static web application."</requirement>
+      <requirement>Link from footer (if implemented)</requirement>
+      <test>If implemented: Click "Privacy Policy" link in footer, verify policy page loads and
+        matches actual behavior</test>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <artifact>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Story 2-9: Privacy Messaging</section>
+        <snippet>Simple story (0.5-1 day). Deliverables: Privacy badge in header, privacy reminders
+          (after upload, after conversion), Privacy FAQ section (6 Q&amp;A). Emphasizes WASM-based
+          local processing (no server uploads). Open source transparency (GitHub link). No analytics
+          or tracking.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Overview</section>
+        <snippet>Epic 2 transforms Recipe from a Go library into a browser-based photo preset
+          converter using WebAssembly. This epic delivers the MVP web interface enabling
+          photographers to convert presets without installing software, with 100% client-side
+          processing for privacy.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Key Principle</section>
+        <snippet>Zero server communication - all processing happens in the browser via WebAssembly.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Technical Specification: Epic 2 - Web Interface</title>
+        <section>Decision 5: Privacy Validation</section>
+        <snippet>Privacy is Recipe's core value proposition. Validation strategy: Open DevTools
+          Network tab, complete full conversion flow, verify: No XHR/fetch requests (only WASM
+          load), No cookies set, No local storage used, All conversion happens in browser memory.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR-2.9: Privacy Messaging</section>
+        <snippet>Clear privacy assurance to build trust. Privacy is Recipe's core differentiator.
+          Photographers treat presets as trade secrets worth thousands of dollars. Recipe (files
+          never leave device, WASM in browser) vs Competitors (upload to server, privacy risk, GDPR
+          concerns). Trust factors: Clear privacy messaging, technical transparency (explain WASM),
+          open source auditability.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Privacy Philosophy</section>
+        <snippet>Recipe is designed for privacy from the ground up. No servers, no databases, no
+          accounts. All processing happens in the browser using WebAssembly. Your files never leave
+          your device.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>WebAssembly Integration</section>
+        <snippet>Recipe compiles to WebAssembly for browser execution. WASM provides: Near-native
+          performance, sandboxed security, cross-platform compatibility. All conversion logic runs
+          client-side in browser memory. Zero server communication ensures absolute privacy.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Privacy by Design</section>
+        <snippet>Recipe's architecture ensures privacy: Client-side processing (no server uploads),
+          No persistence (files only in memory), No tracking or analytics, Open source (auditable
+          code). WebAssembly runs in sandboxed environment with same security as JavaScript.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/stories/2-6-wasm-conversion-execution.md</path>
+        <title>Story 2-6: WASM Conversion Execution</title>
+        <section>WASM Security</section>
+        <snippet>WebAssembly runs in sandboxed environment. Cannot access filesystem, network, or
+          other browser tabs without explicit permission. Same security model as JavaScript.</snippet>
+      </artifact>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>web/static/file-handler.js</path>
+        <kind>module</kind>
+        <symbol>fileLoaded event</symbol>
+        <lines>all</lines>
+        <reason>Story 2-2 dispatches fileLoaded event when file uploaded. Privacy reminder should
+          display after this event.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/converter.js</path>
+        <kind>module</kind>
+        <symbol>conversionComplete event</symbol>
+        <lines>all</lines>
+        <reason>Story 2-6 dispatches conversionComplete event after successful conversion. Privacy
+          message should display after this event.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/main.js</path>
+        <kind>application-main</kind>
+        <symbol>all event listeners</symbol>
+        <lines>all</lines>
+        <reason>Central integration point. Will add event listeners for fileLoaded and
+          conversionComplete to trigger privacy messaging.</reason>
+      </artifact>
+      <artifact>
+        <path>web/index.html</path>
+        <kind>html-structure</kind>
+        <symbol>header, footer</symbol>
+        <lines>all</lines>
+        <reason>Privacy badge will be added to header section. Privacy FAQ and GitHub link will be
+          added to footer section.</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/style.css</path>
+        <kind>stylesheet</kind>
+        <symbol>.privacy-badge, .privacy-faq, .status.privacy</symbol>
+        <lines>all</lines>
+        <reason>Styling for privacy badge (green theme), FAQ section (collapsible), privacy status
+          messages (fade animation).</reason>
+      </artifact>
+      <artifact>
+        <path>web/static/wasm-loader.js</path>
+        <kind>module</kind>
+        <symbol>initializeWASM</symbol>
+        <lines>all</lines>
+        <reason>WASM loading logic demonstrates privacy (no server uploads). Can reference in FAQ
+          technical explanation.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <javascript>
+        <package name="ES6 Modules" version="native">import/export for modular code</package>
+        <package name="DOM API" version="native">getElementById, addEventListener, scrollIntoView
+          for privacy interactions</package>
+        <package name="Custom Events" version="native">fileLoaded and conversionComplete event
+          listeners</package>
+        <package name="setTimeout" version="native">Auto-fade privacy reminder after 5 seconds</package>
+      </javascript>
+      <browser>
+        <requirement name="scrollIntoView" version="2012+">Required for privacy badge click → scroll
+          to FAQ</requirement>
+        <requirement name="CSS transitions" version="2012+">Required for fade-out animation on
+          privacy reminders</requirement>
+        <requirement name="CustomEvent" version="2012+">Required for event-driven architecture</requirement>
+      </browser>
+      <story-dependencies>
+        <story id="2-1" title="HTML Drag-Drop UI">Provides header structure for privacy badge
+          placement</story>
+        <story id="2-2" title="File Upload Handling">Provides fileLoaded event for privacy reminder
+          trigger</story>
+        <story id="2-6" title="WASM Conversion Execution">Provides conversionComplete event for
+          privacy message, demonstrates WASM privacy</story>
+        <story id="2-7" title="File Download Trigger">Download completes privacy story (upload →
+          process → download, all local)</story>
+      </story-dependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="privacy">CRITICAL: Zero tracking or analytics - no third-party scripts, no
+      cookies, no telemetry</constraint>
+    <constraint type="privacy">All processing client-side - no server communication except initial
+      page/WASM load</constraint>
+    <constraint type="messaging">Privacy messages non-technical - plain language understandable by
+      photographers</constraint>
+    <constraint type="messaging">Privacy FAQ must be accurate - technical claims must match
+      implementation</constraint>
+    <constraint type="ui">Privacy badge always visible in header (not scrolled away)</constraint>
+    <constraint type="ui">Privacy reminders subtle and non-intrusive (auto-fade, don't block
+      workflow)</constraint>
+    <constraint type="ui">Privacy FAQ collapsible (hidden by default, expand on click)</constraint>
+    <constraint type="transparency">Open source link prominent in footer</constraint>
+    <constraint type="transparency">WASM explanation accurate but non-technical (avoid jargon like
+      "sandboxed", "marshaling")</constraint>
+    <constraint type="verification">Privacy claims must be verifiable via DevTools Network tab
+      inspection</constraint>
+    <constraint type="compatibility">Privacy features must work across Chrome, Firefox, Safari (no
+      browser-specific APIs)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>showPrivacyReminder()</name>
+      <kind>function</kind>
+      <signature>showPrivacyReminder(): void</signature>
+      <path>web/static/privacy-messaging.js (to be created)</path>
+      <description>Displays privacy reminder message after file upload. Message auto-fades after 5
+        seconds. Called when fileLoaded event received.</description>
+    </interface>
+    <interface>
+      <name>showConversionPrivacyMessage()</name>
+      <kind>function</kind>
+      <signature>showConversionPrivacyMessage(): void</signature>
+      <path>web/static/privacy-messaging.js (to be created)</path>
+      <description>Appends privacy reminder to conversion success message. Emphasizes browser-based
+        processing. Called when conversionComplete event received.</description>
+    </interface>
+    <interface>
+      <name>initializePrivacyFAQ()</name>
+      <kind>function</kind>
+      <signature>initializePrivacyFAQ(): void</signature>
+      <path>web/static/privacy-messaging.js (to be created)</path>
+      <description>Initializes Privacy FAQ toggle functionality and privacy badge click handler.
+        Called on DOMContentLoaded.</description>
+    </interface>
+    <interface>
+      <name>togglePrivacyFAQ()</name>
+      <kind>function</kind>
+      <signature>togglePrivacyFAQ(): void</signature>
+      <path>web/static/privacy-messaging.js (to be created)</path>
+      <description>Toggles Privacy FAQ section visibility (expand/collapse). Updates toggle button
+        text.</description>
+    </interface>
+    <interface>
+      <name>fileLoaded event</name>
+      <kind>custom-event</kind>
+      <signature>CustomEvent('fileLoaded', {detail: {...}})</signature>
+      <path>web/static/file-handler.js (Story 2-2)</path>
+      <description>Dispatched when file successfully uploaded. This story listens for this event to
+        show privacy reminder.</description>
+    </interface>
+    <interface>
+      <name>conversionComplete event</name>
+      <kind>custom-event</kind>
+      <signature>CustomEvent('conversionComplete', {detail: {...}})</signature>
+      <path>web/static/converter.js (Story 2-6)</path>
+      <description>Dispatched when conversion succeeds. This story listens for this event to show
+        privacy message in success notification.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Manual testing in browser (Chrome, Firefox, Safari)</standard>
+      <standard>Privacy verification via DevTools Network tab (no tracking requests)</standard>
+      <standard>Visual verification of privacy badge, reminders, FAQ section</standard>
+      <standard>Privacy FAQ accuracy review (technical claims match implementation)</standard>
+      <standard>User testing with non-technical users (photographers) to verify message clarity</standard>
+      <standard>External link validation (GitHub repository, WebAssembly explainer)</standard>
+      <standard>Auto-fade timing verification (privacy reminders disappear after 5 seconds)</standard>
+      <standard>Accessibility testing (FAQ toggle, privacy badge link, keyboard navigation)</standard>
+    </standards>
+
+    <locations>
+      <location>web/static/privacy-messaging.js (unit tests can be added inline or separate test
+        file)</location>
+      <location>Browser console (manual testing, event logging)</location>
+      <location>DevTools Network tab (verify zero tracking/analytics requests)</location>
+      <location>DevTools Application tab (verify no cookies, no local storage)</location>
+      <location>User testing sessions (3+ non-technical photographers)</location>
+    </locations>
+
+    <ideas>
+      <idea ac="AC-1">Test privacy badge visibility: Load page, verify badge appears in header with
+        lock icon and text</idea>
+      <idea ac="AC-1">Test privacy badge click: Click badge, verify scrolls to Privacy FAQ section,
+        FAQ auto-expands if collapsed</idea>
+      <idea ac="AC-2">Test upload privacy reminder: Upload file, verify message appears "✓ File
+        loaded. Processing locally...", fades after 5s</idea>
+      <idea ac="AC-2">Test reminder non-intrusive: Verify message doesn't block other UI elements,
+        doesn't interrupt workflow</idea>
+      <idea ac="AC-3">Test conversion privacy message: Complete conversion, verify success includes
+        "...converted entirely in your browser"</idea>
+      <idea ac="AC-4">Test Privacy FAQ toggle: Click "Privacy FAQ ▼", verify section expands, click
+        "Hide Privacy FAQ ▲", verify collapses</idea>
+      <idea ac="AC-4">Test FAQ content: Read all 6 Q&amp;A items, verify accuracy, no technical
+        jargon, plain language</idea>
+      <idea ac="AC-5">Test WASM explanation: Read WASM section in FAQ, verify understandable to
+        non-technical users</idea>
+      <idea ac="AC-5">Test WASM external link: Click "Learn more about WebAssembly" link, verify
+        opens https://webassembly.org/ in new tab</idea>
+      <idea ac="AC-6">Test GitHub link: Click "View on GitHub" in footer, verify opens Recipe
+        repository in new tab</idea>
+      <idea ac="AC-6">Test repository access: Verify repository is public and accessible (no 404
+        error)</idea>
+      <idea ac="AC-7">Test no tracking (critical): Open DevTools Network tab, load page, upload
+        file, convert, download, verify zero requests to analytics domains</idea>
+      <idea ac="AC-7">Test no cookies: Check DevTools Application → Cookies, verify no cookies set</idea>
+      <idea ac="AC-7">Test no storage: Check DevTools Application → Local Storage/Session Storage,
+        verify empty</idea>
+      <idea ac="AC-8">Test privacy policy (if implemented): Click "Privacy Policy" link, verify page
+        loads with accurate content</idea>
+      <idea>Test user understanding: Show privacy badge and FAQ to 3 photographers, ask "Does Recipe
+        upload your files?" (answer: No)</idea>
+      <idea>Test user understanding: Ask "Where does conversion happen?" (answer: In my browser/on
+        my computer)</idea>
+      <idea>Test user understanding: Ask "Can Recipe access your files without permission?" (answer:
+        No, only files I upload)</idea>
+      <idea>Test fade animation: Upload file, use stopwatch to verify privacy reminder fades after
+        exactly 5 seconds</idea>
+      <idea>Test multiple uploads: Upload 3 files in sequence, verify privacy reminder shows each
+        time, doesn't persist between uploads</idea>
+      <idea>Test browser compatibility: Run all tests in Chrome, Firefox, Safari, verify identical
+        behavior</idea>
+      <idea>Test accessibility: Use keyboard only (Tab, Enter, Space) to navigate privacy badge, FAQ
+        toggle, external links</idea>
+      <idea>Test mobile responsive: View on mobile device, verify privacy badge readable, FAQ toggle
+        works, links functional</idea>
+    </ideas>
+  </tests>
+</story-context>
