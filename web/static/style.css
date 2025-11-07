@@ -1428,6 +1428,23 @@ footer a:hover {
     color: #2c5aa0;
 }
 
+/* Button Styles for Matrix Link */
+.btn-secondary {
+    display: inline-block;
+    padding: 12px 24px;
+    margin-top: 15px;
+    background-color: #764ba2;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.btn-secondary:hover {
+    background-color: #667eea;
+}
+
 /* FAQ Section (AC-5) */
 .faq-item-landing {
     margin-bottom: 2rem;
