@@ -28,12 +28,14 @@ const (
 	// Formula: (byte - 0x80) / 4.0
 	// Range: -3.0 to 9.0
 	// Maps to: UniversalRecipe.Sharpness (scaled to 0-150)
+	// Note: This is stored in chunk 0x06 value bytes
 	OffsetSharpening = 0x52 // 82 decimal
 
 	// OffsetClarity is the clarity parameter.
 	// Formula: (byte - 0x80) / 4.0
 	// Range: -5.0 to 5.0
 	// Maps to: UniversalRecipe.Clarity (scaled to -100 to +100)
+	// Note: This is stored in chunk 0x07 value bytes
 	OffsetClarity = 0x5C // 92 decimal
 )
 
@@ -152,8 +154,8 @@ const (
 
 	// Global Color Grading parameters
 	// OffsetColorGradingBlending controls transition smoothness between zones.
-	// Formula: byte - 0x80 (but actually stored as 0-100, so just byte value)
-	// Range: 0 to 100
+	// Formula: byte - 0x80 (Signed8 encoding, then clamped to 0-100)
+	// Range: 0 to 100 (negative values after decoding are clamped to 0)
 	OffsetColorGradingBlending = 0x180 // 384 decimal
 
 	// OffsetColorGradingBalance shifts overall color balance.
@@ -259,16 +261,19 @@ func EncodeScaled4(value float64) byte {
 }
 
 // DecodeHue12 decodes a 12-bit hue value from 2 bytes.
-// Formula: ((byte[0] & 0x0f) << 8) + byte[1]
+// Formula: ((byte[0] & 0x0F) << 8) + byte[1]
 // Range: 0 to 360 degrees
 // Used for: Color Grading zone hues
+// Matches reference implementation: hue = ((b1 & 0x0F) << 8) + b2
+// The high byte has 0x80 bias added during encoding, so we mask it off
 func DecodeHue12(b1, b2 byte) int {
 	return (int(b1&0x0F) << 8) | int(b2)
 }
 
 // EncodeHue12 encodes a hue value (0-360) to 2 bytes.
 // Returns: (high byte, low byte)
-// The high 4 bits of the first byte are preserved/zeroed.
+// Formula: high byte = 0x80 + (hue >> 8), low byte = hue & 0xFF
+// This matches the reference implementation's encoding.
 func EncodeHue12(hue int) (byte, byte) {
 	// Clamp to 0-360 range
 	if hue < 0 {
@@ -277,8 +282,8 @@ func EncodeHue12(hue int) (byte, byte) {
 	if hue > 360 {
 		hue = 360
 	}
-	// Split into 12 bits: high 4 bits in b1, low 8 bits in b2
-	b1 := byte((hue >> 8) & 0x0F)
+	// Split into 12 bits with 0x80 bias on high byte
+	b1 := byte(0x80 + (hue >> 8))
 	b2 := byte(hue & 0xFF)
 	return b1, b2
 }

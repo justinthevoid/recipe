@@ -386,6 +386,146 @@ generation logic, which is deferred as a future enhancement since:
 
 ---
 
-**Document Status**: Phase 2 Complete - All 48 parameters implemented with exact offsets
-**Last Updated**: 2025-11-07 (Phase 2 completion)
-**Next Review**: Post-MVP (only if NX Studio TLV chunk support becomes required)
+---
+
+## Phase 5 (Nov 2025) - NX Studio TLV Chunk Support ✅ COMPLETE
+
+### Critical Discovery: Type Indicator Bytes
+
+Through iterative testing with Nikon NX Studio, we discovered that **type indicator bytes** are essential for NX Studio to correctly interpret parameter values. Missing or incorrect type indicators cause NX Studio to display `-21474` (corrupted value indicator).
+
+**Type Indicator Patterns**:
+- `0x01` = Signed8 encoding (most parameters: Contrast, Highlights, Shadows, Color Blender, etc.)
+- `0x04` = Scaled4 encoding (Sharpening, Clarity, Mid-Range Sharpening)
+
+### TLV Chunk Structure - Complete Implementation
+
+Our generator now creates **proper TLV chunks** (offsets 46-419) with correct type indicators:
+
+#### Standard Chunks (10 bytes each)
+```
+Chunk Format:
+Offset  Size  Description
+------  ----  -----------
+0       1     Chunk ID (0x03 to 0x1E)
+1-3     3     Padding (0x00 0x00 0x00)
+4-5     2     Length (big-endian, typically 0x00 0x02)
+6       1     Parameter value (encoded with Signed8 or Scaled4)
+7       1     Type indicator (0x01 for Signed8, 0x04 for Scaled4)
+8-9     2     Padding (0x00 0x00)
+```
+
+**Chunk Sequence** (starting at offset 46):
+- Chunks 0x03-0x05: Format identifiers/constants
+- Chunk 0x06 (offset 82): Sharpening (value + type 0x04)
+- Chunk 0x07 (offset 92): Clarity (value + type 0x04)
+- Chunks 0x08-0x18: Various parameters
+- Chunk 0x19 (offset 272): Contrast (value + type 0x01)
+- Chunk 0x1A (offset 282): Highlights (value + type 0x01)
+- Chunk 0x1B (offset 292): Shadows (value + type 0x01)
+- Chunk 0x1C (offset 302): White Level (value + type 0x01)
+- Chunk 0x1D (offset 312): Black Level (value + type 0x01)
+- Chunk 0x1E (offset 322): Saturation (value + type 0x01)
+
+#### Extended Chunk 0x1F (34 bytes total)
+```
+Offset  Size  Description
+------  ----  -----------
+0x146   1     Chunk ID (0x1F)
+0x147-0x149   3     Padding
+0x14A-0x14B   2     Length (0x00 0x1C = 28 bytes)
+0x14C-0x163   24    Color Blender data (8 colors × 3 values)
+0x164-0x166   3     Type indicators (0x01 0x01 0x01)
+0x167   1     Padding (0x00)
+```
+
+**Color Blender Structure** (24 bytes at 0x14C-0x163):
+- Red: Hue, Chroma, Brightness (3 bytes)
+- Orange: Hue, Chroma, Brightness (3 bytes)
+- Yellow: Hue, Chroma, Brightness (3 bytes)
+- Green: Hue, Chroma, Brightness (3 bytes)
+- Cyan: Hue, Chroma, Brightness (3 bytes)
+- Blue: Hue, Chroma, Brightness (3 bytes)
+- Purple: Hue, Chroma, Brightness (3 bytes)
+- Magenta: Hue, Chroma, Brightness (3 bytes)
+
+#### Padding + Extended Chunk 0x20 (28 bytes total)
+```
+Offset  Size  Description
+------  ----  -----------
+0x168-0x169   2     Padding before chunk 0x20 (0x00 0x00)
+0x16A   1     Chunk ID (0x20)
+0x16B-0x16D   3     Padding
+0x16E-0x16F   2     Length (0x00 0x14 = 20 bytes)
+0x170-0x17B   12    Color Grading zone data (3 zones × 4 bytes)
+0x17C-0x17E   3     Type indicators for zones (0x01 0x01 0x01)
+0x17F   1     Padding (0x00)
+0x180   1     Blending value
+0x181   1     Type indicator for Blending (0x01)
+0x182   1     Balance value
+0x183   1     Type indicator for Balance (0x01)
+0x184-0x185   2     Padding (0x00 0x00)
+```
+
+**Color Grading Zone Structure** (12 bytes at 0x170-0x17B):
+- Highlights: Hue (2 bytes, 12-bit with 0x80 bias), Chroma, Brightness (4 bytes total)
+- Midtone: Hue (2 bytes, 12-bit with 0x80 bias), Chroma, Brightness (4 bytes total)
+- Shadows: Hue (2 bytes, 12-bit with 0x80 bias), Chroma, Brightness (4 bytes total)
+
+**Hue Encoding Fix**: The critical discovery was that Color Grading hue values use:
+- **Encode**: `high_byte = 0x80 + (hue >> 8)`, `low_byte = hue & 0xFF`
+- **Decode**: `hue = ((high_byte & 0x0F) << 8) | low_byte`
+
+This differs from the naive 12-bit encoding - the high byte includes a 0x80 bias that must be added during encoding and masked off during decoding.
+
+### Implementation Files Updated
+
+**internal/formats/np3/generate.go**:
+- Lines 357-363: Added type indicator `0x01` to Advanced Adjustment chunks (0x19-0x1E)
+- Lines 378-381: Added type indicator bytes to Color Blender chunk 0x1F
+- Lines 384-389: Added 2-byte padding before chunk 0x20
+- Lines 398-414: Complete chunk 0x20 structure with type indicators for zones, Blending, and Balance
+
+**internal/formats/np3/offsets.go**:
+- Lines 271-287: Fixed `EncodeHue12()` to add 0x80 bias to high byte
+- Lines 263-270: Updated `DecodeHue12()` documentation to clarify masking
+
+### Testing and Validation
+
+**NX Studio Validation**:
+- ✅ All Basic Adjustments display correctly
+- ✅ All Advanced Adjustments display correctly (Contrast, Highlights, Shadows, Whites, Blacks, Saturation)
+- ✅ All Color Blender parameters display correctly (8 colors × 3 values)
+- ✅ All Color Grading parameters display correctly (Highlights, Midtone, Shadows zones + Blending + Balance)
+- ✅ No more `-21474` corrupted value errors
+
+**Files Generated**:
+- `classic_negative_fixed12.np3` - Final working version with all type indicators
+- Successfully tested with Fujifilm "Classic Negative" preset conversion
+
+### Key Learnings
+
+1. **Hybrid Storage Model**: NP3 uses both TLV chunks AND exact offsets
+   - Chunks contain parameter values in their value bytes
+   - Offsets point directly to these chunk value bytes
+   - Type indicators are embedded in chunk structure, not at parameter offsets
+
+2. **Type Indicators Are Critical**: Without proper type indicator bytes, NX Studio cannot decode parameters correctly, showing `-21474` instead
+
+3. **Extended Chunks Need Special Handling**:
+   - Chunk 0x1F (Color Blender): 28-byte value field with type indicators at end
+   - Chunk 0x20 (Color Grading): 20-byte value field with type indicators interspersed
+   - 2-byte padding required between chunks 0x1F and 0x20
+
+4. **Iterative Discovery Process**: Each fix revealed the next issue:
+   - Fix 1: Advanced Adjustments type indicators (chunks 0x19-0x1E)
+   - Fix 2: Color Blender type indicators (chunk 0x1F)
+   - Fix 3: Chunk 0x20 structure and padding
+   - Fix 4: Hue encoding with 0x80 bias
+   - Fix 5: Blending and Balance type indicators
+
+---
+
+**Document Status**: Phase 5 Complete - Full NX Studio TLV chunk support with type indicators
+**Last Updated**: 2025-11-08 (Phase 5 - NX Studio compatibility achieved)
+**Next Review**: Post-deployment monitoring for edge cases

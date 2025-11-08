@@ -726,7 +726,13 @@ func extractColorGrading(data []byte, params *np3Parameters) {
 
 	// Global parameters
 	if ValidateOffset(OffsetColorGradingBlending) && len(data) > OffsetColorGradingBlending {
-		params.blending = int(data[OffsetColorGradingBlending]) // No bias, direct value 0-100
+		// FIXED: Blending uses Signed8 encoding like other parameters, not direct value
+		// The byte value 0x9e (158) decodes to 158 - 128 = 30, which is valid (0-100)
+		params.blending = DecodeSigned8(data[OffsetColorGradingBlending])
+		// Clamp to 0-100 range (negative values become 0)
+		if params.blending < 0 {
+			params.blending = 0
+		}
 	}
 
 	if ValidateOffset(OffsetColorGradingBalance) && len(data) > OffsetColorGradingBalance {

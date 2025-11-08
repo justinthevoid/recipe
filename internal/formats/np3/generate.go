@@ -237,8 +237,9 @@ type npChunk struct {
 	value  []byte  // Value bytes (2 bytes typically, more for extended chunks)
 }
 
-// constantChunks defines all 18 constant TLV chunks found in real NP3 files.
-// These chunks have the same values across all presets and represent format structure.
+// constantChunks defines constant TLV chunks that appear in all NP3 files.
+// These chunks have fixed values across all presets and represent format structure.
+// Chunks 0x06, 0x07, 0x14, 0x16 are variable and handled separately.
 var constantChunks = []npChunk{
 	{id: 0x03, length: 2, value: []byte{0x00, 0x20}}, // Format identifier (value=32)
 	{id: 0x04, length: 2, value: []byte{0x00, 0x00}}, // Reserved (value=0)
@@ -255,6 +256,7 @@ var constantChunks = []npChunk{
 	{id: 0x11, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281)
 	{id: 0x12, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281)
 	{id: 0x13, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281)
+	{id: 0x14, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281) - ADDED
 	{id: 0x15, length: 2, value: []byte{0xff, 0x0a}}, // Default value (value=65290)
 	{id: 0x17, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
 	{id: 0x18, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
@@ -303,50 +305,117 @@ func writeChunkMetadataOnly(data []byte, offset int, chunkID byte, length uint16
 
 // writeChunks writes all TLV chunks (constant + variable) starting at offset 46.
 // This generates the 29 chunks (0x03-0x1F) required for Nikon NX Studio validation.
-// Variable chunks use metadata-only writing to preserve heuristic data values.
+// Chunks must be written in sequential order with variable chunks interlaced.
 func writeChunks(data []byte, params *np3Parameters) {
 	offset := 46
 
-	// Write all constant chunks (full chunk including values)
-	for _, chunk := range constantChunks {
-		offset = writeChunk(data, offset, chunk)
-	}
+	// Write chunks in correct sequential order (0x03-0x1F)
+	// Constant chunks write full structure, variable chunks write metadata-only
 
-	// Write variable chunks using METADATA-ONLY to preserve heuristic data
-	// Phase 1: Heuristic data has already been written at offsets 64-79, 100-299, 150-500
-	// We write chunk structure without overwriting those value bytes
+	// Chunks 0x03-0x05: Constants
+	offset = writeChunk(data, offset, npChunk{id: 0x03, length: 2, value: []byte{0x00, 0x20}})
+	offset = writeChunk(data, offset, npChunk{id: 0x04, length: 2, value: []byte{0x00, 0x00}})
+	offset = writeChunk(data, offset, npChunk{id: 0x05, length: 2, value: []byte{0xff, 0x01}})
 
-	// Chunk 0x06: Possibly saturation-related
-	offset = writeChunkMetadataOnly(data, offset, 0x06, 2)
+	// Chunks 0x06-0x07: Sharpening and Clarity parameters
+	// These chunks contain the actual parameter values in their value fields
+	sharpValue := EncodeScaled4(params.sharpening)
+	clarityValue := EncodeScaled4(params.clarity)
+	offset = writeChunk(data, offset, npChunk{id: 0x06, length: 2, value: []byte{sharpValue, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x07, length: 2, value: []byte{clarityValue, 0x04}})
 
-	// Chunk 0x07: Possibly contrast-related
-	offset = writeChunkMetadataOnly(data, offset, 0x07, 2)
+	// Chunks 0x08-0x13: Constants
+	offset = writeChunk(data, offset, npChunk{id: 0x08, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x09, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0a, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0b, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0c, length: 2, value: []byte{0xff, 0x00}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0d, length: 2, value: []byte{0xff, 0x00}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0e, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0f, length: 2, value: []byte{0xff, 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x10, length: 2, value: []byte{0xff, 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x11, length: 2, value: []byte{0xff, 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x12, length: 2, value: []byte{0xff, 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x13, length: 2, value: []byte{0xff, 0x01}})
 
-	// Chunk 0x14: Possibly brightness-related
-	offset = writeChunkMetadataOnly(data, offset, 0x14, 2)
+	// Chunk 0x14: Constant
+	offset = writeChunk(data, offset, npChunk{id: 0x14, length: 2, value: []byte{0xff, 0x01}})
 
-	// Chunk 0x16: Unknown parameter
-	offset = writeChunkMetadataOnly(data, offset, 0x16, 2)
+	// Chunk 0x15: Constant
+	offset = writeChunk(data, offset, npChunk{id: 0x15, length: 2, value: []byte{0xff, 0x0a}})
 
-	// Chunks 0x19-0x1E: Possibly color channels
-	for chunkID := byte(0x19); chunkID <= 0x1E; chunkID++ {
-		offset = writeChunkMetadataOnly(data, offset, chunkID, 2)
-	}
+	// Chunk 0x16: Mid-Range Sharpening parameter
+	midRangeValue := EncodeScaled4(params.midRangeSharpening)
+	offset = writeChunk(data, offset, npChunk{id: 0x16, length: 2, value: []byte{midRangeValue, 0x04}})
+
+	// Chunks 0x17-0x18: Constants
+	offset = writeChunk(data, offset, npChunk{id: 0x17, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x18, length: 2, value: []byte{0xff, 0x04}})
+
+	// Chunks 0x19-0x1E: Advanced Adjustment parameters (Contrast, Highlights, Shadows, etc.)
+	// These chunks contain the actual parameter values using Signed8 encoding
+	// Second byte is 0x01 (type indicator for Signed8 parameters)
+	offset = writeChunk(data, offset, npChunk{id: 0x19, length: 2, value: []byte{EncodeSigned8(params.contrast), 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x1A, length: 2, value: []byte{EncodeSigned8(params.highlights), 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x1B, length: 2, value: []byte{EncodeSigned8(params.shadows), 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x1C, length: 2, value: []byte{EncodeSigned8(params.whiteLevel), 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x1D, length: 2, value: []byte{EncodeSigned8(params.blackLevel), 0x01}})
+	offset = writeChunk(data, offset, npChunk{id: 0x1E, length: 2, value: []byte{EncodeSigned8(params.saturation), 0x01}})
 
 	// Chunk 0x1F: Extended data chunk with length=28
-	// For extended chunks, we still need to write some structure
-	// Write the chunk header
+	// Value bytes (28 total):
+	//   - Bytes 0-23: Color Blender data (8 colors × 3 params, written by writeColorBlender)
+	//   - Bytes 24-26: Type indicators (0x01, 0x01, 0x01)
+	//   - Byte 27: Padding (0x00)
 	data[offset] = 0x1F
 	data[offset+1] = 0x00
 	data[offset+2] = 0x00
 	data[offset+3] = 0x00
 	data[offset+4] = 0x00 // length=28 big-endian high
 	data[offset+5] = 0x1C // length=28 big-endian low
-	// Skip value bytes (offset+6 to offset+33) - preserve heuristic data
-	// No trailing padding needed as next chunk would be at offset+34
+	// Skip color data bytes (offset+6 to offset+29) - written by writeColorBlender
+	// Write type indicator bytes at end of chunk value
+	data[offset+30] = 0x01 // Type indicator for Color Blender params
+	data[offset+31] = 0x01 // Type indicator
+	data[offset+32] = 0x01 // Type indicator
+	data[offset+33] = 0x00 // Padding
+	offset += 34 // Move past chunk 0x1F (6 header + 28 value)
 
-	// Total chunks written: 18 constant + 11 variable = 29 chunks
-	// Total bytes: 29 * 10 = 290 bytes (offsets 46-335)
+	// Add 2 bytes padding before chunk 0x20 (required by NP3 format)
+	data[offset] = 0x00
+	data[offset+1] = 0x00
+	offset += 2
+
+	// Chunk 0x20: Extended data chunk with length=20 for Color Grading
+	// Value bytes (20 total):
+	//   - Bytes 0-11 (offset+6 to +17): Color Grading zone data (3 zones × 4 bytes, written by writeColorGrading)
+	//   - Bytes 12-14 (offset+18 to +20): Type indicators for zones (0x01, 0x01, 0x01)
+	//   - Byte 15 (offset+21): Padding (0x00)
+	//   - Byte 16 (offset+22): Blending value (written by writeColorGrading)
+	//   - Byte 17 (offset+23): Type indicator for Blending (0x01)
+	//   - Byte 18 (offset+24): Balance value (written by writeColorGrading)
+	//   - Byte 19 (offset+25): Type indicator for Balance (0x01)
+	data[offset] = 0x20
+	data[offset+1] = 0x00
+	data[offset+2] = 0x00
+	data[offset+3] = 0x00
+	data[offset+4] = 0x00 // length=20 big-endian high
+	data[offset+5] = 0x14 // length=20 big-endian low
+	// Color Grading zone data bytes (offset+6 to offset+17) - written by writeColorGrading
+	// Type indicators for zone parameters (Hue, Chroma, Brightness)
+	data[offset+18] = 0x01 // Type indicator
+	data[offset+19] = 0x01 // Type indicator
+	data[offset+20] = 0x01 // Type indicator
+	// Padding before global Color Grading parameters
+	data[offset+21] = 0x00 // Padding
+	// Blending and Balance values at offset+22 and offset+24 - written by writeColorGrading
+	// Type indicators for Blending and Balance parameters
+	data[offset+23] = 0x01 // Type indicator for Blending
+	data[offset+25] = 0x01 // Type indicator for Balance
+
+	// Total chunks written: 30 chunks (0x03-0x20)
+	// Chunk 0x1F: 34 bytes (6 header + 28 value)
+	// Chunk 0x20: 26 bytes (6 header + 20 value)
 }
 
 // encodeBinary generates the complete NP3 binary structure.
@@ -362,7 +431,8 @@ func writeChunks(data []byte, params *np3Parameters) {
 //   - Offset 0x40-0x4F: Raw parameter bytes (offsets 64-80, for heuristic parser)
 //   - Offset 0x64-0x12B: Color data section (bytes 100-300, for heuristic parser)
 //   - Offset 0x96-0x1F3: Tone curve data section (bytes 150-500, for heuristic parser)
-//   - Remaining: Padding to minimum 480 bytes (matching sample.np3)
+//   - Offset 0x1CC+: Tone curve raw data (460+, 257×16-bit values = 514 bytes)
+//   - Remaining: Padding to 1050 bytes (matching working NP3 files)
 func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	// If we have raw data from parsing, use it as the base to preserve chunks
 	// Otherwise create a new buffer
@@ -373,8 +443,10 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 		copy(data, params.rawData)
 	} else {
 		// Create buffer for complete file
-		// Real files: 392-978+ bytes, using 480 as minimum (matching sample.np3)
-		data = make([]byte, 480)
+		// Real files: 1050+ bytes (Filmic.np3 = 1050, other advanced presets = 1050+)
+		// Need at least 974 bytes for tone curve raw data (offset 460 + 257*2)
+		// Using 1050 to match working NP3 files
+		data = make([]byte, 1050)
 	}
 
 	// Only write header if we don't have raw data (raw data already has correct header)
@@ -442,7 +514,7 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	writeColorGrading(data, params)
 	writeToneCurve(data, params)
 
-	// Return the complete 480-byte buffer (matching real .np3 files)
+	// Return the complete 1050-byte buffer (matching real .np3 files)
 	return data, nil
 }
 
@@ -770,9 +842,9 @@ func writeColorGrading(data []byte, params *np3Parameters) {
 		data[OffsetShadowsBrightness] = EncodeSigned8(params.shadowsZone.Brightness)
 	}
 
-	// Blending (offset 384, direct value 0-100)
+	// Blending (offset 384, Signed8 encoding 0-100)
 	if len(data) > OffsetColorGradingBlending {
-		data[OffsetColorGradingBlending] = uint8(params.blending)
+		data[OffsetColorGradingBlending] = EncodeSigned8(params.blending)
 	}
 
 	// Balance (offset 386, Signed8 -100 to +100)
