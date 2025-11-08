@@ -30,7 +30,7 @@ jobs:
           if [ "${{ matrix.os }}" = "windows" ]; then
             BINARY_NAME="${BINARY_NAME}.exe"
           fi
-          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o $BINARY_NAME cmd/cli/main.go
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o $BINARY_NAME ./cmd/cli
 
       - name: Generate checksums
         run: |
