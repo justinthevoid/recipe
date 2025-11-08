@@ -156,6 +156,19 @@ type Description struct {
 
 	// Tone Curve (stored as string, to be parsed separately if needed)
 	ToneCurve string `xml:"ToneCurve,attr"`
+
+	// Preset Name (nested element)
+	Name NameElement `xml:"Name"`
+}
+
+// NameElement represents the nested <crs:Name> element
+type NameElement struct {
+	Alt AltElement `xml:"Alt"`
+}
+
+// AltElement represents the <rdf:Alt> element
+type AltElement struct {
+	Li string `xml:"li"`
 }
 
 // Parse decodes an Adobe Lightroom CC XMP preset file into a UniversalRecipe.
@@ -285,6 +298,9 @@ type xmpParameters struct {
 
 	// Tone Curve (stored as string for now)
 	toneCurve string
+
+	// Preset Name
+	name string
 }
 
 // extractParameters extracts all parameter values from the XMP Description and converts
@@ -431,6 +447,9 @@ func extractParameters(desc *Description) (*xmpParameters, error) {
 	// Store tone curve as-is for now (to be parsed later if needed)
 	params.toneCurve = desc.ToneCurve
 
+	// Extract preset name from nested element
+	params.name = strings.TrimSpace(desc.Name.Alt.Li)
+
 	return params, nil
 }
 
@@ -555,8 +574,23 @@ func extractColorGrading(desc *Description) (*models.ColorGrading, error) {
 		return nil, err
 	}
 
-	// Note: Global Hue/Sat/Lum are stored but currently not used in UniversalRecipe ColorGrading struct
-	// They may be added to Balance or stored in metadata for future use
+	// Extract Balance from ColorGradeGlobalSat
+	// In NP3, Balance (-100 to +100) shifts overall color balance.
+	// In Adobe XMP, this is stored as ColorGradeGlobalSat (global saturation).
+	// We map this directly as it represents the same range.
+	if desc.ColorGradeGlobalSat != "" {
+		cg.Balance, err = parseInt(desc.ColorGradeGlobalSat, "ColorGradeGlobalSat")
+		if err != nil {
+			return nil, err
+		}
+		// Clamp to valid range
+		if cg.Balance < -100 {
+			cg.Balance = -100
+		}
+		if cg.Balance > 100 {
+			cg.Balance = 100
+		}
+	}
 
 	return cg, nil
 }
@@ -771,6 +805,11 @@ func buildRecipe(params *xmpParameters) (*models.UniversalRecipe, error) {
 
 	// Set source format
 	builder.WithSourceFormat("xmp")
+
+	// Set preset name
+	if params.name != "" {
+		builder.WithName(params.name)
+	}
 
 	// Set Basic Adjustments
 	builder.WithExposure(params.exposure)
