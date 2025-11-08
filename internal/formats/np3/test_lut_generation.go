@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_lut_generation.go - Test 3D LUT generation from NP3
 package main
 

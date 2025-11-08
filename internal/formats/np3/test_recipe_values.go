@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_recipe_values.go - Show actual NP3 recipe values
 package main
 

@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_no_color_grading.go - Generate XMP without color grading zones to test
 package main
 

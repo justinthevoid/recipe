@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_validation_debug.go - Debug which validation triggers fallback
 package main
 

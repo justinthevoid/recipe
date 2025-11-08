@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_lut_diagnostics.go - Diagnostic tool to investigate LUT generation issues
 package main
 

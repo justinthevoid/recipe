@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_convert.go - Test full conversion with fix
 package main
 

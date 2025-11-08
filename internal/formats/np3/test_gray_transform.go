@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_gray_transform.go - Test how neutral gray is transformed
 package main
 

@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_full_pipeline.go - Test full NP3→UniversalRecipe→XMP pipeline
 package main
 
