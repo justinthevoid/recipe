@@ -1,0 +1,74 @@
+name: Build and Release CLI Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        os: [linux, darwin, windows]
+        arch: [amd64, arm64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build binary
+        run: |
+          BINARY_NAME=recipe-${{ matrix.os }}-${{ matrix.arch }}
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o $BINARY_NAME cmd/cli/main.go
+
+      - name: Generate checksums
+        run: |
+          BINARY_NAME=recipe-${{ matrix.os }}-${{ matrix.arch }}
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+          sha256sum $BINARY_NAME > $BINARY_NAME.sha256
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            recipe-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+            recipe-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}.sha256
+          body: |
+            ## Recipe ${{ github.ref_name }}
+
+            Pre-built binaries for Linux, macOS, and Windows.
+
+            ### Installation
+
+            Download the binary for your platform and architecture:
+            - `recipe-linux-amd64` - Linux (Intel/AMD 64-bit)
+            - `recipe-linux-arm64` - Linux (ARM 64-bit)
+            - `recipe-darwin-amd64` - macOS (Intel)
+            - `recipe-darwin-arm64` - macOS (Apple Silicon)
+            - `recipe-windows-amd64.exe` - Windows (Intel/AMD 64-bit)
+            - `recipe-windows-arm64.exe` - Windows (ARM 64-bit)
+
+            ### Verify Download
+
+            ```bash
+            sha256sum -c recipe-{platform}-{arch}.sha256
+            ```
+
+            ### Changelog
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full details.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
