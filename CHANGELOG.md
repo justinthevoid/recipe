@@ -5,6 +5,32 @@ All notable changes to Recipe will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Versioning Strategy
+
+Recipe uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `vMAJOR.MINOR.PATCH`
+
+- **MAJOR:** Breaking changes (format incompatibility, API changes, CLI flag changes)
+  - Example: v1.0.0 → v2.0.0 (NP3 format structure changed, old files incompatible)
+- **MINOR:** New features (backward compatible, new format support, new CLI commands)
+  - Example: v1.0.0 → v1.1.0 (Added DNG format support, existing functionality unchanged)
+- **PATCH:** Bug fixes (no new features, backward compatible)
+  - Example: v1.1.0 → v1.1.1 (Fixed WASM conversion bug for specific XMP files)
+
+### Pre-Release Versions
+
+- **v0.x.y:** Beta/experimental releases (breaking changes allowed between minor versions)
+- **v1.0.0:** First stable release (API stability commitment begins)
+
+### Release Process
+
+1. Update CHANGELOG.md with version entry
+2. Commit: `git commit -m "chore: prepare vX.Y.Z release"`
+3. Create tag: `git tag vX.Y.Z`
+4. Push tag: `git push origin vX.Y.Z`
+5. GitHub Actions builds and publishes binaries automatically
+
+---
+
 ## [Unreleased]
 ### Added
 ### Changed
