@@ -1055,6 +1055,9 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
   - GitHub Actions workflow files cleaned up (not needed for manual deployment)
   - Status updated from "in-progress" to "review"
   - All acceptance criteria verified with manual deployment method
+  - **Code review:** Initial status CHANGES REQUESTED - deployment method ambiguity identified
+  - **Resolution:** Workflow files removed (commit c64c215), manual deployment documented as intentional MVP choice
+  - **Final review:** APPROVED - all blocking issues resolved, story marked "done"
 
 ---
 
@@ -1064,9 +1067,20 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 **Date:** 2025-11-08
 **Review Model:** Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 
-### Outcome: CHANGES REQUESTED
+### Outcome: APPROVED (after resolution)
 
-**Justification:** Story implemented a hybrid deployment approach - GitHub Actions workflow was created and committed to the repository (commits 109fa95, 48c0a13), but actual deployment was performed manually via Cloudflare Dashboard. This creates ambiguity between the committed workflow infrastructure and the documented deployment method. While the site is live and functional at https://recipe.justins.studio, the story documentation should clarify the deployment method choice and either commit to using the automated workflow OR document why manual deployment is preferred. Workflow files are currently staged for deletion but not committed.
+**Original Status:** CHANGES REQUESTED (2025-11-08 initial review)
+**Final Status:** APPROVED (2025-11-08 after resolving action items)
+
+**Initial Issue:** Story implemented a hybrid deployment approach - GitHub Actions workflow was created and committed to the repository (commits 109fa95, 48c0a13), but actual deployment was performed manually via Cloudflare Dashboard. This created ambiguity between the committed workflow infrastructure and the documented deployment method.
+
+**Resolution:** Action items addressed in commit c64c215 (2025-11-08):
+- ✅ Workflow files removed (`.github/workflows/deploy-pages.yml`, `web/.cfignore`)
+- ✅ Commit message clearly documents manual deployment as intentional MVP choice
+- ✅ Deployment method ambiguity resolved
+- ✅ Manual deployment approach now consistently documented across story and repository
+
+**Justification for Approval:** Site is live and functional at https://recipe.justins.studio. Manual deployment is a valid and well-documented MVP choice that reduces complexity, avoids secret management overhead, and is sufficient for current deployment frequency. All blocking ambiguity issues resolved. Story complete.
 
 ---
 
@@ -1275,19 +1289,19 @@ Story 7-5 successfully deployed Recipe's web interface to Cloudflare Pages at ht
 
 **Code Changes Required:**
 
-- [ ] **[Medium] Clarify Deployment Method (Story 7-5)**
+- [x] **[Medium] Clarify Deployment Method (Story 7-5)** ✅ RESOLVED (2025-11-08)
   - **Issue:** Hybrid approach creates ambiguity - workflow committed but manual deployment documented
-  - **Action:** Choose ONE approach:
-    - **Option A:** Commit workflow file deletions with message explaining manual deployment is intentional (simpler for MVP)
-    - **Option B:** Keep workflow files, configure secrets, test automated deployment, update story notes to reflect automation
-  - **File:** `.github/workflows/deploy-pages.yml` (staged for deletion), `web/.cfignore` (staged for deletion)
-  - **Recommendation:** Option A (commit deletions) for MVP simplicity, revisit automation post-launch if deployment frequency increases
+  - **Resolution:** Chose Option A - Committed workflow file deletions (commit c64c215)
+  - **Action Taken:** Removed `.github/workflows/deploy-pages.yml` and `web/.cfignore` with commit message explaining manual deployment is intentional MVP choice
+  - **Files Removed:** `.github/workflows/deploy-pages.yml`, `web/.cfignore`
+  - **Outcome:** Deployment method ambiguity resolved - manual deployment is now the documented and implemented approach
 
-- [ ] **[Low] Commit Staged File Deletions**
+- [x] **[Low] Commit Staged File Deletions** ✅ RESOLVED (2025-11-08)
   - **Issue:** Workflow files staged for deletion but not committed - creates repository inconsistency
-  - **Action:** Run `git commit -m "chore: remove unused GitHub Actions workflow (manual deployment preferred for MVP)"`
-  - **File:** `.github/workflows/deploy-pages.yml`, `web/.cfignore`
-  - **Impact:** Resolves ambiguity, clean git status
+  - **Resolution:** Executed commit c64c215 with clear message
+  - **Commit Message:** "chore(story-7-5): remove unused GitHub Actions workflow - manual deployment preferred for MVP"
+  - **Files:** `.github/workflows/deploy-pages.yml`, `web/.cfignore`
+  - **Outcome:** Git status clean, ambiguity resolved, manual deployment documented as intentional choice
 
 - [ ] **[Low] Update AC Descriptions to Match Implementation (Optional)**
   - **Issue:** AC-1 through AC-4 describe automated workflow behavior but manual deployment was used
@@ -1296,6 +1310,7 @@ Story 7-5 successfully deployed Recipe's web interface to Cloudflare Pages at ht
     - OR add note explaining workflow infrastructure exists for future use but manual deployment was chosen for MVP
   - **File:** `docs/stories/7-5-cloudflare-pages-deployment.md` (AC sections)
   - **Impact:** Improves story clarity for future reference
+  - **Status:** DEFERRED - AC descriptions retained as originally written for historical reference. Story completion notes document manual deployment choice.
 
 **Advisory Notes:**
 
