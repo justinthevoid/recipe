@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_profile_xmp.go - Generate profile-based XMP (like Adobe's Dream profile)
 package main
 

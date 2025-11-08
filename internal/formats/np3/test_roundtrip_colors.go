@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_roundtrip_colors.go - Verify color data preservation in full round-trip
 package main
 

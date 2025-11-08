@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_nostalgic_colors.go - Debug color extraction from Nostalgic Negative
 package main
 

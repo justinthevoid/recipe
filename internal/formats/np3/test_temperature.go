@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_temperature.go - Check temperature/tint in recipe
 package main
 

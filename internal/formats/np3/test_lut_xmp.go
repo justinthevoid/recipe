@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_lut_xmp.go - Generate XMP with embedded 3D LUT
 package main
 

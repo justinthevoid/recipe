@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // test_all_parameters.go - Extract ALL parameters from NP3 to find discrepancies
 package main
 
