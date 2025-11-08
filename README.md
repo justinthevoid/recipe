@@ -59,6 +59,65 @@ cannot be mapped.
 
 **[View Complete Compatibility Matrix →](docs/format-compatibility-matrix.md)**
 
+## Installation
+
+Recipe is distributed as pre-built binaries for Linux, macOS, and Windows. Choose the binary for your platform and architecture.
+
+### Download Pre-Built Binaries
+
+**Latest Release:** [Download from GitHub Releases](https://github.com/jwcxz/recipe/releases/latest)
+
+#### Linux / macOS
+
+```bash
+# Download latest release (choose your platform)
+# Linux amd64 (Intel/AMD 64-bit)
+curl -LO https://github.com/jwcxz/recipe/releases/latest/download/recipe-linux-amd64
+
+# Linux arm64 (ARM 64-bit - Raspberry Pi, AWS Graviton)
+curl -LO https://github.com/jwcxz/recipe/releases/latest/download/recipe-linux-arm64
+
+# macOS amd64 (Intel Mac)
+curl -LO https://github.com/jwcxz/recipe/releases/latest/download/recipe-darwin-amd64
+
+# macOS arm64 (Apple Silicon - M1/M2/M3)
+curl -LO https://github.com/jwcxz/recipe/releases/latest/download/recipe-darwin-arm64
+
+# Make executable
+chmod +x recipe-*
+
+# Move to PATH (optional)
+sudo mv recipe-* /usr/local/bin/recipe
+
+# Verify installation
+recipe --version
+```
+
+#### Windows
+
+1. Visit [GitHub Releases](https://github.com/jwcxz/recipe/releases/latest)
+2. Download `recipe-windows-amd64.exe` (Intel/AMD 64-bit) or `recipe-windows-arm64.exe` (ARM 64-bit - Surface Pro X)
+3. (Optional) Add to PATH:
+   - Move `recipe-windows-amd64.exe` to `C:\Program Files\recipe\`
+   - Add `C:\Program Files\recipe\` to system PATH
+4. Verify installation:
+   ```powershell
+   recipe.exe --version
+   ```
+
+### Verify Download Integrity (Optional)
+
+Each binary includes a SHA256 checksum file for verification:
+
+```bash
+# Download checksum file
+curl -LO https://github.com/jwcxz/recipe/releases/latest/download/recipe-linux-amd64.sha256
+
+# Verify checksum
+sha256sum -c recipe-linux-amd64.sha256
+# Output: recipe-linux-amd64: OK
+```
+
 ## Building
 
 ### Build CLI
