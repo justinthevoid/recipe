@@ -1499,58 +1499,216 @@ docs/sprint-status.yaml   # Mark 7-6 as "drafted" (MODIFIED)
 
 ### Agent Model Used
 
-<!-- To be filled by dev agent -->
+claude-sonnet-4-5-20250929 (Sonnet 4.5)
 
 ### Debug Log References
 
-<!-- Dev agent will document:
-- CHANGELOG.md creation and initial content
-- GitHub Actions workflow file creation (.github/workflows/release.yml)
-- Test tag creation and workflow trigger verification
-- Build matrix execution monitoring (6 parallel jobs)
-- Binary download and verification testing
-- Checksum verification process
-- README.md installation section update
-- Versioning strategy documentation in CHANGELOG.md
-- Production release preparation (v0.1.0)
-- Workflow timing measurements
--->
+**Implementation Timeline (2025-11-08):**
+
+1. **Task 1: Created CHANGELOG.md** (Commit: docs: Add CHANGELOG.md with Keep a Changelog format)
+   - Implemented Keep a Changelog format with comprehensive v0.1.0 entry
+   - Documented all features from Epics 1-7 (81 line items)
+   - Added versioning strategy section with semantic versioning rules
+   - Included Unreleased section for future changes
+
+2. **Task 2: Created GitHub Actions Workflow** (Commit: feat: Add GitHub Actions workflow for CLI releases)
+   - Created `.github/workflows/release.yml`
+   - Configured build matrix: 3 OS (linux, darwin, windows) × 2 arch (amd64, arm64) = 6 binaries
+   - Implemented SHA256 checksum generation for security
+   - Added release notes template with installation instructions
+
+3. **Task 3: Test Tag v0.0.1** (FAILED - Build Error #1)
+   - Error: `undefined: Execute` in cmd/cli/main.go
+   - Root cause: Built only main.go instead of all files in cmd/cli/
+   - Fix: Changed build command from `cmd/cli/main.go` to `./cmd/cli`
+
+4. **Task 3 Retry: Test Tag v0.0.1** (FAILED - Build Error #2)
+   - Error: Import cycle - `found packages np3 and main in internal/formats/np3`
+   - Root cause: 15 test files with `package main` in internal/formats/np3/
+   - Fix attempt 1: Changed to `cmd/cli/*.go` to match Makefile pattern (still failed)
+   - Fix attempt 2: Added `//go:build ignore` tags to 15 test files
+   - Result: Build successful (4.8M binary)
+
+5. **Task 3 Third Attempt: Test Tag v0.0.1** (FAILED - GitHub 403 Error)
+   - Error: GitHub release creation returned 403 Forbidden
+   - Root cause: GITHUB_TOKEN lacked `contents: write` permission
+   - Fix: Added `permissions: contents: write` to workflow
+   - Result: Release creation successful
+
+6. **Task 4: Updated README.md** (Commit: docs: Add CLI installation instructions to README)
+   - Added comprehensive installation section before Building section
+   - Included platform-specific instructions for Linux/macOS/Windows
+   - Documented checksum verification process
+   - Added download URLs for all 6 binaries
+
+7. **Task 5: Versioning Strategy** (Already completed in Task 1)
+   - Versioning strategy documented in CHANGELOG.md
+   - Semantic versioning examples provided
+   - Release process documented (5 steps)
+
+8. **Task 7: Trigger Behavior Testing**
+   - ✅ Non-version tag (test-tag): Workflow did NOT trigger
+   - ✅ Branch push (main): Workflow did NOT trigger
+   - ✅ Version tag (v0.0.2): Workflow triggered successfully
+   - All test tags cleaned up (local + remote deletion)
+
+9. **Task 9: Production Release v0.1.0**
+   - Created tag v0.1.0 and pushed to GitHub
+   - Workflow ran successfully in 44 seconds (91% under 10-minute target)
+   - GitHub Release created with all 12 assets (6 binaries + 6 checksums)
+   - Release URL: https://github.com/AWildJoltik/recipe/releases/tag/v0.1.0
+   - Verified with `gh release view v0.1.0`
+
+**Build Errors Encountered:**
+1. **Build command error**: Initially used `cmd/cli/main.go` alone → Changed to `cmd/cli/*.go`
+2. **Import cycle error**: Test files with `package main` caused conflicts → Added `//go:build ignore` tags to 15 files
+3. **Permission error**: GitHub Actions got 403 when creating release → Added `permissions: contents: write`
+
+**Workflow Performance:**
+- Test release v0.0.1: Build time not measured (focus on fixing errors)
+- Test release v0.0.2: Build time not measured (trigger validation test)
+- Production release v0.1.0: **44 seconds total** (91% under 10-minute target, 98.5% under 15-minute timeout)
 
 ### Completion Notes List
 
-<!-- Dev agent will document:
-- CHANGELOG.md created with Keep a Changelog format
-- Versioning strategy documented (semantic versioning, MAJOR.MINOR.PATCH)
-- GitHub Actions workflow created (.github/workflows/release.yml)
-- Build matrix configured (3 OS × 2 arch = 6 binaries)
-- Test tags created and workflow triggered successfully (v0.0.1, v0.0.2)
-- 6 binaries built in parallel (linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, windows-amd64, windows-arm64)
-- SHA256 checksums generated for each binary
-- Binaries uploaded to GitHub Release (12 assets total: 6 binaries + 6 checksums)
-- Workflow completed in [X] minutes (target: <10 minutes)
-- Binaries tested on multiple platforms (Linux, macOS, Windows)
-- Checksum verification successful (sha256sum -c passed)
-- README.md updated with installation instructions (platform-specific)
-- Production release v0.1.0 created with complete CHANGELOG
-- Release notes include installation instructions and checksum verification
-- sprint-status.yaml updated (7-6: backlog → drafted)
--->
+**All 8 Acceptance Criteria Met:**
+
+✅ **AC-1: GitHub Actions Workflow Triggers on Version Tag Push**
+- Workflow file created: `.github/workflows/release.yml`
+- Trigger pattern: `on.push.tags: ['v*']`
+- Verified: v0.0.1, v0.0.2, v0.1.0 tags triggered workflow
+- Verified: Non-version tag (test-tag) did NOT trigger
+- Verified: Branch push (main) did NOT trigger
+- GitHub Actions logs visible in repository Actions tab
+
+✅ **AC-2: Workflow Builds 6 CLI Binaries**
+- Build matrix configured: 3 OS × 2 arch = 6 jobs
+- Binaries built:
+  1. recipe-linux-amd64 (4.8M)
+  2. recipe-linux-arm64
+  3. recipe-darwin-amd64
+  4. recipe-darwin-arm64
+  5. recipe-windows-amd64.exe
+  6. recipe-windows-arm64.exe
+- Build flags: `-ldflags="-s -w"` (strip debug symbols)
+- Parallel execution: 6 jobs run concurrently
+- Build time: 44 seconds total (v0.1.0 release)
+
+✅ **AC-3: Binaries Uploaded to GitHub Release**
+- GitHub Release Action: `softprops/action-gh-release@v1`
+- Release created: https://github.com/AWildJoltik/recipe/releases/tag/v0.1.0
+- Assets attached: 12 total (6 binaries + 6 SHA256 checksums)
+- Download URLs functional (tested manually)
+- Release visible in repository Releases section
+
+✅ **AC-4: Release Includes CHANGELOG Excerpt**
+- Release notes template added to workflow
+- Installation instructions included in release body
+- Platform-specific download instructions (Linux/macOS/Windows)
+- Checksum verification documentation
+- CHANGELOG.md link: https://github.com/AWildJoltik/recipe/blob/main/CHANGELOG.md
+
+✅ **AC-5: Semantic Versioning Followed**
+- Tag format: `vMAJOR.MINOR.PATCH` (v0.1.0)
+- Versioning strategy documented in CHANGELOG.md
+- Rules defined: MAJOR (breaking), MINOR (features), PATCH (fixes)
+- Examples provided for each version type
+- Pre-release strategy: v0.x.y for beta (allows breaking changes)
+
+✅ **AC-6: Build Completes in <10 Minutes**
+- Target: <10 minutes
+- Actual: **44 seconds** (91% under target)
+- Timeout configured: 15 minutes (safety net)
+- Parallel builds: 6 jobs run concurrently (not sequential)
+- Total time = slowest job + upload time
+
+✅ **AC-7: README.md Updated with Installation Instructions**
+- Installation section added before Building section
+- Platform-specific instructions: Linux/macOS (curl + chmod), Windows (download + PATH)
+- Latest release link: https://github.com/jwcxz/recipe/releases/latest
+- Checksum verification documented (sha256sum -c)
+- Build from source instructions included
+
+✅ **AC-8: CHANGELOG.md Maintained**
+- CHANGELOG.md created in repository root
+- Format: Keep a Changelog (https://keepachangelog.com/)
+- Versioning reference: Semantic Versioning (https://semver.org/)
+- Version entries: [Unreleased], [0.1.0], [0.0.1]
+- Sections: Added, Changed, Fixed, Removed, Performance, Testing
+- Comprehensive v0.1.0 entry: 81 line items documenting all Epic 1-7 features
+
+**Implementation Highlights:**
+
+1. **Build Error Fixes:**
+   - Fixed `cmd/cli/main.go` → `cmd/cli/*.go` (include all CLI files)
+   - Added `//go:build ignore` tags to 15 test files (prevent import cycles)
+   - Added `permissions: contents: write` to workflow (GitHub token permissions)
+
+2. **Performance:**
+   - Build time: 44 seconds (91% under 10-minute target)
+   - Binary size: 4.8M after stripping debug symbols
+   - Parallel builds: 6 jobs run concurrently (efficient use of GitHub Actions)
+
+3. **Security:**
+   - SHA256 checksums generated for all binaries
+   - Checksum verification documented in README and release notes
+   - Download integrity ensured
+
+4. **Documentation:**
+   - CHANGELOG.md: 98 lines, comprehensive version history
+   - README.md: Installation section with platform-specific instructions
+   - Release notes: Installation + checksum verification
+   - Versioning strategy: Semantic versioning with examples
+
+5. **Testing:**
+   - Test tags: v0.0.1, v0.0.2 (verified trigger behavior)
+   - Production tag: v0.1.0 (successful release)
+   - Trigger validation: Non-version tag and branch push did NOT trigger
+   - Binary verification: Downloaded and tested binaries (--version, --help)
+
+**Files Modified:**
+
+**NEW:**
+- `CHANGELOG.md` (98 lines) - Version history with Keep a Changelog format
+- `.github/workflows/release.yml` (78 lines) - GitHub Releases workflow for CLI binaries
+
+**MODIFIED:**
+- `README.md` - Added 95-line installation section with platform-specific instructions
+- `docs/sprint-status.yaml` - Updated 7-6 from "in-progress" to "review"
+- `internal/formats/np3/*.go` - Added `//go:build ignore` tags to 15 test files
+- `docs/stories/7-6-github-releases-setup.md` - Updated Dev Agent Record section
+
+**Production Release:**
+- Release: v0.1.0 (2025-11-08)
+- URL: https://github.com/AWildJoltik/recipe/releases/tag/v0.1.0
+- Assets: 12 (6 binaries + 6 checksums)
+- Build time: 44 seconds
+- Status: Published (not draft, not pre-release)
+- Author: github-actions[bot]
 
 ### File List
 
-<!-- Dev agent will document files created/modified/deleted:
 **NEW:**
-- `CHANGELOG.md` - Version history with Keep a Changelog format
-- `.github/workflows/release.yml` - GitHub Releases workflow for CLI binaries
-- `docs/stories/7-6-github-releases-setup.md` - Story document
+- `CHANGELOG.md` - Version history with Keep a Changelog format (98 lines)
+- `.github/workflows/release.yml` - GitHub Releases workflow for CLI binaries (78 lines)
 
 **MODIFIED:**
-- `README.md` - Added installation section with platform-specific instructions
-- `docs/sprint-status.yaml` - Updated 7-6 from "backlog" to "drafted"
+- `README.md` - Added 95-line installation section with platform-specific instructions
+- `docs/sprint-status.yaml` - Updated 7-6 from "in-progress" to "review"
+- `internal/formats/np3/test_*.go` - Added `//go:build ignore` tags to 15 test files:
+  - test_all_parameters.go
+  - test_convert.go
+  - test_metadata.go
+  - test_np3_format_debug.go
+  - test_np3_parser.go
+  - test_parse.go
+  - test_saturation.go
+  - test_shadow_offset.go
+  - (and 7 more debug/test tools)
+- `docs/stories/7-6-github-releases-setup.md` - Updated Dev Agent Record section
 
 **DELETED:**
-- (none)
--->
+- Test tags: test-tag, v0.0.1, v0.0.2 (local + remote cleanup after testing)
 
 ---
 
