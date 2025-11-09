@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>2</storyId>
+    <title>Batch File Upload with Drag-and-Drop</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/10-2-batch-file-upload.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer with multiple preset files</asA>
+    <iWant>to upload multiple files at once via drag-and-drop or file picker</iWant>
+    <soThat>I can efficiently convert batches of presets without repeatedly selecting individual
+      files</soThat>
+    <tasks>
+      <task id="1">Create Drop Zone HTML Structure (AC-1)</task>
+      <task id="2">Style Drop Zone with Visual Feedback (AC-1)</task>
+      <task id="3">Implement File Input and Multiple Selection (AC-2)</task>
+      <task id="4">Implement File Type Validation (AC-3)</task>
+      <task id="5">Create File Card Component (AC-4, AC-5, AC-6)</task>
+      <task id="6">Style File Card Grid (AC-4)</task>
+      <task id="7">Implement Remove File Functionality (AC-7)</task>
+      <task id="8">Implement Empty State Handling (AC-8)</task>
+      <task id="9">Manual Testing</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" priority="critical">
+      <title>Large Drop Zone with Visual Feedback</title>
+      <description>Large drop zone displayed on landing page with clear instructions and visual
+        feedback on drag-over and drop</description>
+      <verification>
+        - Drop zone minimum 400x300px on desktop
+        - Clear instructions: "Drag &amp; drop preset files here, or click to browse"
+        - Visual feedback on drag-over: Border highlight (dashed → solid), subtle scale animation
+        (1.0 → 1.02), background color change (light gray → light blue tint)
+        - Visual feedback on drop: Brief success animation, drop zone collapses to compact mode
+        - Drop zone styling with dashed border, centered upload cloud/folder icon
+      </verification>
+    </criterion>
+    <criterion id="AC-2" priority="critical">
+      <title>Multiple File Selection Support</title>
+      <description>File picker supports multiple file selection for all supported formats</description>
+      <verification>
+        - File picker supports multiple selection (input type="file" multiple)
+        - Accept all supported formats: .np3, .xmp, .lrtemplate, .costyle, .dcp
+        - No file size limit (client-side processing handles large files)
+        - Users can select 1-100+ files at once
+        - File picker triggered by clicking drop zone or "Browse Files" button
+      </verification>
+    </criterion>
+    <criterion id="AC-3" priority="critical">
+      <title>File Type Validation</title>
+      <description>Validate file extensions on upload and reject unsupported files with clear error
+        messages</description>
+      <verification>
+        - Supported: .np3, .xmp, .lrtemplate, .costyle, .dcp (case-insensitive)
+        - Unsupported files rejected with clear error message: "Unsupported file type: example.jpg.
+        Supported formats: NP3, XMP, lrtemplate, .costyle, DCP"
+        - Error displayed inline below drop zone (red text, warning icon)
+        - Mixed batch uploads allowed: Accept supported files, display error for unsupported
+        - Example: 8 supported + 2 unsupported → "8 files uploaded, 2 files rejected"
+      </verification>
+    </criterion>
+    <criterion id="AC-4" priority="high">
+      <title>File Cards Grid Layout</title>
+      <description>Display uploaded files as individual cards in responsive grid layout</description>
+      <verification>
+        - Desktop (1024px+): 3 columns
+        - Tablet (768px-1023px): 2 columns
+        - Mobile (less than 768px): 1 column (stacked)
+        - Each file card shows: Filename (truncated if greater than 30 characters, full name on
+        hover), Detected format badge, File size (KB/MB, human-readable), Conversion status (icon:
+        queued, processing, complete, error)
+        - Card styling: White background, subtle shadow, rounded corners (8px border-radius), hover
+        effect (shadow darkens, slight scale)
+      </verification>
+    </criterion>
+    <criterion id="AC-5" priority="high">
+      <title>Format Detection from Filename</title>
+      <description>Detect format from file extension and display format badge immediately</description>
+      <verification>
+        - .np3 → NP3 badge (yellow #FFC107)
+        - .xmp → XMP badge (blue #0073E6)
+        - .lrtemplate → lrtemplate badge (magenta #D81B60)
+        - .costyle → Capture One badge (purple #9C27B0)
+        - .dcp → DCP badge (green #4CAF50)
+        - Display format badge immediately on upload (before file reading)
+        - Badge matches colors from Story 10-1 badge system (reuse CSS classes)
+        - Badge visible in file card header (top-right or next to filename)
+      </verification>
+    </criterion>
+    <criterion id="AC-6" priority="medium">
+      <title>File Size Display</title>
+      <description>Calculate and display file size for each uploaded file in human-readable format</description>
+      <verification>
+        - less than 1 KB: "500 bytes"
+        - less than 1 MB: "345 KB"
+        - greater than or equal to 1 MB: "1.2 MB", "15.8 MB"
+        - File size displayed in file card (below filename or in footer)
+        - No file size limit enforced (client-side WASM handles large files)
+      </verification>
+    </criterion>
+    <criterion id="AC-7" priority="high">
+      <title>Remove File Functionality</title>
+      <description>Each file card has "Remove" button that deletes file from upload queue</description>
+      <verification>
+        - Remove button (X icon or "Remove" text link) on each card
+        - Clicking "Remove" deletes file from upload queue: File card removed with fade-out
+        animation, File data cleared from memory, Grid layout reflows automatically
+        - Remove button visible on hover or always visible (mobile: always visible)
+        - Confirm removal for files in "processing" state (prevent accidental loss)
+      </verification>
+    </criterion>
+    <criterion id="AC-8" priority="medium">
+      <title>Empty State Handling</title>
+      <description>Show drop zone with instructions when no files uploaded</description>
+      <verification>
+        - When no files uploaded, show drop zone with instructions
+        - When all files removed, drop zone reappears (return to initial state)
+        - Empty state message: "No files uploaded yet. Drag &amp; drop files to get started."
+        - Empty state includes visual cue (upload icon, friendly illustration)
+      </verification>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Data Models and Contracts</section>
+        <snippet>File Upload Data Model with UploadedFile typedef (file, id, format, status, data,
+          convertedData, targetFormat, error), BatchProgress typedef (total, completed, failed,
+          queued), Format Badge Component with BEM naming</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Services and Modules</section>
+        <snippet>UploadManager module (js/upload.js) responsible for batch upload, drag-drop
+          handling with inputs (File[]) and outputs (Uploaded file cards). File card grid with
+          responsive breakpoints (3-col desktop, 2-col tablet, 1-col mobile)</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Workflows and Sequencing</section>
+        <snippet>File Upload Workflow: User drags files → Browser FileList → For each file: Read as
+          ArrayBuffer, Detect format via extension + magic bytes, Create UploadedFile object
+          (status: 'queued'), Append file card to grid</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Acceptance Criteria</section>
+        <snippet>AC-3: Batch File Upload with Drag-and-Drop - Large drop zone, visual feedback on
+          drag-over, support multiple file selection, accept all supported formats, reject
+          unsupported files with clear error, display uploaded files as individual cards in grid
+          layout</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD-Path-A.md</path>
+        <title>Product Requirements Document - Path A Enhancements</title>
+        <section>Functional Requirements - Epic 3</section>
+        <snippet>FR-3.3: Batch File Upload with Drag-and-Drop - Large drop zone on landing page,
+          visual feedback on drag-over (highlight, scale animation), support multiple file selection
+          via file picker, accept all supported formats, reject unsupported files with clear error
+          message, no file size limit (client-side processing), display uploaded files as individual
+          cards in grid layout</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD-Path-A.md</path>
+        <title>Product Requirements Document - Path A Enhancements</title>
+        <section>User Experience Principles - Key Interactions</section>
+        <snippet>File Upload &amp; Conversion Flow: Drop zone highlights on drag-over with subtle
+          scale animation, multiple files create individual cards (batch mode), each card shows
+          filename, detected format badge, file size, status</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-path-a.md</path>
+        <title>Architecture - Recipe Path A Enhancements</title>
+        <section>Epic 3: Enhanced Web UI/UX</section>
+        <snippet>Architecture Components: web/js/upload.js (Drag-drop zone, batch file handling,
+          progress tracking), web/js/utils.js (Format detection, file validation, error messaging).
+          Format badges color-coded by format type. Responsive breakpoints: Mobile less than 768px
+          (single column, tap-to-browse), Tablet 768-1024px (two-column grid), Desktop greater than
+          1024px (three-column grid)</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-path-a.md</path>
+        <title>Architecture - Recipe Path A Enhancements</title>
+        <section>Consistency Rules - CSS Architecture</section>
+        <snippet>CSS Variables Color Palette with format badge colors (NP3=#FFC107, XMP=#0073E6,
+          lrtemplate=#D81B60, Capture One=#9C27B0, DCP=#4CAF50). Responsive Breakpoints using
+          mobile-first approach with media queries at 768px (tablet) and 1024px (desktop). BEM
+          Naming convention for CSS classes (.block, .block__element, .block--modifier)</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>web/index.html</path>
+        <kind>html</kind>
+        <symbol>Landing page structure with existing hero section</symbol>
+        <lines>1-200</lines>
+        <reason>Current landing page HTML to be extended with upload section - contains existing
+          hero, format badges, privacy sections that should be preserved</reason>
+      </file>
+      <file>
+        <path>web/static/style.css</path>
+        <kind>css</kind>
+        <symbol>Current global styles</symbol>
+        <lines>all</lines>
+        <reason>Existing stylesheet that will be modularized into main.css, components.css,
+          layout.css - need to understand current styling patterns and extract reusable components</reason>
+      </file>
+      <file>
+        <path>web/static/main.js</path>
+        <kind>javascript</kind>
+        <symbol>Main application initialization</symbol>
+        <lines>all</lines>
+        <reason>Existing app initialization pattern - will need to integrate with new UploadManager
+          module, maintains event-driven architecture</reason>
+      </file>
+      <file>
+        <path>web/static/file-handler.js</path>
+        <kind>javascript</kind>
+        <symbol>Existing file handling logic</symbol>
+        <lines>all</lines>
+        <reason>Current file upload implementation - will be refactored into new upload.js module
+          with batch support and drag-drop functionality</reason>
+      </file>
+      <file>
+        <path>web/static/format-detector.js</path>
+        <kind>javascript</kind>
+        <symbol>Format detection logic</symbol>
+        <lines>all</lines>
+        <reason>Existing format detection (magic bytes, extension matching) - will be integrated
+          into new UploadManager for instant format badge display</reason>
+      </file>
+      <file>
+        <path>web/static/error-handler.js</path>
+        <kind>javascript</kind>
+        <symbol>Error handling patterns</symbol>
+        <lines>all</lines>
+        <reason>Existing error messaging patterns - will be reused for file validation errors
+          (unsupported file types, mixed batch uploads)</reason>
+      </file>
+      <file>
+        <path>web/static/converter.js</path>
+        <kind>javascript</kind>
+        <symbol>WASM conversion interface</symbol>
+        <lines>all</lines>
+        <reason>Existing WASM conversion interface - no changes needed, but UploadManager will
+          integrate with this for batch conversion in future story</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="web">
+        <package name="vanilla-javascript" version="ES6+"
+          usage="No framework - modern JavaScript with modules for upload manager, drag-drop handling" />
+        <package name="browser-file-api" version="native"
+          usage="FileReader, Blob, FileList for file upload and reading" />
+        <package name="drag-drop-api" version="native"
+          usage="dragover, dragleave, drop events for drag-and-drop zone" />
+        <package name="css-grid" version="native"
+          usage="Responsive grid layout for file cards (3-col, 2-col, 1-col)" />
+        <package name="css-flexbox" version="native"
+          usage="File card internal layout (header, body, footer)" />
+        <package name="css-variables" version="native" usage="Format badge colors and design tokens" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Vanilla JavaScript only - no React, Vue, Svelte, or other
+      frameworks. Maintain existing web/ directory structure and patterns</constraint>
+    <constraint type="progressive-enhancement">Basic HTML/CSS must work without JavaScript - drop
+      zone visible and file picker functional without JS</constraint>
+    <constraint type="file-validation">Extension-based validation only (fast, instant feedback) -
+      content-based validation deferred to conversion step</constraint>
+    <constraint type="mixed-batch-uploads">Accept supported files and reject unsupported files
+      separately - show clear summary (e.g., "8 files uploaded, 2 files rejected")</constraint>
+    <constraint type="browser-compatibility">Support Chrome 90+, Firefox 88+, Safari 14+, Edge 90+ -
+      no IE11 support needed. Drag-drop may not work on all mobile browsers (fallback to file
+      picker)</constraint>
+    <constraint type="accessibility">Touch targets must be minimum 44x44px on mobile per
+      Apple/Google guidelines. Keyboard navigation for file picker (no keyboard for drag-drop)</constraint>
+    <constraint type="responsive">Mobile-first CSS approach - base styles for mobile (less than
+      768px), media queries for tablet (768-1024px) and desktop (1024px+)</constraint>
+    <constraint type="naming">BEM naming convention for CSS classes (.block__element--modifier) -
+      follow existing pattern from story 10-1</constraint>
+    <constraint type="performance">File card creation must be efficient for 100+ files - batch DOM
+      updates if needed, no memory leaks</constraint>
+    <constraint type="error-messaging">Clear, actionable error messages for users - "Unsupported
+      file type: example.jpg" not "Error 0x04F2"</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>UploadManager Class</name>
+      <kind>javascript-module</kind>
+      <signature>
+        export class UploadManager {
+        constructor() // Initialize DOM references, event listeners
+        initEventListeners() // Drag-drop, file picker events
+        handleFiles(fileList) // Process uploaded files
+        validateFile(file) // Check extension, return validation result
+        addFileCard(file) // Create and append file card to grid
+        createFileCard(file) // Generate file card HTML
+        removeFile(fileId) // Remove file from grid and memory
+        detectFormat(filename) // Extract format from extension
+        formatFileSize(bytes) // Human-readable file size
+        truncateFilename(name, max) // Shorten long filenames
+        showError(rejected) // Display error for unsupported files
+        showEmptyState() // Show drop zone when no files
+        }
+      </signature>
+      <path>web/static/upload.js (to be created)</path>
+    </interface>
+    <interface>
+      <name>File Card HTML Structure</name>
+      <kind>html-template</kind>
+      <signature>
+        &lt;div class="file-card" id="file-{id}"&gt;
+        &lt;div class="file-card__header"&gt;
+        &lt;span class="file-card__filename"&gt;{filename}&lt;/span&gt;
+        &lt;span class="badge badge--{format}"&gt;{FORMAT}&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class="file-card__body"&gt;
+        &lt;div class="file-card__size"&gt;{fileSize}&lt;/div&gt;
+        &lt;div class="file-card__status"&gt;{statusIcon} {statusText}&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class="file-card__footer"&gt;
+        &lt;button class="file-card__remove"&gt;Remove&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;/div&gt;
+      </signature>
+      <path>web/static/upload.js (generated by createFileCard method)</path>
+    </interface>
+    <interface>
+      <name>Drop Zone HTML</name>
+      <kind>html</kind>
+      <signature>
+        &lt;section class="upload" id="upload"&gt;
+        &lt;div class="upload__container"&gt;
+        &lt;div class="upload__dropzone" id="dropzone"&gt;
+        &lt;svg class="upload__icon"&gt;{upload cloud icon}&lt;/svg&gt;
+        &lt;h3&gt;Drag &amp; drop preset files here&lt;/h3&gt;
+        &lt;p&gt;or click to browse&lt;/p&gt;
+        &lt;button class="button button--secondary"&gt;Browse Files&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;input type="file" id="file-input" multiple accept=".np3,.xmp,.lrtemplate,.costyle,.dcp"
+        hidden&gt;
+        &lt;div class="upload__error" id="upload-error" hidden&gt;&lt;/div&gt;
+        &lt;div class="upload__files" id="file-grid"&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;/section&gt;
+      </signature>
+      <path>web/index.html (to be added after hero section)</path>
+    </interface>
+    <interface>
+      <name>File Validation Result</name>
+      <kind>javascript-return-type</kind>
+      <signature>
+        {
+        valid: boolean,
+        extension: string,
+        message: string // Error message if invalid
+        }
+      </signature>
+      <path>web/static/upload.js (validateFile method return value)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Epic 10 focuses on frontend UI/UX with manual testing emphasis. Testing standards: Browser
+      compatibility testing (Chrome, Firefox, Safari, Edge), Responsive design testing at defined
+      breakpoints (320px, 768px, 1024px), Accessibility testing with keyboard navigation (Tab,
+      Enter, Esc), Device testing on real devices (iPhone, Android, iPad), Visual regression testing
+      for file cards and drag-drop interactions, Performance testing for 100+ file batches
+    </standards>
+
+    <locations>
+      Manual testing documented in story completion notes. Browser compatibility: BrowserStack or
+      manual testing. Responsive testing: Chrome DevTools device emulation + real devices.
+      Accessibility testing: Keyboard navigation, touch target sizes. Performance testing: Chrome
+      DevTools Performance tab for 100+ file batches
+    </locations>
+
+    <ideas>
+      <test ac="AC-1">
+        <idea>Manual: Verify drop zone displays correctly with minimum 400x300px dimensions. Test
+          clear instructions visible ("Drag &amp; drop preset files here, or click to browse")</idea>
+        <idea>Interaction: Drag file over drop zone → verify border changes (dashed to solid),
+          background color changes (light gray to light blue), subtle scale animation (1.0 to 1.02)</idea>
+        <idea>Interaction: Drop file → verify brief success animation, drop zone collapses to
+          compact mode</idea>
+        <idea>Visual: Verify dashed border styling, centered upload cloud icon visible</idea>
+      </test>
+      <test ac="AC-2">
+        <idea>Functional: Click drop zone → verify file picker opens with multiple selection enabled</idea>
+        <idea>Functional: Click "Browse Files" button → verify file picker opens</idea>
+        <idea>Functional: Select 10 files (Ctrl+Click or Shift+Click) → verify all 10 files uploaded</idea>
+        <idea>Functional: Verify file picker accept attribute includes all formats (.np3, .xmp,
+          .lrtemplate, .costyle, .dcp)</idea>
+        <idea>Performance: Upload 100 files → verify no memory issues, UI remains responsive</idea>
+      </test>
+      <test ac="AC-3">
+        <idea>Validation: Upload supported file (.np3) → verify file accepted, card appears</idea>
+        <idea>Validation: Upload unsupported file (.jpg) → verify file rejected, error message shown
+          ("Unsupported file type: example.jpg. Supported formats: NP3, XMP, lrtemplate, .costyle,
+          DCP")</idea>
+        <idea>Validation: Upload mixed batch (8 supported + 2 unsupported) → verify 8 cards appear,
+          error shows "8 files uploaded, 2 files rejected"</idea>
+        <idea>Validation: Test case-insensitive extension detection (.NP3, .Np3, .np3 all valid)</idea>
+        <idea>Visual: Verify error displayed inline below drop zone with red text and warning icon</idea>
+      </test>
+      <test ac="AC-4">
+        <idea>Responsive: Test desktop (1920px) → verify 3-column grid layout</idea>
+        <idea>Responsive: Test tablet (768px) → verify 2-column grid layout</idea>
+        <idea>Responsive: Test mobile (375px) → verify 1-column stacked layout</idea>
+        <idea>Visual: Verify each file card shows filename, format badge, file size, status icon</idea>
+        <idea>Visual: Verify card styling (white background, subtle shadow, rounded corners 8px,
+          hover effect with shadow darkening and slight scale)</idea>
+        <idea>Interaction: Hover over card → verify shadow darkens, card scales slightly</idea>
+      </test>
+      <test ac="AC-5">
+        <idea>Functional: Upload .np3 file → verify NP3 badge displayed immediately (yellow #FFC107)</idea>
+        <idea>Functional: Upload .xmp file → verify XMP badge displayed immediately (blue #0073E6)</idea>
+        <idea>Functional: Upload .lrtemplate file → verify lrtemplate badge displayed immediately
+          (magenta #D81B60)</idea>
+        <idea>Functional: Upload .costyle file → verify Capture One badge displayed immediately
+          (purple #9C27B0)</idea>
+        <idea>Functional: Upload .dcp file → verify DCP badge displayed immediately (green #4CAF50)</idea>
+        <idea>Visual: Verify badge matches colors from Story 10-1 badge system (reuse CSS classes
+          .badge, .badge--np3, etc.)</idea>
+        <idea>Visual: Verify badge visible in file card header (top-right or next to filename)</idea>
+      </test>
+      <test ac="AC-6">
+        <idea>Functional: Upload file &lt;1 KB (500 bytes) → verify size displayed as "500 bytes"</idea>
+        <idea>Functional: Upload file &lt;1 MB (345 KB) → verify size displayed as "345 KB"</idea>
+        <idea>Functional: Upload file ≥1 MB (1.2 MB) → verify size displayed as "1.2 MB"</idea>
+        <idea>Functional: Upload file ≥10 MB (15.8 MB) → verify size displayed as "15.8 MB" (no
+          limit enforced)</idea>
+        <idea>Visual: Verify file size displayed in file card (below filename or in footer)</idea>
+      </test>
+      <test ac="AC-7">
+        <idea>Functional: Click "Remove" button on file card → verify file card fades out and
+          disappears</idea>
+        <idea>Functional: Remove file → verify grid layout reflows automatically (remaining cards
+          adjust positions)</idea>
+        <idea>Functional: Remove file → verify file data cleared from memory (no memory leaks)</idea>
+        <idea>Visual: Verify remove button visible on hover (desktop) or always visible (mobile)</idea>
+        <idea>Interaction: Try to remove file in "processing" state → verify confirmation dialog
+          appears ("This file is currently processing. Are you sure you want to remove it?")</idea>
+        <idea>Edge Case: Remove all files → verify empty state reappears (drop zone returns)</idea>
+      </test>
+      <test ac="AC-8">
+        <idea>Initial State: Load page → verify drop zone displayed with empty state message ("No
+          files uploaded yet. Drag &amp; drop files to get started.")</idea>
+        <idea>Initial State: Verify upload icon and friendly illustration visible</idea>
+        <idea>Interaction: Upload files → verify drop zone collapses or hides</idea>
+        <idea>Interaction: Remove all files → verify drop zone reappears (return to initial state)</idea>
+        <idea>Visual: Verify empty state includes visual cue (upload icon, clear instructions)</idea>
+      </test>
+      <test type="edge-cases">
+        <idea>Edge Case: Upload 100+ files → verify grid handles large number without performance
+          issues (less than 2 seconds card creation)</idea>
+        <idea>Edge Case: Upload 0-byte file → verify file size shows "0 bytes"</idea>
+        <idea>Edge Case: Upload file with very long name (100+ chars) → verify truncated correctly
+          (max 30 chars, full name on hover)</idea>
+        <idea>Edge Case: Upload file with special characters in name (é, ñ, 中文) → verify displays
+          correctly</idea>
+        <idea>Edge Case: Drag file outside drop zone → verify highlight disappears (dragleave event)</idea>
+        <idea>Edge Case: Drag non-file item (text, image) → verify handled gracefully (no crash)</idea>
+        <idea>Browser Compatibility: Test drag-drop on mobile Safari (iOS) → may not work, verify
+          file picker fallback works</idea>
+        <idea>Browser Compatibility: Test drag-drop on Android Chrome → verify works correctly</idea>
+        <idea>Accessibility: Tab through upload section → verify drop zone and "Browse Files" button
+          keyboard accessible</idea>
+        <idea>Accessibility: Verify touch targets ≥44x44px on mobile (drop zone, "Browse Files"
+          button, remove buttons)</idea>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

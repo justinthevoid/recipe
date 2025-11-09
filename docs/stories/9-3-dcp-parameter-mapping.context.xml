@@ -1,0 +1,186 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>3</storyId>
+    <title>DCP Parameter Mapping Documentation</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/9-3-dcp-parameter-mapping.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>comprehensive documentation of how UniversalRecipe parameters map to DNG Camera Profile (DCP) tone curves and color matrices</iWant>
+    <soThat>I understand the conversion formulas, supported/unsupported features, and can verify correct DCP generation from any source format (NP3, XMP, lrtemplate, .costyle)</soThat>
+    <tasks>
+      - Task 1: Document DCP Parameter Mappings (AC-1) - 5 subtasks
+      - Task 2: List Unsupported DCP Features (AC-2) - 4 subtasks
+      - Task 3: Define Tone Curve Formulas (AC-3) - 3 subtasks
+      - Task 4: Document Color Matrix Handling (AC-4) - 4 subtasks
+      - Task 5: Create Cross-Format Examples (AC-5) - 3 subtasks
+      - Task 6: Test with Real Adobe DCP Samples (AC-6) - 7 subtasks
+      - Task 7: Create Reference Documentation (AC-7) - 4 subtasks
+      - Task 8: Manual Validation - 3 subtasks
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" title="Document UniversalRecipe → DCP Parameter Mappings">
+      - Add "DCP (DNG Camera Profile)" section to docs/parameter-mapping.md
+      - Document all supported UniversalRecipe parameters that map to DCP (Exposure, Contrast, Highlights, Shadows)
+      - Specify exact conversion formulas with code examples
+      - Include visual diagrams showing linear → adjusted curve transformations
+      - Document precision considerations (float → int curve points, rounding)
+    </criterion>
+    <criterion id="AC-2" title="Identify Unsupported DCP Features">
+      - List DCP features NOT implemented in Recipe v0.1.0 (dual illuminant, camera calibration, HSV tables, etc.)
+      - Explain why each feature is unsupported (identity matrices used instead)
+      - Note Recipe uses identity color matrices (no color calibration)
+      - Document fallback behavior (unsupported parameters ignored)
+    </criterion>
+    <criterion id="AC-3" title="Define Tone Curve Conversion Formulas">
+      - Document 5-point tone curve generation algorithm with step-by-step formula
+      - Include worked examples (exposure +0.5, contrast +0.3, etc.)
+      - Document monotonic curve enforcement (output[i] >= output[i-1])
+      - Explain clamping to 0-255 range
+    </criterion>
+    <criterion id="AC-4" title="Document Color Matrix Handling">
+      - Explain identity matrix usage (3x3 diagonal matrix)
+      - Clarify this means no color space transformation (camera RGB → XYZ passthrough)
+      - Explain ProfileCalibrationSignature = "com.adobe" (standard signature)
+      - Note Recipe focuses on tone/exposure only (not color calibration)
+      - Document when full calibration would be needed (out of scope for v0.1.0)
+    </criterion>
+    <criterion id="AC-5" title="Provide Cross-Format Conversion Examples">
+      - Include minimum 3 example conversions (NP3→DCP, XMP→DCP, lrtemplate→DCP)
+      - Show complete UniversalRecipe intermediate step
+      - Include visual before/after curve diagrams
+      - Document expected precision (±1 curve point due to rounding)
+    </criterion>
+    <criterion id="AC-6" title="Test Mappings with Real Adobe DCP Samples">
+      - Load minimum 3 real DCP files from Adobe (Camera Raw, Lightroom)
+      - Parse tone curves from real samples
+      - Reverse-engineer curve → UniversalRecipe parameters
+      - Generate new DCP from derived UniversalRecipe
+      - Compare original vs. generated curves (visual + numerical)
+      - Document findings in parameter-mapping.md
+      - Store real DCP samples in testdata/dcp/adobe-samples/ with README
+    </criterion>
+    <criterion id="AC-7" title="Create Reference Documentation">
+      - Add comprehensive "DCP Parameter Mapping" section to parameter-mapping.md
+      - Include references to Adobe DNG Specification 1.6
+      - Add glossary terms (IFD, Tone Curve, Color Matrix, Illuminant, HSV table)
+      - Link to implementation files (dcp/generate.go, dcp/parse.go)
+      - Update docs/index.md with DCP section link
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-9.md" title="Epic 9 Technical Specification">
+        <section name="Overview">Epic 9 adds DCP (DNG Camera Profile) format support to Recipe</section>
+        <section name="Data Models and Contracts">Tone curve conversion formulas, 5-point curve structure</section>
+        <section name="APIs and Interfaces">Parse and Generate functions for DCP format</section>
+        <section name="Acceptance Criteria">AC-3 specifically covers DCP Parameter Mapping documentation</section>
+      </doc>
+      <doc path="docs/parameter-mapping.md" title="Parameter Mapping Rules">
+        <section name="Direct Parameter Mappings">XMP ↔ lrtemplate direct mappings</section>
+        <section name="Approximation Mappings">NP3 ↔ XMP/lrtemplate approximation formulas</section>
+        <section name="Capture One .costyle Mappings">costyle parameter scaling and conversions</section>
+        <snippet>Document structure to follow for DCP section: Overview, Supported Parameters, Conversion Formulas, Examples</snippet>
+      </doc>
+      <doc path="docs/PRD.md" title="Product Requirements Document">
+        <section name="Success Criteria">95%+ color accuracy goal</section>
+        <section name="Color Science Domain">Understanding tone curves, HSL adjustments, color transformations</section>
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture Document">
+        <section name="Project Structure">internal/formats/{format}/ pattern with parse.go and generate.go</section>
+        <section name="Testing Strategy">Table-driven tests with real sample files</section>
+      </doc>
+      <doc path="docs/stories/9-1-dcp-parser.md" title="Story 9-1: DCP Parser">
+        <section name="Acceptance Criteria">AC-3 describes tone curve extraction formulas</section>
+        <snippet>Parser analyzes curve shape to extract exposure, contrast, highlights, shadows</snippet>
+      </doc>
+      <doc path="docs/stories/9-2-dcp-generator.md" title="Story 9-2: DCP Generator">
+        <section name="Acceptance Criteria">AC-3 describes tone curve generation algorithm with exact formulas</section>
+        <snippet>5-point curve generation: linear base → apply exposure → apply contrast → apply highlights/shadows</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact path="internal/formats/dcp/generate.go" kind="generator" symbol="Generate">
+        <lines>1-100</lines>
+        <reason>Contains tone curve generation implementation to reference in documentation</reason>
+      </artifact>
+      <artifact path="internal/formats/np3/parse.go" kind="parser" symbol="extractToneCurve">
+        <lines>754-780</lines>
+        <reason>Example of tone curve parsing pattern from existing format</reason>
+      </artifact>
+      <artifact path="internal/lut/generator.go" kind="utility" symbol="applyToneCurve">
+        <lines>115-175</lines>
+        <reason>Shows tone curve adjustment formulas (contrast, highlights, shadows, whites, blacks)</reason>
+      </artifact>
+      <artifact path="internal/formats/xmp/generate.go" kind="generator" symbol="Generate">
+        <lines>1-300</lines>
+        <reason>Example of complete format generation documentation pattern</reason>
+      </artifact>
+      <artifact path="internal/formats/lrtemplate/generate.go" kind="generator" symbol="Generate">
+        <lines>168-250</lines>
+        <reason>Shows tone curve point generation for similar format</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <go>
+        <package name="encoding/xml">XML marshaling/unmarshaling for Adobe Camera Profile XML</package>
+        <package name="fmt">String formatting for documentation examples</package>
+        <package name="math">Math operations for tone curve calculations</package>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="format">DCP Parameter Mapping section must follow established pattern from other formats (XMP, NP3, costyle) in parameter-mapping.md</constraint>
+    <constraint type="accuracy">Documentation formulas must exactly match implementation in dcp/generate.go (Story 9-2)</constraint>
+    <constraint type="precision">Document ±1 curve point precision tolerance due to float→int rounding</constraint>
+    <constraint type="scope">MVP focuses on tone curves only - no full camera calibration (ForwardMatrix, ColorMatrix)</constraint>
+    <constraint type="samples">Minimum 3 real Adobe DCP samples required for validation (Camera Raw, Lightroom, or DNG SDK)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="parameter-mapping.md" kind="documentation">
+      <signature>Add "DCP (DNG Camera Profile)" section following established structure</signature>
+      <path>docs/parameter-mapping.md</path>
+    </interface>
+    <interface name="testdata/dcp/adobe-samples/" kind="test-data">
+      <signature>Directory containing real Adobe DCP samples with README explaining sources</signature>
+      <path>testdata/dcp/adobe-samples/</path>
+    </interface>
+    <interface name="docs/index.md" kind="documentation">
+      <signature>Add link to DCP parameter mapping documentation</signature>
+      <path>docs/index.md</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Documentation story - no unit tests required. Validation through:
+      - Technical accuracy review (formulas match dcp/generate.go implementation)
+      - Real sample analysis (parse 3 Adobe DCPs, reverse-engineer parameters, regenerate)
+      - Cross-reference verification (all internal links work)
+      - Usability testing (can developer understand DCP conversion from docs alone?)
+    </standards>
+    <locations>
+      - docs/parameter-mapping.md (updated with DCP section)
+      - testdata/dcp/adobe-samples/ (real DCP samples for analysis)
+    </locations>
+    <ideas>
+      <idea ac="AC-1">Manual validation: Verify formulas in documentation match dcp/generate.go implementation using code inspection and worked examples in spreadsheet</idea>
+      <idea ac="AC-3">Create worked example: Take exposure +0.5, contrast +0.3, highlights -0.2, shadows +0.1 and calculate step-by-step through the algorithm to verify accuracy</idea>
+      <idea ac="AC-5">Test cross-format examples: Convert NP3 sample → UniversalRecipe → DCP, then verify tone curve values match documented formulas</idea>
+      <idea ac="AC-6">Real sample analysis: Parse adobe-standard.dcp, reverse-engineer parameters, regenerate DCP, compare curves point-by-point, document max delta</idea>
+      <idea ac="AC-7">Documentation completeness: Check all glossary terms are used in documentation, all cross-references resolve correctly, all code examples are syntactically correct</idea>
+    </ideas>
+  </tests>
+</story-context>

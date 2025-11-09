@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SL Engine="1100">
+ <E K="ICCProfile" V="fuji-superia-200-v.6-100%.icc"/>
+ <E K="Name" V="Fuji Superia 200 V.6 100%"/>
+ <E K="StyleSource" V="Styles"/>
+ <E K="UUID" V="{9520182D-1AF0-4E14-B19B-1FE824FF802A}"/>
+ <E K="HighlightRecovery" V="50.0"/>
+ <E K="Midtone" V="0;0;0;0.0500000007450581"/>
+</SL>

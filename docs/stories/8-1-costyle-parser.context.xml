@@ -1,0 +1,366 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>epic-8</epicId>
+    <storyId>8-1</storyId>
+    <title>Capture One .costyle Parser</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/8-1-costyle-parser.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>Recipe to parse Capture One .costyle preset files and extract all adjustment parameters</iWant>
+    <soThat>I can convert my Capture One styles to other formats (XMP, lrtemplate, NP3) and use them across different editing software</soThat>
+    <tasks>
+### Task 1: Create Package Structure (AC: All)
+- [ ] Create internal/formats/costyle/ directory
+- [ ] Create types.go - Define Go structs matching .costyle XML schema
+- [ ] Create parse.go - Implement Parse(data []byte) function
+- [ ] Create parse_test.go - Unit tests for parsing
+- [ ] Create testdata/ directory for sample .costyle files
+
+### Task 2: Define .costyle XML Data Structures (AC-1)
+- [ ] Define CaptureOneStyle struct with xml tags (XMLName xml.Name, RDF RDF)
+- [ ] Define RDF struct with Description element
+- [ ] Define Description struct with adjustment fields: Exposure, Contrast, Saturation, Temperature, Tint, Clarity, ColorBalance fields
+- [ ] Add XML namespace constants (if required by .costyle format)
+
+### Task 3: Implement Parse() Function (AC-1, AC-2)
+- [ ] Implement Parse(data []byte) (*universal.Recipe, error) function signature
+- [ ] Unmarshal XML using encoding/xml.Unmarshal(data, &amp;style)
+- [ ] Handle XML unmarshal errors (malformed XML)
+- [ ] Map parsed .costyle fields to UniversalRecipe with correct scaling
+- [ ] Handle missing fields (set to zero values)
+- [ ] Clamp out-of-range values to valid ranges
+- [ ] Populate recipe.Metadata map with style name/author if present
+- [ ] Return populated *universal.Recipe and nil error on success
+
+### Task 4: Implement Error Handling (AC-3)
+- [ ] Wrap XML unmarshal errors with descriptive messages
+- [ ] Validate required XML elements exist (Description, RDF)
+- [ ] Report specific errors for invalid parameter values
+- [ ] Add helper function clampFloat64(value, min, max float64) float64
+- [ ] Add helper function clampInt(value, min, max int) int
+- [ ] Test error paths with malformed XML samples
+
+### Task 5: Write Unit Tests (AC-4)
+- [ ] Acquire/create 3+ real .costyle sample files
+- [ ] Add samples to testdata/costyle/ directory
+- [ ] Write TestParse_ValidFile() - Test with valid .costyle file
+- [ ] Write TestParse_MinimalFile() - Test with minimal valid .costyle
+- [ ] Write TestParse_MalformedXML() - Test with invalid XML
+- [ ] Write TestParse_MissingElements() - Test with missing Description element
+- [ ] Write TestParse_OutOfRangeValues() - Test with out-of-range parameter values
+- [ ] Run tests: go test ./internal/formats/costyle/
+- [ ] Verify coverage: go test -cover ./internal/formats/costyle/ (target ≥85%)
+
+### Task 6: Documentation (AC-1, AC-2, AC-3)
+- [ ] Add package comment in parse.go
+- [ ] Add function comment for Parse()
+- [ ] Add README in testdata/costyle/ documenting sample sources
+- [ ] Update docs/parameter-mapping.md with .costyle parameter mappings
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+**AC-1: Parse Capture One .costyle XML Structure**
+- Parse XML structure per Capture One style specification
+- Extract core adjustments: exposure, contrast, saturation, temperature, tint, clarity
+- Extract color balance adjustments: shadows, midtones, highlights (hue/saturation)
+- Handle missing/optional parameters gracefully (use zero values)
+- Validate XML structure and report parsing errors with clear messages
+- Support .costyle format versions in use (2023-2025)
+
+**AC-2: Return UniversalRecipe Representation**
+- Convert parsed .costyle to *universal.Recipe struct
+- Map Capture One parameters to UniversalRecipe equivalents with correct scaling
+- Preserve metadata (style name, author, description if present)
+- Handle unmappable parameters (store in Metadata map or skip gracefully)
+- Return populated UniversalRecipe with all supported fields
+
+**AC-3: Handle Parsing Errors**
+- Validate XML well-formedness (detect corrupt/malformed files)
+- Report specific parsing errors (line number, element name if possible)
+- Return descriptive error messages (not generic Go errors)
+- Handle missing required XML elements gracefully
+- Handle out-of-range parameter values (clamp to valid range)
+
+**AC-4: Unit Test Coverage**
+- Unit tests for Parse() function with valid .costyle files
+- Unit tests for error cases (malformed XML, missing elements, invalid values)
+- Test with real-world .costyle samples (minimum 3 files)
+- Test coverage ≥85% for costyle/parse.go
+- All tests pass in CI
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <!-- PRD / Tech Spec -->
+      <doc>
+        <path>docs/tech-spec-epic-8.md</path>
+        <title>Epic Technical Specification: Capture One Format Support</title>
+        <section>Data Models and Contracts - Capture One .costyle XML Structure</section>
+        <snippet>XML structure with RDF/Description elements. Exposure (-2.0 to +2.0), Contrast/Saturation/Temperature/Tint/Clarity (-100 to +100). Go struct mapping with encoding/xml tags. Parameter scaling formulas documented.</snippet>
+      </doc>
+      
+      <doc>
+        <path>docs/tech-spec-epic-8.md</path>
+        <title>Epic Technical Specification: Capture One Format Support</title>
+        <section>APIs and Interfaces - costyle.Parse Function</section>
+        <snippet>Parse(data []byte) (*universal.Recipe, error). Uses xml.Unmarshal with struct tags. Returns error if invalid XML or out-of-range parameters. Zero external dependencies (stdlib only).</snippet>
+      </doc>
+      
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Pattern 4: File Structure for Format Packages</section>
+        <snippet>Every format package follows identical structure: parse.go, generate.go, {format}_test.go. Parse function signature: Parse([]byte) (*UniversalRecipe, error). Pattern used by np3, xmp, lrtemplate packages.</snippet>
+      </doc>
+      
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Pattern 5: Error Handling</section>
+        <snippet>Use fmt.Errorf with %w verb for error wrapping. Include operation context in error messages. No panics - all errors via return value. ConversionError type for type-safe error checking.</snippet>
+      </doc>
+      
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Pattern 6: Validation Strategy</section>
+        <snippet>Validate inline in parsers, fail fast with descriptive errors. Check magic bytes/structure first. Validate parameter ranges during extraction. Return clear error messages with context.</snippet>
+      </doc>
+      
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Pattern 7: Testing Strategy</section>
+        <snippet>Table-driven tests with real sample files. Use filepath.Glob to discover test files. Run subtest for each file. Validate extracted parameters are within expected ranges. Target ≥85% test coverage.</snippet>
+      </doc>
+      
+      <doc>
+        <path>docs/parameter-mapping.md</path>
+        <title>Parameter Mapping Reference</title>
+        <section>To be updated with Capture One mappings</section>
+        <snippet>Document Capture One parameter scaling: Contrast/Saturation -100..100 → UniversalRecipe -1.0..1.0. Temperature/Tint mappings. Color balance to shadows/midtones/highlights.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Existing format parser patterns -->
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>1-250</lines>
+        <reason>Reference implementation for XML parsing with encoding/xml. Uses ConversionError type, validateXMLStructure helper, parameter extraction pattern. Same pattern needed for .costyle parsing.</reason>
+      </artifact>
+      
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>struct</kind>
+        <symbol>ConversionError</symbol>
+        <lines>42-60</lines>
+        <reason>Standard error type used across all format parsers. Provides Operation, Format, Field, Cause fields. Implements Error() and Unwrap(). Should reuse for costyle package.</reason>
+      </artifact>
+      
+      <artifact>
+        <path>internal/formats/xmp/xmp_test.go</path>
+        <kind>test</kind>
+        <symbol>TestParse</symbol>
+        <lines>14-80</lines>
+        <reason>Table-driven test pattern using filepath.Glob to discover sample files. Runs subtest for each file. Validates SourceFormat and critical field ranges. Template for costyle tests.</reason>
+      </artifact>
+      
+      <artifact>
+        <path>internal/formats/np3/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>42-90</lines>
+        <reason>Binary parser with fail-fast validation pattern. Shows validateFileStructure → extractParameters → validateParameters → buildRecipe flow. Error wrapping with fmt.Errorf.</reason>
+      </artifact>
+      
+      <artifact>
+        <path>internal/formats/np3/np3_test.go</path>
+        <kind>test</kind>
+        <symbol>TestParse</symbol>
+        <lines>14-100</lines>
+        <reason>Comprehensive test pattern with multiple glob patterns for file discovery. Validates parameter ranges, tests error cases. Shows how to achieve 85%+ coverage.</reason>
+      </artifact>
+      
+      <!-- UniversalRecipe struct -->
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>struct</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>1-180</lines>
+        <reason>Central data model for all conversions. Fields for Exposure, Contrast, Saturation, Temperature, Tint, Clarity. Metadata map for format-specific data. Costyle parser populates this struct.</reason>
+      </artifact>
+      
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>struct</kind>
+        <symbol>ColorAdjustment</symbol>
+        <lines>4-8</lines>
+        <reason>HSL adjustment struct (Hue, Saturation, Luminance). Used for color balance mapping from Capture One shadows/midtones/highlights to UniversalRecipe.</reason>
+      </artifact>
+      
+      <!-- Existing costyle references (if any) -->
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>converter</kind>
+        <symbol>Convert</symbol>
+        <lines>estimated</lines>
+        <reason>Main conversion engine. Will need to add costyle case to format detection and conversion routing (Story 8-5). Shows integration pattern for new formats.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <go>
+        <package name="encoding/xml" version="stdlib">XML parsing and unmarshaling. Core dependency for .costyle XML structure parsing.</package>
+        <package name="fmt" version="stdlib">Error formatting and wrapping with %w verb.</package>
+        <package name="strconv" version="stdlib">String to numeric conversion for XML attribute parsing.</package>
+        <package name="testing" version="stdlib">Unit testing framework.</package>
+        <package name="path/filepath" version="stdlib">File path manipulation and glob pattern matching for test file discovery.</package>
+        <package name="os" version="stdlib">File I/O for reading test sample files.</package>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    **Architecture Pattern Compliance:**
+    - MUST follow Pattern 4 (File Structure): internal/formats/costyle/ with parse.go, parse_test.go
+    - MUST follow Pattern 5 (Error Handling): Use fmt.Errorf with %w for error wrapping
+    - MUST follow Pattern 6 (Validation Strategy): Fail-fast inline validation
+    - MUST follow Pattern 7 (Testing Strategy): Table-driven tests with real sample files
+
+    **Performance Requirements:**
+    - Parse single .costyle file in &lt;100ms (Epic 8 target)
+    - Memory usage &lt;10MB per conversion
+    
+    **External Dependencies:**
+    - ZERO external dependencies (use Go stdlib only)
+    - Must not require any third-party XML libraries
+    
+    **Format Compatibility:**
+    - Support Capture One .costyle versions 2023-2025
+    - Handle XML namespace variations gracefully
+    - Document known version differences
+    
+    **Testing Requirements:**
+    - Minimum 3 real .costyle sample files in testdata/
+    - Test coverage ≥85% for costyle package
+    - All tests must pass in CI (no flaky tests)
+    
+    **Code Quality:**
+    - Pass gofmt and go vet without warnings
+    - Follow Go naming conventions (CamelCase exports, camelCase unexported)
+    - Document all exported functions with GoDoc comments
+  </constraints>
+
+  <interfaces>
+    **Parse Function Signature:**
+    `go
+    func Parse(data []byte) (*models.UniversalRecipe, error)
+    `
+    
+    **XML Struct Definitions (from Tech Spec):**
+    `go
+    type CaptureOneStyle struct {
+        XMLName xml.Name \xml:"xmpmeta"\
+        RDF     RDF      \xml:"RDF"\
+    }
+
+    type RDF struct {
+        Description Description \xml:"Description"\
+    }
+
+    type Description struct {
+        Exposure    float64 \xml:"Exposure,omitempty"\    // -2.0 to +2.0
+        Contrast    int     \xml:"Contrast,omitempty"\    // -100 to +100
+        Saturation  int     \xml:"Saturation,omitempty"\  // -100 to +100
+        Temperature int     \xml:"Temperature,omitempty"\ // -100 to +100
+        Tint        int     \xml:"Tint,omitempty"\        // -100 to +100
+        Clarity     int     \xml:"Clarity,omitempty"\     // -100 to +100
+        
+        // Color balance
+        ShadowsHue              int \xml:"ShadowsHue,omitempty"\
+        ShadowsSaturation       int \xml:"ShadowsSaturation,omitempty"\
+        MidtonesHue             int \xml:"MidtonesHue,omitempty"\
+        MidtonesSaturation      int \xml:"MidtonesSaturation,omitempty"\
+        HighlightsHue           int \xml:"HighlightsHue,omitempty"\
+        HighlightsSaturation    int \xml:"HighlightsSaturation,omitempty"\
+    }
+    `
+    
+    **Error Handling Interface (reuse from xmp):**
+    `go
+    type ConversionError struct {
+        Operation string  // "parse", "validate", etc.
+        Format    string  // "costyle"
+        Field     string  // Specific field (optional)
+        Cause     error   // Underlying error
+    }
+    `
+    
+    **Parameter Mapping (from Tech Spec):**
+    - Exposure: Direct map to UniversalRecipe.Exposure (-2.0 to +2.0)
+    - Contrast: Scale from -100..100 to UniversalRecipe.Contrast (direct, no scaling needed)
+    - Saturation: Scale from -100..100 to UniversalRecipe.Saturation (direct, no scaling needed)
+    - Temperature: Map to UniversalRecipe.Temperature (may need Kelvin conversion)
+    - Tint: Direct map to UniversalRecipe.Tint
+    - Clarity: Direct map to UniversalRecipe.Clarity
+    - Color Balance: Map to UniversalRecipe color adjustment fields (shadows/midtones/highlights)
+  </interfaces>
+
+  <tests>
+    <standards>
+      **Testing Framework:** Go standard library testing package
+      **Test Pattern:** Table-driven tests with filepath.Glob for file discovery (Pattern 7)
+      **Test Coverage Target:** ≥85% for costyle package
+      **Test File Location:** internal/formats/costyle/parse_test.go
+      **Sample Files:** testdata/costyle/*.costyle (minimum 3 files)
+      
+      **Test Categories:**
+      1. Valid file parsing (TestParse_ValidFile)
+      2. Minimal file parsing (TestParse_MinimalFile)
+      3. Error handling (TestParse_MalformedXML, TestParse_MissingElements, TestParse_OutOfRangeValues)
+      4. Parameter extraction validation (verify all fields populated correctly)
+      5. Performance benchmark (BenchmarkParse - target &lt;100ms)
+    </standards>
+    
+    <locations>
+      - internal/formats/costyle/parse_test.go (unit tests)
+      - testdata/costyle/*.costyle (test sample files)
+    </locations>
+    
+    <ideas>
+      **AC-1 Tests:**
+      - TestParse_ValidFile: Parse complete .costyle with all parameters, verify UniversalRecipe fields
+      - TestParse_CoreAdjustments: Verify exposure, contrast, saturation, temperature, tint, clarity extracted correctly
+      - TestParse_ColorBalance: Verify shadows/midtones/highlights hue/saturation extracted correctly
+      - TestParse_MissingOptionalFields: Verify parser handles missing optional parameters with zero values
+      - TestParse_XMLStructureValidation: Verify XML structure validation works (required elements present)
+      
+      **AC-2 Tests:**
+      - TestParse_ParameterScaling: Verify Capture One ranges mapped correctly to UniversalRecipe ranges
+      - TestParse_MetadataPreservation: Verify style name/author preserved in Metadata map
+      - TestParse_UnmappableParameters: Verify unmappable parameters stored in Metadata map or skipped gracefully
+      - TestParse_SourceFormat: Verify UniversalRecipe.SourceFormat set to "costyle"
+      
+      **AC-3 Tests:**
+      - TestParse_MalformedXML: Verify error returned for invalid XML syntax
+      - TestParse_MissingRDFElement: Verify error for missing RDF element
+      - TestParse_MissingDescriptionElement: Verify error for missing Description element
+      - TestParse_OutOfRangeExposure: Verify out-of-range exposure value clamped or error returned
+      - TestParse_OutOfRangeContrast: Verify out-of-range contrast value clamped or error returned
+      
+      **AC-4 Tests:**
+      - TestParse (table-driven): Test with all .costyle samples in testdata/costyle/
+      - TestParse_Coverage: Verify test coverage ≥85% with go test -cover
+      - BenchmarkParse: Verify parse performance &lt;100ms
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>1</storyId>
+    <title>DNG Camera Profile (DCP) Parser</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/9-1-dcp-parser.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>Recipe to parse DNG Camera Profile (.dcp) files and extract tone curve adjustments</iWant>
+    <soThat>I can convert Adobe camera profiles to other preset formats (NP3, XMP, lrtemplate,
+      .costyle) and use them across different editing software</soThat>
+    <tasks>
+      <task id="1" status="pending">Set Up DCP Package Structure (AC: All) - Create
+        internal/formats/dcp/ directory with types.go, parse.go, tiff.go, profile.go, parse_test.go,
+        and testdata/dcp/ for sample files</task>
+      <task id="2" status="pending">Add github.com/google/tiff Dependency (AC-1) - Add dependency to
+        go.mod and verify imports</task>
+      <task id="3" status="pending">Implement TIFF Reading (AC-1) - Implement readTIFF() and
+        extractCameraProfileTag() helpers for TIFF structure and tag 50740 extraction</task>
+      <task id="4" status="pending">Implement Camera Profile XML Parsing (AC-2, AC-3, AC-4) -
+        Implement parseProfile() for XML unmarshaling, tone curve parsing, and color matrix parsing</task>
+      <task id="5" status="pending">Analyze Tone Curve Shape (AC-3) - Implement analyzeToneCurve()
+        to extract exposure, contrast, highlights, shadows from piecewise linear curve points</task>
+      <task id="6" status="pending">Implement Parse() Function (AC-5) - Orchestrate TIFF reading →
+        XML extraction → tone curve analysis → UniversalRecipe mapping</task>
+      <task id="7" status="pending">Error Handling (AC-6) - Validate TIFF magic bytes, wrap errors
+        with context, handle corrupt files gracefully, clamp out-of-range values</task>
+      <task id="8" status="pending">Acquire Real DCP Sample Files (AC-7) - Download Adobe DCP
+        samples (Canon, Nikon, custom profiles) and add to testdata/dcp/ with README documenting
+        sources</task>
+      <task id="9" status="pending">Write Unit Tests (AC-7) - Test Parse() with valid DCP, missing
+        tone curve, non-identity matrices, corrupt TIFF, missing tag 50740, malformed XML, tone
+        curve analysis edge cases. Target ≥85% coverage</task>
+      <task id="10" status="pending">Documentation (AC-1 to AC-6) - Add package comments, function
+        documentation, update docs/parameter-mapping.md with DCP tone curve mappings, add testdata
+        README</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" title="Parse TIFF-based DCP Structure">
+      <item>✅ Read TIFF file using github.com/google/tiff library</item>
+      <item>✅ Validate TIFF magic bytes (II for little-endian, MM for big-endian)</item>
+      <item>✅ Parse TIFF Image File Directory (IFD) structure</item>
+      <item>✅ Extract standard TIFF tags (ImageWidth, ImageLength, etc.)</item>
+      <item>✅ Handle both standalone .dcp files and embedded DCP in DNG (standalone priority)</item>
+      <item>✅ Report parsing errors with clear messages (corrupt TIFF, missing IFD, etc.)</item>
+    </criterion>
+    <criterion id="AC-2" title="Extract Camera Profile XML">
+      <item>✅ Locate TIFF tag 50740 (CameraProfile tag)</item>
+      <item>✅ Extract XML data from tag 50740</item>
+      <item>✅ Validate XML structure (check for Adobe Camera Raw namespace)</item>
+      <item>✅ Parse ProfileName element (profile identity)</item>
+      <item>✅ Handle missing tag 50740 gracefully (return error: "not a valid DCP file")</item>
+      <item>✅ Support DCP v1.0-v1.6 format variations</item>
+    </criterion>
+    <criterion id="AC-3" title="Parse Tone Curve Adjustments">
+      <item>✅ Parse &lt;crs:ToneCurve&gt; XML element (piecewise linear curve points)</item>
+      <item>✅ Extract tone curve points as (input, output) pairs (0-255 range)</item>
+      <item>✅ Analyze tone curve shape to extract parameters: Exposure (midpoint shift), Contrast
+        (curve slope), Highlights (top-end curve shape), Shadows (bottom-end curve shape)</item>
+      <item>✅ Handle missing tone curve (use linear curve as fallback)</item>
+      <item>✅ Clamp extracted values to valid UniversalRecipe ranges</item>
+    </criterion>
+    <criterion id="AC-4" title="Parse Color Matrices (Identity Matrices)">
+      <item>✅ Parse &lt;crs:ColorMatrix1&gt; and &lt;crs:ColorMatrix2&gt; (if present)</item>
+      <item>✅ Recognize identity matrices (diagonal 1.0, off-diagonal 0.0)</item>
+      <item>✅ Skip full camera calibration (ForwardMatrix, CalibrationIlluminant) for MVP</item>
+      <item>✅ Log warning if non-identity matrices detected ("color calibration not supported")</item>
+      <item>✅ Store matrix data in Metadata map for future use (optional)</item>
+    </criterion>
+    <criterion id="AC-5" title="Return UniversalRecipe Representation">
+      <item>✅ Map parsed tone curve to UniversalRecipe fields: recipe.Exposure, recipe.Contrast,
+        recipe.Highlights, recipe.Shadows</item>
+      <item>✅ Preserve profile metadata (name, description if present)</item>
+      <item>✅ Store unsupported DCP data in Metadata map (matrices, HSV tables)</item>
+      <item>✅ Return populated *universal.Recipe and nil error on success</item>
+    </criterion>
+    <criterion id="AC-6" title="Handle Parsing Errors">
+      <item>✅ Validate TIFF magic bytes before parsing (fail fast if not TIFF)</item>
+      <item>✅ Report specific errors (line number or tag ID if possible)</item>
+      <item>✅ Handle corrupt TIFF files gracefully (no panics)</item>
+      <item>✅ Handle malformed XML in tag 50740 (return descriptive error)</item>
+      <item>✅ Handle out-of-range tone curve values (clamp to 0-255)</item>
+    </criterion>
+    <criterion id="AC-7" title="Unit Test Coverage">
+      <item>✅ Unit tests for Parse() function with real Adobe DCP samples</item>
+      <item>✅ Test edge cases (missing tone curve, identity matrices, corrupt TIFF)</item>
+      <item>✅ Test with minimum 3 real-world DCP files from Adobe</item>
+      <item>✅ Test coverage ≥85% for dcp/parse.go, dcp/tiff.go, dcp/profile.go</item>
+      <item>✅ All tests pass in CI</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD-Path-A.md</path>
+        <title>Product Requirements Document - Path A Enhancements</title>
+        <section>Epic 2: DCP Camera Profile Support</section>
+        <snippet>Parse DCP (DNG Camera Profile) files per Adobe DNG Specification 1.6, generate DCP
+          files from UniversalRecipe color adjustments, support XML-based camera profile structure,
+          validate compatibility with Adobe Camera Raw and Lightroom</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-path-a.md</path>
+        <title>Architecture - Recipe Path A Enhancements</title>
+        <section>Epic 2: DCP Camera Profile Support</section>
+        <snippet>Architecture components: internal/formats/dcp/ package with parse.go (TIFF reading
+          → XML extraction), tiff.go (low-level TIFF tag operations using github.com/google/tiff),
+          profile.go (Adobe camera profile XML parsing/generation), types.go (color matrices, tone
+          curves, HSV tables). Key design: split TIFF operations from XML profile logic, use
+          identity matrices for non-calibration use cases.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-9.md</path>
+        <title>Epic Technical Specification: DCP Camera Profile Support</title>
+        <section>Detailed Design - DCP File Structure and Tone Curve Analysis</section>
+        <snippet>DCP files are TIFF containers with Adobe Camera Profile XML embedded in tag 50740.
+          Focus on tone curve adjustments (exposure, contrast, highlights, shadows) mapped to
+          UniversalRecipe. Identity color matrices for non-calibration use. Tone curve analysis:
+          midpoint shift → Exposure, curve slope → Contrast, top-end (192-255) → Highlights,
+          bottom-end (0-64) → Shadows.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-9.md</path>
+        <title>Epic Technical Specification: DCP Camera Profile Support</title>
+        <section>Data Models and Contracts - Go Struct Mapping</section>
+        <snippet>CameraProfile struct with ToneCurve, ColorMatrix1/2. ToneCurve contains
+          ToneCurvePoint array with Input/Output (0-255 range). Custom XML unmarshaling for "input,
+          output" string format. Matrix struct with 3x3 float64 values for color transformation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-9.md</path>
+        <title>Epic Technical Specification: DCP Camera Profile Support</title>
+        <section>APIs and Interfaces - Parse and Generate Functions</section>
+        <snippet>Parse(data []byte) (*universal.Recipe, error): Read TIFF → extract tag 50740 →
+          parse XML → analyze tone curve → return UniversalRecipe. Key helpers: readTIFF(),
+          extractCameraProfileTag(), parseProfile(), analyzeToneCurve(), profileToUniversal(). Error
+          handling with fmt.Errorf wrapping.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/formats/np3/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>63-82</lines>
+        <reason>Reference pattern for Parse() function signature, error handling with fmt.Errorf
+          wrapping, validation flow (validateFileStructure → extractParameters → validateParameters
+          → buildRecipe)</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>192-228</lines>
+        <reason>Reference pattern for XML parsing with encoding/xml, ConversionError wrapping,
+          validateXMLStructure → unmarshal → extractParameters → validateParameters → buildRecipe
+          flow</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/lrtemplate/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>139-167</lines>
+        <reason>Reference pattern for parameter extraction and validation, ConversionError usage,
+          buildRecipe construction without builder pattern</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/costyle/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>28-86</lines>
+        <reason>Most recent XML parser implementation (Story 8-1), shows current XML parsing
+          patterns, metadata handling, parameter mapping with clamping</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>1-198</lines>
+        <reason>Complete UniversalRecipe struct definition showing all available fields for tone
+          curve mapping (Exposure, Contrast, Highlights, Shadows, Blacks, Whites), Metadata map for
+          unsupported DCP data</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>converter</kind>
+        <symbol>Convert</symbol>
+        <lines>53-89</lines>
+        <reason>Shows format detection and Parse() integration pattern for extending converter with
+          new DCP format (Story 9-5 will integrate here)</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>converter</kind>
+        <symbol>DetectFormat</symbol>
+        <lines>126-145</lines>
+        <reason>Format detection logic pattern for adding DCP recognition (TIFF magic bytes II/MM +
+          .dcp extension check)</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <module>github.com/google/tiff</module>
+        <version>latest</version>
+        <reason>NEW DEPENDENCY - Complete TIFF library for reading/writing custom TIFF tags (tag
+          50740 CameraProfile). Go stdlib image/tiff is decoder-only and doesn't support custom
+          tags.</reason>
+        <module>encoding/xml</module>
+        <version>stdlib</version>
+        <reason>Parse Adobe Camera Profile XML structure embedded in TIFF tag 50740</reason>
+        <module>encoding/json</module>
+        <version>stdlib</version>
+        <reason>JSON marshaling for test fixtures and verbose output</reason>
+        <module>fmt</module>
+        <version>stdlib</version>
+        <reason>Error wrapping with fmt.Errorf and %w verb</reason>
+        <module>bytes</module>
+        <version>stdlib</version>
+        <reason>TIFF data stream handling with bytes.NewReader</reason>
+        <module>io</module>
+        <version>stdlib</version>
+        <reason>Stream operations for TIFF reading</reason>
+        <module>math</module>
+        <version>stdlib</version>
+        <reason>Math operations for tone curve analysis (interpolation, clamping)</reason>
+        <module>github.com/justin/recipe/internal/models</module>
+        <version>internal</version>
+        <reason>UniversalRecipe struct definition</reason>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Follow exact pattern of existing format packages (np3, xmp, lrtemplate, costyle):
+      Parse(data []byte) (*models.UniversalRecipe, error) signature</constraint>
+    <constraint>Maintain hub-and-spoke architecture: DCP → UniversalRecipe only (no direct
+      format-to-format conversion)</constraint>
+    <constraint>Performance target: &lt;200ms DCP parsing (slower than other formats acceptable due
+      to TIFF overhead)</constraint>
+    <constraint>Test coverage: ≥85% for dcp package (parse.go, tiff.go, profile.go)</constraint>
+    <constraint>Error handling: Use fmt.Errorf with %w verb for error wrapping, no panics, all
+      errors via return value</constraint>
+    <constraint>Validation: Fail-fast approach - validate TIFF magic bytes before parsing, check tag
+      50740 exists, validate XML structure</constraint>
+    <constraint>Focus on tone curves only: Skip full camera calibration (ForwardMatrix, ColorMatrix,
+      dual illuminant) for MVP</constraint>
+    <constraint>Use identity color matrices: Diagonal 1.0, off-diagonal 0.0 (no camera-specific
+      calibration)</constraint>
+    <constraint>Clamp extracted values: Exposure (-2.0 to +2.0), Contrast/Highlights/Shadows (-1.0
+      to +1.0)</constraint>
+    <constraint>Document limitations: Update docs/parameter-mapping.md with DCP tone curve mappings
+      and unsupported features (color matrices, HSV tables, dual illuminant)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Parse(data []byte) (*models.UniversalRecipe, error)</name>
+      <kind>function signature</kind>
+      <signature>func Parse(data []byte) (*models.UniversalRecipe, error)</signature>
+      <path>internal/formats/dcp/parse.go</path>
+      <description>Main DCP parser function - validates TIFF structure, extracts camera profile XML
+        from tag 50740, analyzes tone curve, returns UniversalRecipe or error</description>
+    </interface>
+    <interface>
+      <name>readTIFF(data []byte) (*tiff.TIFF, error)</name>
+      <kind>helper function</kind>
+      <signature>func readTIFF(data []byte) (*tiff.TIFF, error)</signature>
+      <path>internal/formats/dcp/tiff.go</path>
+      <description>Reads TIFF structure using github.com/google/tiff, validates magic bytes (II/MM),
+        returns parsed TIFF or error</description>
+    </interface>
+    <interface>
+      <name>extractCameraProfileTag(tf *tiff.TIFF) ([]byte, error)</name>
+      <kind>helper function</kind>
+      <signature>func extractCameraProfileTag(tf *tiff.TIFF) ([]byte, error)</signature>
+      <path>internal/formats/dcp/tiff.go</path>
+      <description>Extracts XML bytes from TIFF tag 50740 (CameraProfile tag), returns error if tag
+        not found</description>
+    </interface>
+    <interface>
+      <name>parseProfile(xmlData []byte) (*CameraProfile, error)</name>
+      <kind>helper function</kind>
+      <signature>func parseProfile(xmlData []byte) (*CameraProfile, error)</signature>
+      <path>internal/formats/dcp/profile.go</path>
+      <description>Unmarshals Adobe Camera Profile XML into CameraProfile struct, validates
+        namespace, parses tone curve points and color matrices</description>
+    </interface>
+    <interface>
+      <name>analyzeToneCurve(points []ToneCurvePoint) (exposure, contrast, highlights, shadows
+        float64)</name>
+      <kind>helper function</kind>
+      <signature>func analyzeToneCurve(points []ToneCurvePoint) (exposure, contrast, highlights,
+        shadows float64)</signature>
+      <path>internal/formats/dcp/profile.go</path>
+      <description>Analyzes tone curve shape to extract UniversalRecipe parameters: midpoint shift →
+        Exposure, slope → Contrast, top-end (192-255) → Highlights, bottom-end (0-64) → Shadows</description>
+    </interface>
+    <interface>
+      <name>profileToUniversal(profile *CameraProfile) *models.UniversalRecipe</name>
+      <kind>helper function</kind>
+      <signature>func profileToUniversal(profile *CameraProfile) *models.UniversalRecipe</signature>
+      <path>internal/formats/dcp/profile.go</path>
+      <description>Converts parsed DCP CameraProfile to UniversalRecipe, calls analyzeToneCurve(),
+        stores profile name in metadata, logs warning if non-identity matrices detected</description>
+    </interface>
+    <interface>
+      <name>CameraProfile struct</name>
+      <kind>data structure</kind>
+      <signature>type CameraProfile struct { XMLName xml.Name; ProfileName string; ToneCurve
+        *ToneCurve; ColorMatrix1/2 *Matrix }</signature>
+      <path>internal/formats/dcp/types.go</path>
+      <description>Represents Adobe DNG Camera Profile XML structure, includes tone curve points and
+        color matrices, supports custom XML unmarshaling for "input, output" format</description>
+    </interface>
+    <interface>
+      <name>ToneCurvePoint struct</name>
+      <kind>data structure</kind>
+      <signature>type ToneCurvePoint struct { Input int; Output int } // 0-255 range</signature>
+      <path>internal/formats/dcp/types.go</path>
+      <description>Single point on piecewise linear tone curve, custom UnmarshalXML/MarshalXML for
+        "input, output" string format parsing</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests follow Recipe's established patterns: table-driven tests with real sample files in
+      testdata/ directory, descriptive test names with Test{Function}_{Scenario} format, assertion
+      of both success cases and error conditions, coverage measured with go test -cover targeting
+      ≥85%. DCP tests use real Adobe sample files (Canon, Nikon, custom profiles) acquired from
+      Adobe Camera Raw SDK or DNG Profile Editor. Test organization: parse_test.go (Parse function
+      tests), tiff_test.go (TIFF tag operations), profile_test.go (tone curve analysis algorithms).
+    </standards>
+    <locations>
+      <location>internal/formats/dcp/parse_test.go</location>
+      <location>internal/formats/dcp/tiff_test.go</location>
+      <location>internal/formats/dcp/profile_test.go</location>
+      <location>internal/formats/dcp/testdata/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1">TestParse_ValidDCP - Parse real Adobe DCP sample (Canon/Nikon), verify
+        UniversalRecipe fields populated correctly (exposure, contrast near neutral)</idea>
+      <idea ac="AC-1">TestReadTIFF_ValidFile - Verify TIFF structure parsed correctly, IFD
+        accessible, magic bytes validated</idea>
+      <idea ac="AC-1">TestReadTIFF_InvalidMagicBytes - Non-TIFF file should return error "invalid
+        TIFF magic bytes"</idea>
+      <idea ac="AC-2">TestExtractCameraProfileTag_Present - Tag 50740 exists and returns XML bytes</idea>
+      <idea ac="AC-2">TestExtractCameraProfileTag_Missing - Tag 50740 missing should return error
+        "not a valid DCP file"</idea>
+      <idea ac="AC-2">TestParseProfile_ValidXML - Adobe Camera Profile XML unmarshals correctly,
+        ProfileName extracted</idea>
+      <idea ac="AC-2">TestParseProfile_MalformedXML - Invalid XML returns descriptive error</idea>
+      <idea ac="AC-3">TestAnalyzeToneCurve_LinearCurve - Linear curve (0,0 → 255,255) returns zero
+        exposure/contrast/highlights/shadows</idea>
+      <idea ac="AC-3">TestAnalyzeToneCurve_ExposureShift - Midpoint shift (+64) extracts positive
+        exposure value</idea>
+      <idea ac="AC-3">TestAnalyzeToneCurve_ContrastAdjustment - Steeper slope extracts positive
+        contrast value</idea>
+      <idea ac="AC-3">TestAnalyzeToneCurve_HighlightsShadows - Top-end and bottom-end curve
+        adjustments extract highlights/shadows correctly</idea>
+      <idea ac="AC-3">TestParse_MissingToneCurve - DCP without tone curve returns neutral recipe
+        (all parameters zero)</idea>
+      <idea ac="AC-4">TestParse_IdentityMatrix - Identity matrix detected, no warning logged</idea>
+      <idea ac="AC-4">TestParse_NonIdentityMatrix - Non-identity matrix logs warning "color
+        calibration not supported", stores matrix in metadata</idea>
+      <idea ac="AC-5">TestParse_MetadataPreservation - ProfileName stored in
+        recipe.Metadata["profile_name"]</idea>
+      <idea ac="AC-6">TestParse_CorruptTIFF - Truncated TIFF file returns error without panic</idea>
+      <idea ac="AC-6">TestParse_OutOfRangeValues - Tone curve points &gt;255 or &lt;0 are clamped
+        correctly</idea>
+      <idea ac="AC-7">Benchmark tests: BenchmarkParseDCP, BenchmarkAnalyzeToneCurve - verify
+        &lt;200ms performance target</idea>
+    </ideas>
+  </tests>
+</story-context>

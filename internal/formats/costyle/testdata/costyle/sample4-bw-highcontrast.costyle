@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:RDF>
+    <rdf:Description>
+      <Name>Black &amp; White High Contrast</Name>
+      <Author>Recipe Test Suite</Author>
+      <Desc>High contrast black and white preset with enhanced clarity</Desc>
+      <Exposure>0.3</Exposure>
+      <Contrast>40</Contrast>
+      <Saturation>-100</Saturation>
+      <Temperature>0</Temperature>
+      <Tint>0</Tint>
+      <Clarity>35</Clarity>
+      <ShadowsHue>0</ShadowsHue>
+      <ShadowsSaturation>0</ShadowsSaturation>
+      <MidtonesHue>0</MidtonesHue>
+      <MidtonesSaturation>0</MidtonesSaturation>
+      <HighlightsHue>0</HighlightsHue>
+      <HighlightsSaturation>0</HighlightsSaturation>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>

@@ -704,11 +704,12 @@ make coverage-html
 
 The test suite validates bidirectional conversions to ensure parameter fidelity:
 
-**Full Fidelity (4 paths):**
+**Full Fidelity (5 paths):**
 - ✅ NP3 → XMP → NP3
 - ✅ NP3 → lrtemplate → NP3
 - ✅ XMP → lrtemplate → XMP
 - ✅ lrtemplate → XMP → lrtemplate
+- ✅ **Costyle → UniversalRecipe → Costyle** - 98.4% accuracy (Story 8-4)
 
 **Known Limitations (2 paths):**
 - ⚠️ XMP → NP3 → XMP - Some parameters unsupported by NP3 format
@@ -719,7 +720,13 @@ NP3 is a proprietary binary format with limited parameter support compared to XM
 - ❌ Not supported: Vibrance, Temperature/Tint (partial), Grain, Vignette, Parametric Tone Curves
 - ✅ Well supported (Phase 2): Exposure, Contrast, Saturation, Sharpness, Highlights, Shadows, Whites, Blacks, Clarity, Mid-Range Sharpness, HSL Color (8 channels × 3 = 24 params), Color Grading (11 params), Tone Curve control points (up to 127 points)
 
-For detailed test results and format limitations, see [docs/stories/test-results-summary.md](docs/stories/test-results-summary.md).
+**Costyle (Capture One) Format Limitations:**
+The .costyle preset format supports core adjustments but not all UniversalRecipe parameters:
+- ✅ Supported: Exposure, Contrast, Saturation, Clarity, Temperature, Tint, Split Toning (Color Balance)
+- ❌ Not supported: HSL color adjustments, Highlights/Shadows/Whites/Blacks, Vibrance, Sharpness
+- 📊 Round-trip accuracy: 98.4% average (exceeds 95% requirement)
+
+For detailed test results and format limitations, see [docs/known-conversion-limitations.md](docs/known-conversion-limitations.md) and [docs/stories/test-results-summary.md](docs/stories/test-results-summary.md).
 
 ### Project Structure
 

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>6</storyId>
+    <title>Performance Optimization for 3G Load Times</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/10-6-performance-optimization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a photographer on a slow mobile connection</asA>
+    <iWant>Recipe to load in under 2 seconds on 3G networks</iWant>
+    <soThat>I can use the tool effectively even with limited bandwidth or in areas with poor connectivity</soThat>
+    <tasks>
+      <task id="T1">Run Initial WebPageTest Baseline (AC-1) - Run WebPageTest audit on current Recipe deployment, document baseline metrics (TTI, FCP, LCP, total page size), identify performance bottlenecks, create performance budget spreadsheet</task>
+      <task id="T2">Run Initial Lighthouse Audit (AC-2) - Run Lighthouse audit in Chrome DevTools, document baseline scores (Performance, Accessibility, Best Practices, SEO), identify failing audits, create action plan to reach ≥95 Performance score</task>
+      <task id="T3">Inline Critical CSS (AC-3) - Identify above-the-fold CSS, extract to critical.css, inline in index.html head, load non-critical CSS asynchronously, verify critical CSS size &lt;14 KB, test rendering</task>
+      <task id="T4">Remove External Dependencies (AC-4) - Audit current external requests, remove any external dependencies found, replace web fonts with system fonts, verify zero external requests</task>
+      <task id="T5">Optimize SVG Icons (AC-5) - Audit current SVG usage, optimize with SVGO, inline critical SVG icons, lazy-load non-critical SVG icons, verify file size reduction</task>
+      <task id="T6">Minify and Compress JavaScript (AC-6) - Install Terser, create build script in package.json, run build, verify minified JavaScript size, update index.html to use minified bundle, enable gzip compression</task>
+      <task id="T7">Lazy-Load WASM Module (AC-6) - Defer WASM loading until first file upload, remove WASM preload from head, test lazy loading</task>
+      <task id="T8">Optimize CSS Transitions for 60fps (AC-7) - Audit current animations, replace non-GPU properties with GPU-accelerated properties, add will-change hints, reduce transition durations, test on low-end device</task>
+      <task id="T9">Add Lighthouse CI to GitHub Actions (AC-2) - Create Lighthouse CI configuration (.lighthouserc.json), create GitHub Actions workflow, test Lighthouse CI locally, commit and push workflow</task>
+      <task id="T10">Run Final WebPageTest and Lighthouse Audits (AC-1, AC-2) - Run final WebPageTest audit, verify performance targets met, run final Lighthouse audit, document improvements</task>
+      <task id="T11">Manual Testing on Low-End Device (AC-7) - Test on Moto G4 (scrolling performance, animation performance), test on iPhone SE, document any performance issues found</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" priority="critical">
+      <title>Initial Page Load &lt;2 Seconds on 3G</title>
+      <description>WebPageTest validation: Load time &lt;2 seconds on 3G connection (1.6 Mbps). Measured from navigation start to fully interactive (Time to Interactive - TTI). Test location: Dulles, VA. Test device: Moto G4. Test network: 3G (1.6 Mbps down, 768 Kbps up, 300ms latency). Target: TTI &lt;2000ms, First Contentful Paint (FCP) &lt;1000ms.</description>
+    </criterion>
+    <criterion id="AC-2" priority="critical">
+      <title>Lighthouse Performance Score ≥95</title>
+      <description>Lighthouse CI audit: Performance score ≥95, Accessibility score ≥95 (maintained from previous stories), Best Practices score ≥95, SEO score ≥90. Run Lighthouse in CI/CD pipeline (GitHub Actions). Block PR merge if score drops below 90.</description>
+    </criterion>
+    <criterion id="AC-3" priority="high">
+      <title>Critical CSS Inlined</title>
+      <description>Above-the-fold CSS inlined in head tag (base styles, hero section, upload drop zone). Non-critical CSS loaded asynchronously (file cards, badges, conversion controls). Inline CSS size &lt;14 KB (TCP slow-start threshold). Total CSS transferred &lt;50 KB (gzipped).</description>
+    </criterion>
+    <criterion id="AC-4" priority="high">
+      <title>Zero External Dependencies</title>
+      <description>No CDN-hosted resources (no Google Fonts, Font Awesome, external analytics, external JavaScript libraries). All resources self-hosted (WASM, CSS, JavaScript). No third-party requests verified with Network DevTools.</description>
+    </criterion>
+    <criterion id="AC-5" priority="medium">
+      <title>Image and Asset Optimization</title>
+      <description>SVG icons optimized (remove metadata, minify with SVGO, inline critical icons). No raster images (PNG/JPG) used. Use SVG for all graphics and CSS gradients for backgrounds. Favicon optimized (SVG favicon with ICO fallback &lt;5 KB).</description>
+    </criterion>
+    <criterion id="AC-6" priority="high">
+      <title>JavaScript Bundle Optimization</title>
+      <description>JavaScript minified with Terser and gzip compressed. Size budget: Total JS transferred &lt;100 KB (gzipped, excluding WASM), WASM bundle &lt;2 MB (gzipped ~500 KB). Lazy-load non-critical JavaScript (conversion logic after page interactive, WASM on first file upload). No JavaScript render-blocking (use defer attribute or load at end of body).</description>
+    </criterion>
+    <criterion id="AC-7" priority="medium">
+      <title>60fps Scrolling and Animations</title>
+      <description>All animations use GPU-accelerated properties (transform and opacity, not left/top/width/height). CSS transitions &lt;300ms. No layout thrashing (batch DOM reads/writes). Use will-change for animated elements. Test on low-end mobile device (Moto G4, 60fps maintained).</description>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <artifact path="docs/tech-spec-epic-10.md" title="Epic 10 Technical Specification" section="Performance Requirements">
+        Performance optimization targets for Path A enhanced web UI. Initial page load &lt;2s on 3G (1.6 Mbps). Lighthouse Performance score ≥95. Critical CSS inlined (&lt;14 KB TCP threshold). Zero external dependencies (no CDN fonts, no analytics). WASM bundle &lt;500 KB gzipped (lazy-loaded on first file upload). GPU-accelerated animations (transform, opacity) for 60fps scrolling.
+      </artifact>
+      <artifact path="docs/tech-spec-epic-10.md" title="Epic 10 Technical Specification" section="Services and Modules">
+        Web interface module structure: index.html (landing page), css/main.css (global styles, CSS variables), css/components.css (badges, buttons, cards), css/layout.css (responsive grid), js/upload.js (batch upload, drag-drop), js/app.js (main logic). Existing: web/js/converter.js (WASM interface), web/static/wasm_exec.js (Go runtime).
+      </artifact>
+      <artifact path="docs/tech-spec-epic-10.md" title="Epic 10 Technical Specification" section="CSS Variables and Design Tokens">
+        Format badge colors defined: NP3=#FFC107 (Nikon yellow), XMP=#0073E6 (Adobe blue), lrtemplate=#D81B60 (Magenta), Capture One=#9C27B0 (Purple), DCP=#4CAF50 (Green). System fonts for performance. Spacing scale (xs:4px, sm:8px, md:16px, lg:24px, xl:32px). Breakpoints: mobile &lt;768px, tablet 768-1024px, desktop &gt;1024px.
+      </artifact>
+      <artifact path="docs/PRD-Path-A.md" title="Path A PRD" section="Epic 3: Enhanced Web UI/UX">
+        FR-3.1: Redesigned landing page with hero, value prop, format badges. FR-3.3: Batch file upload via drag-drop. FR-3.4: Progress indicators for multi-file conversions. FR-3.5: Mobile-responsive design (320px+, 768px+, 1024px+). FR-3.7: Improved conversion flow with instant format detection. Target: &lt;2s load time on 3G, Lighthouse ≥95, zero external dependencies.
+      </artifact>
+      <artifact path="docs/PRD.md" title="Original PRD" section="NFR-1: Performance">
+        WASM conversion speed &lt;100ms per file. WASM load time &lt;2s first visit. Bundle size targets: WASM &lt;3MB compressed, JavaScript &lt;100KB compressed, CSS &lt;50KB compressed, total first load &lt;5MB. Optimization: tree-shaking, minification, asset compression, service worker caching, lazy loading non-critical resources.
+      </artifact>
+      <artifact path="docs/performance-benchmarks.md" title="Performance Benchmarks" section="WASM Binary Size">
+        Current WASM binary: 4.1 MB unstripped (18% under 5MB target), 4.0 MB stripped (2x larger than 2MB target due to WASM limitations), 1.13 MB gzipped (41% over 800KB target but acceptable for CDN). WASM loads in &lt;1s on 3G when gzipped. Build optimization flags: -ldflags="-s -w".
+      </artifact>
+      <artifact path="docs/stories/6-3-performance-benchmarking.md" title="Story 6-3: Performance Benchmarking" section="Completion Notes">
+        Conversion performance: 0.003-0.079ms per file (1,269x-30,303x faster than targets). WASM binary optimization documented. Makefile build commands for production (stripped + gzipped). CI/CD integration with GitHub Actions. Performance regression detection automated.
+      </artifact>
+      <artifact path="docs/browser-compatibility.md" title="Browser Compatibility" section="WASM Loading">
+        WASM load time targets: First visit &lt;3s, cached visit &lt;500ms. Browser requirements: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+. WebAssembly MVP support required. Network DevTools verification for zero external requests (privacy requirement).
+      </artifact>
+      <artifact path="docs/architecture.md" title="Architecture" section="Deployment - Cloudflare Pages">
+        Web interface deployed to Cloudflare Pages with automatic gzip compression (WASM reduced 70%). Global CDN with sub-100ms latency. HTTPS by default. Directory structure: web/index.html, web/static/*.js, web/static/style.css, web/recipe.wasm.
+      </artifact>
+      <artifact path="docs/stories/2-10-responsive-design.md" title="Story 2-10: Responsive Design" section="Mobile Performance">
+        Mobile performance targets: WASM loads &lt;5s on 3G, conversion &lt;500ms, First Contentful Paint &lt;3s, 60fps smooth scrolling. Responsive breakpoints implemented: 320px (phone), 768px (tablet), 1024px+ (desktop). Touch targets ≥48×48px (WCAG AAA).
+      </artifact>
+    </docs>
+    <code>
+      <artifact path="web/index.html" kind="html" symbol="main structure" lines="1-400" reason="Current landing page structure that needs performance optimization. Contains hero section, drop zone, status banners, footer. Critical CSS will be extracted from linked stylesheet and inlined in head for faster FCP."/>
+      <artifact path="web/static/style.css" kind="css" symbol="global styles" lines="1-1946" reason="Main stylesheet (1946 lines) containing all current styles. Needs to be split into critical (above-fold) and non-critical (below-fold) CSS. Critical CSS will be inlined, non-critical loaded asynchronously to meet &lt;2s load time on 3G."/>
+      <artifact path="web/static/main.js" kind="javascript" symbol="init function" lines="1-100" reason="Main entry point that initializes WASM, drag-drop, event listeners. Needs optimization: defer WASM loading until first file upload (lazy-loading strategy), minify with Terser, use defer attribute to avoid render-blocking."/>
+      <artifact path="web/static/wasm-loader.js" kind="javascript" symbol="initializeWASM" lines="1-50" reason="WASM loader that currently loads on page load. Needs refactoring to support lazy-loading (load only when first file is uploaded), reducing initial page load time by ~500KB (gzipped WASM)."/>
+      <artifact path="web/recipe.wasm" kind="wasm" symbol="conversion engine" lines="N/A" reason="WebAssembly binary (1.13 MB gzipped) currently loaded eagerly. Needs lazy-loading strategy to defer until first file upload, improving TTI from ~2.5s to ~1.5s on 3G."/>
+      <artifact path="web/static/responsive.js" kind="javascript" symbol="initializeResponsive" lines="1-95" reason="Handles responsive design adaptations (touch detection, orientation). Performance already optimized (no layout thrashing), animations use GPU-accelerated properties. May need further review for 60fps target on low-end devices."/>
+      <artifact path="Makefile" kind="makefile" symbol="wasm target" lines="N/A" reason="Build system that compiles WASM with -ldflags='-s -w' optimization flags. Needs new build targets for JavaScript minification (Terser), critical CSS extraction, and production bundle generation."/>
+      <artifact path="go.mod" kind="go-module" symbol="dependencies" lines="1-30" reason="Go module file showing zero external Go dependencies (only stdlib). Recipe uses vanilla JavaScript with no npm dependencies, maintaining zero external dependencies principle for security and privacy."/>
+    </code>
+    <dependencies>
+      <go>
+        <package name="github.com/spf13/cobra" version="v1.10.1">CLI framework (not used by web interface)</package>
+      </go>
+      <javascript>
+        <note>Zero external dependencies - vanilla JavaScript ES6+</note>
+        <note>No npm packages, no build tools (except minification for production)</note>
+      </javascript>
+      <browser-apis>
+        <api name="WebAssembly">Required for WASM conversion engine. Supported Chrome 90+, Firefox 88+, Safari 14+, Edge 90+</api>
+        <api name="File API">FileReader, Blob, URL.createObjectURL for file handling</api>
+        <api name="CSS Filters">Native browser GPU-accelerated filters for future preview feature (Epic 11)</api>
+        <api name="ES6 Modules">import/export for code organization</api>
+      </browser-apis>
+      <build-tools>
+        <tool name="Terser">JavaScript minification (to be added in this story). Install: npm install -g terser or npm install --save-dev terser</tool>
+        <tool name="SVGO">SVG optimization (optional, if SVG icons present). Install: npm install -g svgo</tool>
+        <tool name="Lighthouse CI">Performance auditing in CI/CD. Install: npm install -g @lhci/cli</tool>
+      </build-tools>
+      <deployment>
+        <platform name="Cloudflare Pages">Automatic deployment from GitHub, gzip compression enabled, global CDN, HTTPS enforced</platform>
+      </deployment>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Privacy-first: All processing must remain client-side. Zero external dependencies (no CDN fonts, no analytics, no external scripts). Network DevTools must show zero requests during conversion.</constraint>
+    <constraint type="performance">Initial page load &lt;2 seconds on 3G connection (1.6 Mbps). Time to Interactive (TTI) &lt;2000ms. First Contentful Paint (FCP) &lt;1000ms. Lighthouse Performance score ≥95. All ACs must be measurable via WebPageTest and Lighthouse CI.</constraint>
+    <constraint type="performance">WASM binary size: 1.13 MB gzipped (cannot be reduced significantly due to Go WASM limitations). Must be lazy-loaded to avoid blocking initial page load. Critical path: HTML → Critical CSS → FCP, then defer JS and WASM.</constraint>
+    <constraint type="performance">Critical CSS must be &lt;14 KB (TCP slow-start threshold). Above-fold only: hero section, upload drop zone, base typography. Non-critical CSS loaded asynchronously after FCP.</constraint>
+    <constraint type="performance">JavaScript bundle optimization: minify with Terser, gzip compression (target &lt;100 KB gzipped total). Use defer attribute or load at end of body to avoid render-blocking.</constraint>
+    <constraint type="performance">Animations must use GPU-accelerated CSS properties only (transform, opacity). No layout-triggering properties (width, height, top, left). Use will-change hints for animated elements. Target: 60fps on low-end mobile (Moto G4).</constraint>
+    <constraint type="browser">Browser compatibility: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+. WebAssembly required. ES6+ JavaScript. CSS Grid and Flexbox. No IE11 support needed.</constraint>
+    <constraint type="deployment">Cloudflare Pages deployment with automatic gzip compression. HTTPS enforced. Global CDN with &lt;100ms latency. No server-side code (static site only).</constraint>
+    <constraint type="testing">Manual testing required: WebPageTest (3G load time), Lighthouse audit (Performance ≥95), real device testing (Moto G4 or equivalent low-end Android). Lighthouse CI in GitHub Actions blocks PRs if score &lt;90.</constraint>
+    <constraint type="code-quality">Vanilla JavaScript only (no frameworks, no build tools beyond minification). Maintain existing module structure (ES6 imports). All functions must remain testable. No breaking changes to existing Story 2-10 responsive design.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="WASM Conversion API" kind="function" signature="async convertFile(inputData: Uint8Array, targetFormat: string): Promise&lt;Uint8Array&gt;" path="web/static/converter.js">
+      Core conversion function that calls WASM engine. Performance: &lt;100ms per file (currently 0.003-0.079ms). Used by Story 2-6 conversion flow. No changes needed for performance story, but lazy-loading WASM affects when this becomes available.
+    </interface>
+    <interface name="File Upload Handler" kind="function" signature="initializeDropZone(): void" path="web/static/file-handler.js">
+      Sets up drag-drop zone and file picker. Dispatches 'fileLoaded' event with file data. Performance: &lt;100ms file read feedback. Needs to trigger WASM lazy-load on first file upload.
+    </interface>
+    <interface name="CSS Filter Preview" kind="api" signature="element.style.filter = 'brightness() contrast() saturate()'" path="browser-native">
+      Native CSS filter API for approximate preset preview (Epic 11). GPU-accelerated by default. Performance: &lt;100ms render time. Story 10-6 ensures base page performance supports future preview integration.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Performance optimization requires manual testing with real-world performance measurement tools. Testing approach combines automated Lighthouse CI (Performance score ≥95 gate) with manual WebPageTest validation (3G load time &lt;2s). Real device testing on low-end mobile (Moto G4 or equivalent) validates 60fps scrolling and animation performance. Browser DevTools Network tab verifies zero external requests (privacy requirement). No automated unit tests for CSS/HTML changes, but build scripts validate JavaScript minification and critical CSS extraction. Lighthouse CI integrated in GitHub Actions blocks PR merge if Performance score drops below 90.
+    </standards>
+    
+    <locations>
+      <location>.github/workflows/lighthouse-ci.yml</location>
+      <location>.lighthouserc.json</location>
+      <location>docs/performance-benchmarks.md</location>
+    </locations>
+    
+    <ideas>
+      <idea ac="AC-1" description="Run WebPageTest audit on 3G network (Dulles, VA, Moto G4 device) and verify TTI &lt;2000ms, FCP &lt;1000ms. Document baseline metrics before optimization and final metrics after all tasks complete. Compare improvements."/>
+      <idea ac="AC-2" description="Run Lighthouse audit in Chrome DevTools and verify Performance ≥95, Accessibility ≥95, Best Practices ≥95, SEO ≥90. Create Lighthouse CI configuration and GitHub Actions workflow to run on every PR. Test locally with lhci autorun before committing."/>
+      <idea ac="AC-3" description="Measure critical CSS size after extraction and verify &lt;14 KB. Test page rendering with network throttled to ensure above-fold content displays correctly before async CSS loads. Verify no FOUC (Flash of Unstyled Content)."/>
+      <idea ac="AC-4" description="Open Network DevTools and load Recipe page. Verify zero requests to external domains (no CDN fonts, no analytics). Confirm all resources (CSS, JS, WASM) served from recipe.justins.studio domain. Test with Privacy Badger or similar tool."/>
+      <idea ac="AC-5" description="Run SVGO on any SVG icons present and measure file size reduction. Verify optimized SVGs render correctly. If no SVGs present, document that task is not applicable (N/A)."/>
+      <idea ac="AC-6" description="Run Terser on JavaScript files and measure minified+gzipped size. Verify &lt;100 KB total (excluding WASM). Test minified bundle in browser to ensure no runtime errors. Add Makefile build target for production bundle generation."/>
+      <idea ac="AC-7" description="Test scrolling performance on low-end device (Moto G4 or Chrome DevTools CPU throttling 6x slowdown). Record Performance timeline and verify 60fps maintained. Check all animations use transform/opacity (not layout-triggering properties). Add will-change hints to animated elements."/>
+    </ideas>
+  </tests>
+</story-context>

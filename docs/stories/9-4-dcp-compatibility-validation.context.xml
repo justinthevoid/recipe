@@ -1,0 +1,77 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>4</storyId>
+    <title>DCP Compatibility Validation with Adobe Software</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/9-4-dcp-compatibility-validation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>Recipe-generated DNG Camera Profile (.dcp) files validated for compatibility with Adobe Camera Raw and Lightroom Classic</iWant>
+    <soThat>I can confidently use converted presets in my Adobe photography workflow without errors or visual discrepancies</soThat>
+    <tasks>Manual validation testing story - 8 task groups including: 1) Prepare test environment with Adobe software and RAW samples, 2) Test Adobe Camera Raw compatibility with 3 DCPs, 3) Test Lightroom Classic compatibility, 4) Visual similarity validation comparing generated DCPs to originals, 5) Performance benchmarking with 10 different presets, 6) Multi-camera model testing across 5 camera RAW formats, 7) Create comprehensive validation report documenting all findings, 8) Document DCP installation instructions for Windows and macOS</tasks>
+  </story>
+
+  <acceptanceCriteria>
+**AC-1: Adobe Camera Raw Compatibility** - Generated DCPs load without errors in ACR, test with 3 DCPs (neutral/portrait/landscape), apply to test images (Nikon/Canon/DNG), verify no errors and tone adjustments visible
+
+**AC-2: Lightroom Classic Compatibility** - Generated DCPs load without errors in Lightroom, import to Camera Profiles folder, apply to test images, verify tone curve adjustments visible, test with Lightroom Classic 13.0+
+
+**AC-3: Visual Similarity Validation** - Compare Recipe DCPs to original presets visually, acceptable criteria: Exposure ±0.1 stops, Contrast ±5%, Highlights/Shadows ±10%, document discrepancies, test with portrait/landscape/product images
+
+**AC-4: Performance Validation** - Measure DCP generation performance with 10 inputs, target &lt;200ms per DCP, test on multiple platforms, document results
+
+**AC-5: Multi-Camera Model Testing** - Test DCPs with 5 camera RAWs (Nikon/Canon/Sony/Fujifilm/DNG), verify identity matrices work universally, document compatibility
+
+**AC-6: Document Known Issues** - Create validation report testdata/dcp/validation-report.md with all findings, list known issues (identity matrix limitations, tone curve precision), include troubleshooting guidance
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-9.md" title="Epic 9 Technical Specification" section="AC-4 Compatibility Validation" snippet="Manual validation in Adobe Camera Raw and Lightroom Classic required. Performance target &lt;200ms. Test with multiple camera models." />
+      <doc path="docs/tech-spec-epic-9.md" title="Epic 9 Technical Specification" section="Test Strategy" snippet="Load generated DCPs in Adobe software, apply to RAW images, verify tone curves, document results with 3-5 preset styles" />
+      <doc path="docs/tech-spec-epic-9.md" title="Epic 9 Technical Specification" section="Known Limitations" snippet="Identity matrix approach: tone adjustments supported but camera calibration unsupported. Dual illuminant and HSV tables not in v0.1.0" />
+      <doc path="docs/stories/9-3-dcp-parameter-mapping.md" title="Story 9-3 DCP Parameter Mapping" section="Real DCP Samples" snippet="Acquire samples from Adobe Camera Raw Camera Profiles folder or Adobe DNG SDK" />
+    </docs>
+    <code>
+      <artifact path="internal/formats/dcp/generate.go" kind="generator" symbol="Generate" reason="DCP generation for creating test DCPs (neutral/portrait/landscape presets)" />
+      <artifact path="internal/formats/dcp/generate.go" kind="parser" symbol="parseDCP" reason="DCP parsing for analyzing Adobe DCP samples and comparing to Recipe-generated" />
+      <artifact path="testdata/dcp/" kind="test-data" symbol="sample files" reason="Real Adobe DCP samples for validation testing" />
+    </code>
+    <dependencies>
+      <go>
+        <package name="github.com/google/tiff" version="latest" reason="TIFF library for DCP file format" />
+        <package name="testing" version="stdlib" reason="Benchmark tests for performance validation" />
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>This is a 100% manual testing story. Adobe Camera Raw and Lightroom Classic have no programmatic API. Justin must personally execute all tests, take screenshots, and document findings. Adobe Creative Cloud subscription required (ACR 13.0+, Lightroom Classic 13.0+). Test on Windows/macOS only (Adobe software unavailable on Linux). Performance target &lt;200ms for DCP generation (slower than other formats due to TIFF overhead - this is acceptable). Identity matrices used (no camera calibration), meaning tone adjustments work but colors not camera-accurate. Test requires minimum 5 camera RAW files stored in testdata/dcp/raw-samples/ (not committed to git due to size). Validation report must be comprehensive: Executive Summary, Test Environment, ACR Testing, Lightroom Testing, Visual Similarity, Performance, Camera Compatibility, Known Issues, Troubleshooting, Conclusion.</constraints>
+
+  <interfaces>
+    <interface name="DCP File Structure" kind="file format" description="TIFF container with IFD containing tag 50740 (CameraProfile XML)" />
+    <interface name="Adobe Camera Profile XML" kind="XML schema" description="Embedded in tag 50740, contains ToneCurve (5-point piecewise linear), ColorMatrix1/2 (identity matrices), ProfileName" />
+    <interface name="Windows DCP Installation" kind="file path" description="Copy DCPs to C:\Users\username\AppData\Roaming\Adobe\CameraRaw\CameraProfiles\" />
+    <interface name="macOS DCP Installation" kind="file path" description="Copy DCPs to ~/Library/Application Support/Adobe/CameraRaw/CameraProfiles/" />
+    <interface name="Generate(recipe)" kind="function" signature="func Generate(recipe *universal.Recipe) ([]byte, error)" path="internal/formats/dcp/generate.go" description="Creates DCP from UniversalRecipe" />
+    <interface name="Parse(data)" kind="function" signature="func Parse(data []byte) (*universal.Recipe, error)" path="internal/formats/dcp/parse.go" description="Extracts UniversalRecipe from DCP" />
+    <interface name="BenchmarkGenerate" kind="test" signature="func BenchmarkGenerate(b *testing.B)" path="internal/formats/dcp/benchmark_test.go" description="Performance test for AC-4" />
+  </interfaces>
+
+  <tests>
+    <standards>Manual testing PRIMARY for this story - no programmatic Adobe API. Performance benchmarking automated with go test -bench. Justin executes all validation tests personally. Test artifacts (screenshots, validation report) in testdata/dcp/validation/. Platform: Windows/macOS with Adobe Creative Cloud.</standards>
+    <locations>testdata/dcp/validation/ (screenshots and report), testdata/dcp/raw-samples/ (5 camera RAWs), testdata/dcp/generated/ (test DCPs), internal/formats/dcp/benchmark_test.go (performance tests)</locations>
+    <ideas>
+AC-1: Test neutral/portrait/landscape DCPs in ACR with Nikon/Canon/DNG RAWs, screenshot all results
+AC-2: Install DCPs in Lightroom CameraProfiles folder, apply to RAWs, verify tone curves visible, screenshot results
+AC-3: Side-by-side compare generated vs original presets, rate similarity 1-10 (target 8+), measure exposure/contrast/highlights/shadows differences
+AC-4: Create BenchmarkGenerate test with 10 different presets, run go test -bench, record avg time (target &lt;200ms), compare to other formats
+AC-5: Apply same DCP to 5 camera RAWs, verify universal compatibility, document results in table
+AC-6: Create validation-report.md with 10 sections, include all screenshots, list known issues, add troubleshooting guide
+    </ideas>
+  </tests>
+</story-context>

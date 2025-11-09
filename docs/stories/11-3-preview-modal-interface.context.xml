@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>3</storyId>
+    <title>Preview Modal with Before/After Slider</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/11-3-preview-modal-interface.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer evaluating preset conversions</asA>
+    <iWant>a modal interface with a before/after slider to preview presets on reference images</iWant>
+    <soThat>I can visually compare the original and filtered versions before converting my files</soThat>
+    <tasks>
+### Task 1: Create Modal HTML Structure (AC-1, AC-2, AC-3)
+- Create modal HTML template in `web/index.html` with preview modal structure
+- Add "Preview" button to upload screen
+- Enable "Preview" button after file upload in upload logic
+
+### Task 2: Implement Modal Open/Close Logic (AC-1, AC-6)
+- Create `web/js/modal.js` with modal management (open/close functions)
+- Lock body scroll when modal opens
+- Implement focus trap to keep keyboard navigation within modal
+- Handle Esc key and overlay click to close modal
+
+### Task 3: Implement Before/After Slider (AC-2)
+- Create slider CSS with clip-path for smooth before/after reveal
+- Implement slider drag interaction (mouse and touch)
+- Add keyboard navigation (arrow keys)
+- Apply CSS filters to "after" image
+- GPU acceleration with will-change: clip-path
+
+### Task 4: Implement Tab Switching (AC-3)
+- Add tab switching logic to switch between Portrait/Landscape/Product reference images
+- Update ARIA attributes for accessibility
+- Keyboard arrow keys to navigate tabs
+- Announce tab changes to screen readers with ARIA live region
+
+### Task 5: Display Preset Parameters (AC-4)
+- Create parameter display function to format recipe parameters
+- Format positive values with plus sign, negative with minus
+- Omit zero values from display
+- Join parameters with bullet separator (•)
+- Update parameter display when modal opens
+
+### Task 6: Implement Convert Now Button (AC-5)
+- Add click handler for "Convert Now" button
+- Close modal and trigger conversion workflow
+- Show progress indicator during conversion
+- Download converted file when complete
+
+### Task 7: Modal Accessibility (AC-7)
+- Add ARIA attributes to modal HTML
+- Implement focus trap for keyboard navigation
+- Test keyboard navigation (Tab, Arrow keys, Esc)
+- Test screen reader support (NVDA, VoiceOver, TalkBack)
+
+### Task 8: Mobile Full-Screen Layout (AC-8)
+- Add mobile-specific CSS for full-screen modal
+- Implement touch interactions (tap, drag, swipe)
+- Larger touch targets for mobile (60-80px slider handle)
+- Fixed bottom button layout on mobile
+
+### Task 9: Integration with Story 11.1 and Story 11.2
+- Apply CSS filters from Story 11.1 to filtered image
+- Load reference images from Story 11.2
+- Verify responsive image loading (WebP with JPEG fallback)
+
+### Task 10: Manual Testing and Documentation
+- Test modal interaction across browsers
+- Test mobile layout on real devices
+- Performance testing with Lighthouse
+- Browser compatibility testing
+- Add README section documenting preview modal
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+**AC-1: Modal Opens When Preview Button Clicked**
+- "Preview" button visible after file upload and format detection
+- Button enabled when valid preset file uploaded, disabled otherwise
+- Click event triggers modal open with fade-in animation (300ms)
+- Background dimmed with overlay, body scroll locked
+- Modal displays default reference image (Portrait) with CSS filters applied
+- Before/after slider initialized at 50% position
+
+**AC-2: Before/After Slider with Reference Image**
+- Slider structure: left side original, right side filtered, vertical divider line, drag handle
+- Slider interaction: mouse drag, touch drag, keyboard arrow keys (5% steps)
+- Smooth rendering at 60fps minimum with CSS clip-path
+- GPU acceleration with will-change: clip-path
+
+**AC-3: Tabs to Switch Between Reference Images**
+- Three tabs: Portrait, Landscape, Product
+- Active tab highlighted, inactive tabs muted
+- Tab click changes reference image, preserves slider position
+- Keyboard arrow keys switch tabs
+- ARIA attributes for accessibility
+
+**AC-4: Preset Parameters Displayed**
+- Parameter summary visible in modal below slider
+- Format: "Exposure +0.7 • Contrast +15 • Warmth +10"
+- Positive values with plus sign, negative with minus, zero values omitted
+
+**AC-5: Convert Now Button in Modal**
+- "Convert Now" button visible in modal (bottom right or center on mobile)
+- Click closes modal and proceeds to conversion
+- Shows progress indicator and downloads file when complete
+
+**AC-6: Close/Cancel Button Returns to Upload Screen**
+- Close button options: X button, Cancel button, overlay click, Esc key
+- Modal fades out (300ms), body scroll unlocked
+- Return to upload screen, file still uploaded
+
+**AC-7: Modal Keyboard Accessible**
+- Tab navigation through all interactive elements
+- Arrow keys switch tabs and move slider
+- Esc closes modal
+- Focus trap keeps navigation within modal
+- ARIA attributes for screen readers
+
+**AC-8: Mobile Full-Screen Modal with Touch-Friendly Controls**
+- Full-screen modal on mobile (&lt;600px viewport)
+- Touch interactions: tap and drag slider, tap sides to snap to 0%/100%
+- Larger slider handle (60-80px diameter)
+- Fixed bottom button layout, minimum 48px height touch targets
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <!-- PRD and Tech Spec -->
+      <doc path="docs/tech-spec-epic-11.md" title="Epic 11 Technical Specification" section="AC-3: Preview Modal Interface">
+        Preview modal requirements including modal open/close, before/after slider, tab switching, parameter display, keyboard navigation, mobile layout. Performance targets: modal open &lt;300ms, slider 60fps, CSS filter &lt;100ms.
+      </doc>
+      <doc path="docs/tech-spec-epic-11.md" title="Epic 11 Technical Specification" section="Data Models and Contracts">
+        Modal HTML structure, CSS filter mapping, slider implementation with clip-path, tab switching logic. Includes complete code examples for preview.js API.
+      </doc>
+      <doc path="docs/tech-spec-epic-11.md" title="Epic 11 Technical Specification" section="Before/After Slider Implementation Strategy">
+        CSS clip-path vs mask comparison. Recommends clip-path for 97% browser support, simple syntax, GPU acceleration. Slider position update with CSS variables.
+      </doc>
+      <doc path="docs/tech-spec-epic-11.md" title="Epic 11 Technical Specification" section="Focus Trap Implementation">
+        Focus trap ensures keyboard focus stays within modal. Implementation wraps Tab navigation from last to first element and vice versa.
+      </doc>
+      <doc path="docs/tech-spec-epic-11.md" title="Epic 11 Technical Specification" section="Mobile Touch Interactions">
+        Touch target sizes (44x44px minimum per WCAG 2.1). Mobile slider handle 80px diameter. Tap behavior to snap to 0%/100%.
+      </doc>
+
+      <!-- Existing Web Interface Documentation -->
+      <doc path="docs/stories/2-1-html-drag-drop-ui.md" title="Story 2-1: HTML Drag-Drop UI" section="HTML Structure">
+        Production HTML structure with header, status banner, drop zone, footer. Modular JavaScript architecture with separate modules for WASM, file handling, format detection.
+      </doc>
+      <doc path="docs/stories/2-4-parameter-preview-display.md" title="Story 2-4: Parameter Preview Display" section="Parameter Display Module">
+        Existing parameter display module with grouping, formatting, toggle functionality. Can be referenced for parameter formatting patterns.
+      </doc>
+      <doc path="docs/stories/2-4-parameter-preview-display.md" title="Story 2-4: Parameter Preview Display" section="CSS for Parameter Display">
+        Existing CSS patterns for parameter panels, headers, grids. Can be adapted for modal parameter display styling.
+      </doc>
+
+      <!-- Integration Stories -->
+      <doc path="docs/stories/11-1-css-filter-mapping.md" title="Story 11-1: CSS Filter Mapping" section="Story">
+        CSS filter function recipeToCSSFilters(recipe) must be available. Maps UniversalRecipe parameters to CSS filter string (brightness, contrast, saturate, hue-rotate).
+      </doc>
+      <doc path="docs/stories/11-2-reference-image-bundle.md" title="Story 11-2: Reference Image Bundle" section="Story">
+        Reference images at web/images/preview-*.webp and preview-*.jpg. Three images: Portrait (1200x1600), Landscape (1200x800), Product (1200x1200). Responsive: 400w, 800w, 1200px versions.
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Existing Web Interface Files -->
+      <file path="web/static/index.html" kind="html" lines="1-400" reason="Base HTML structure for adding modal. Contains drop zone, parameter panel, conversion controls that modal will integrate with.">
+        Existing production HTML with header, status banner, drop zone, parameter display, conversion controls. Modal will be added after main content area.
+      </file>
+      <file path="web/static/style.css" kind="css" lines="1-1946" reason="Existing CSS styles including drop zone, parameter panel, responsive breakpoints. Modal CSS will follow same design patterns.">
+        Comprehensive CSS with global reset, header styles, drop zone states, status banners, parameter panels, responsive design. Modal styles will match existing aesthetic.
+      </file>
+      <file path="web/static/main.js" kind="javascript" lines="1-100" reason="Main application entry point. Integrates all modules including file handling, format detection, parameter display. Preview modal will be integrated here.">
+        Imports WASM loader, file handler, format detector, parameter display, format selector, converter, downloader. Event flow: file upload → format detection → parameter display → format selection → conversion → download.
+      </file>
+      <file path="web/static/file-handler.js" kind="javascript" reason="File upload handling module. Preview button will need access to getCurrentFileData() and getCurrentFileName() functions.">
+        Manages drag-drop file upload, file validation, stores current file data. Exports functions to get current file data and filename.
+      </file>
+      <file path="web/static/parameter-display.js" kind="javascript" reason="Existing parameter display and formatting logic. Can be referenced for parameter formatting patterns in modal.">
+        Displays parameters in grouped panel with formatting (sign prefixes, units). Includes formatParameterValue() and groupParameters() functions.
+      </file>
+      <file path="web/static/converter.js" kind="javascript" reason="Conversion workflow module. 'Convert Now' button in modal will call convertFile() function.">
+        Handles WASM conversion calls, manages conversion state, emits conversion events. Exports convertFile(), getConvertedFileData(), getConvertedFileName().
+      </file>
+      <file path="web/static/downloader.js" kind="javascript" reason="File download module. After conversion from modal, downloads converted file.">
+        Enables file download after conversion, creates blob and download link, handles download state.
+      </file>
+      <file path="web/static/error-handler.js" kind="javascript" reason="Error handling module. Modal should use consistent error handling patterns.">
+        Global error handling for web interface, displays error messages with consistent styling and accessibility.
+      </file>
+
+      <!-- Epic 11 Story 11-1 Files (CSS Filters) -->
+      <file path="web/static/css-filters.js" kind="javascript" reason="Story 11-1: CSS filter mapping function. Modal will call recipeToCSSFilters(recipe) to generate filter string for 'after' image.">
+        Maps UniversalRecipe parameters to CSS filter functions. Exposure → brightness(), Contrast → contrast(), Saturation → saturate(), Temperature/Tint → sepia() + hue-rotate().
+      </file>
+
+      <!-- Epic 11 Story 11-2 Files (Reference Images) -->
+      <file path="web/images/preview-portrait.webp" kind="image" reason="Story 11-2: Portrait reference image for modal preview. 1200x1600px, &lt;200KB.">
+        Portrait reference image with neutral skin tone, natural lighting. Used as default image when modal opens.
+      </file>
+      <file path="web/images/preview-landscape.webp" kind="image" reason="Story 11-2: Landscape reference image for modal preview. 1200x800px, &lt;200KB.">
+        Landscape reference image with varied colors (sky, foliage, water). Switched via tab navigation.
+      </file>
+      <file path="web/images/preview-product.webp" kind="image" reason="Story 11-2: Product reference image for modal preview. 1200x1200px, &lt;200KB.">
+        Product/still-life reference image with textures and shadows. Switched via tab navigation.
+      </file>
+    </code>
+
+    <dependencies>
+      <frontend>
+        <package name="None" version="N/A">Pure vanilla JavaScript, no external dependencies</package>
+      </frontend>
+      <browser-apis>
+        <api name="CSS Filters Level 1" version="W3C Recommendation">brightness(), contrast(), saturate(), hue-rotate(), sepia()</api>
+        <api name="CSS clip-path" version="CSS Masking Module Level 1">inset() function for slider reveal</api>
+        <api name="CSS Custom Properties" version="CSS Variables">--slider-position for dynamic updates</api>
+        <api name="HTML dialog" version="HTML5">role="dialog", aria-modal="true" for modal accessibility</api>
+        <api name="ARIA 1.2" version="W3C Recommendation">aria-labelledby, aria-describedby, aria-live, aria-selected, aria-valuenow for screen readers</api>
+      </browser-apis>
+      <build>
+        <tool name="None" version="N/A">Static HTML/CSS/JS, no build step required</tool>
+      </build>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <!-- Technical Constraints -->
+    - Modal must load and open in &lt;300ms (instant feel per AC-1)
+    - Slider interaction must maintain 60fps minimum (per AC-2)
+    - CSS filters must apply in &lt;100ms (GPU accelerated per Story 11-1)
+    - Reference images must be &lt;200KB each (per Story 11-2, total &lt;600KB)
+    - Touch targets must be minimum 44x44px (WCAG 2.1 Level AA per AC-8)
+    - Modal must work on 3-year-old mobile devices (iPhone 8, Android mid-range)
+
+    <!-- Design Constraints -->
+    - Modal styles must match existing web interface aesthetic (purple gradient, clean modern design)
+    - Slider handle must have clear visual affordance (white circle with contrasting border)
+    - Tabs must have clear active/inactive states (highlighted vs muted)
+    - Parameter display must use consistent formatting with existing parameter panel (Story 2-4)
+
+    <!-- Browser Compatibility Constraints -->
+    - CSS clip-path support: Chrome 57+, Firefox 52+, Safari 11+, Edge 16+ (97% browser support)
+    - CSS filters support: Chrome 18+, Firefox 35+, Safari 9.1+, Edge 12+ (99% browser support)
+    - WebP images: Chrome 32+, Firefox 65+, Safari 14+, JPEG fallback for older browsers
+    - ARIA attributes: All modern browsers and screen readers (NVDA, VoiceOver, TalkBack)
+
+    <!-- Integration Constraints -->
+    - Must integrate with existing file upload workflow (Story 2-2)
+    - Must call recipeToCSSFilters() from Story 11-1
+    - Must load reference images from Story 11-2 (/web/images/)
+    - Must trigger conversion via Story 2-6 converter.js
+    - Must show progress indicator from Story 10-3 (when implemented)
+    - Must download file via Story 2-7 downloader.js
+
+    <!-- Accessibility Constraints -->
+    - Keyboard navigation must work without mouse (Tab, Arrow keys, Esc)
+    - Focus must trap within modal (no focus on background elements)
+    - Screen readers must announce modal title, tab changes, slider position
+    - Touch targets must meet WCAG 2.1 Level AA (44x44px minimum, modal uses 48-80px)
+    - Color contrast must meet WCAG 2.1 Level AA (4.5:1 for text)
+
+    <!-- Performance Constraints -->
+    - Modal animation must not cause layout shifts (prevent CLS issues)
+    - Slider drag must use GPU acceleration (will-change: clip-path)
+    - Tab switching must not block UI thread (&lt;50ms)
+    - Reference images must use lazy loading (loading="lazy" attribute)
+    - No JavaScript image processing (CSS filters only)
+  </constraints>
+
+  <interfaces>
+    <!-- Story 11-1: CSS Filter Mapping -->
+    <interface name="recipeToCSSFilters" kind="function" signature="recipeToCSSFilters(recipe: UniversalRecipe): string" path="web/static/css-filters.js">
+      Maps UniversalRecipe parameters to CSS filter string. Returns string like "brightness(120%) contrast(115%) saturate(130%)". Used to apply filters to "after" image in modal.
+    </interface>
+
+    <interface name="formatRecipeSummary" kind="function" signature="formatRecipeSummary(recipe: UniversalRecipe): string" path="web/static/css-filters.js">
+      Generates human-readable parameter summary. Returns string like "Exposure +0.7 • Contrast +15 • Warmth +10". Used to display parameters in modal (AC-4).
+    </interface>
+
+    <!-- Story 2-2: File Upload -->
+    <interface name="getCurrentFileData" kind="function" signature="getCurrentFileData(): Uint8Array" path="web/static/file-handler.js">
+      Returns raw file bytes of currently uploaded file. Used by preview modal to parse recipe parameters.
+    </interface>
+
+    <interface name="getCurrentFileName" kind="function" signature="getCurrentFileName(): string" path="web/static/file-handler.js">
+      Returns filename of currently uploaded file. Used in modal title: "Preview: filename.np3".
+    </interface>
+
+    <!-- Story 2-3: Format Detection -->
+    <interface name="getFormatDisplayName" kind="function" signature="getFormatDisplayName(format: string): string" path="web/static/format-detector.js">
+      Returns human-readable format name (e.g., "Nikon NP3", "Lightroom XMP"). Used in modal if format needs to be displayed.
+    </interface>
+
+    <!-- Story 2-6: Conversion -->
+    <interface name="convertFile" kind="function" signature="convertFile(fileData: Uint8Array, sourceFormat: string, targetFormat: string): Promise&lt;Uint8Array&gt;" path="web/static/converter.js">
+      Triggers WASM conversion. Called when user clicks "Convert Now" in modal. Returns promise with converted file data.
+    </interface>
+
+    <!-- Story 2-7: Download -->
+    <interface name="enableDownload" kind="function" signature="enableDownload(fileData: Uint8Array, filename: string): void" path="web/static/downloader.js">
+      Enables download button with converted file. Called after conversion completes from modal.
+    </interface>
+
+    <!-- WASM Extract Parameters -->
+    <interface name="extractParameters" kind="function" signature="extractParameters(fileData: Uint8Array, format: string): Promise&lt;string&gt;" path="cmd/wasm/main.go">
+      WASM function to extract UniversalRecipe parameters from file. Returns JSON string. Used to get recipe data for CSS filter mapping and parameter display.
+    </interface>
+
+    <!-- Modal Public API (To Be Created) -->
+    <interface name="showPreview" kind="function" signature="showPreview(file: UploadedFile, recipe: UniversalRecipe): void" path="web/static/preview.js">
+      Opens preview modal with specified file and recipe. Creates modal DOM, initializes slider, applies CSS filters, sets up event listeners.
+    </interface>
+
+    <interface name="closePreview" kind="function" signature="closePreview(): void" path="web/static/preview.js">
+      Closes preview modal with fade-out animation. Unlocks body scroll, returns focus to preview button, cleans up event listeners.
+    </interface>
+
+    <interface name="switchReferenceImage" kind="function" signature="switchReferenceImage(modal: HTMLElement, imageName: string): void" path="web/static/preview.js">
+      Switches between reference images (portrait, landscape, product). Updates img src, re-applies CSS filters, updates active tab state.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+Testing follows Epic 2 patterns: unit tests for pure functions (JavaScript), manual testing for DOM interactions and visual verification. No external test frameworks required - use browser console for unit tests and manual interaction for integration tests. Browser compatibility testing on Chrome, Firefox, Safari, Edge (latest versions). Mobile testing on real devices (iPhone, Android) or browser DevTools device emulation. Performance testing with Lighthouse CI for INP, CLS metrics. Accessibility testing with NVDA (Windows), VoiceOver (macOS/iOS), TalkBack (Android).
+    </standards>
+
+    <locations>
+      <location>web/tests/preview.test.js</location>
+      <location>Browser console for manual unit tests</location>
+      <location>Chrome/Firefox/Safari DevTools for debugging</location>
+      <location>Lighthouse CI for performance metrics</location>
+      <location>Manual testing documentation in story completion notes</location>
+    </locations>
+
+    <ideas>
+      <!-- Unit Tests (AC-4) -->
+      <test for="AC-4" type="unit">
+        Test formatPresetParameters() function:
+        - Positive values formatted with plus sign: "+0.7", "+15"
+        - Negative values formatted with minus sign: "-0.5", "-10"
+        - Zero values omitted from output
+        - Multiple parameters joined with " • " separator
+        - Empty string when all parameters zero
+      </test>
+
+      <!-- Integration Tests (AC-1, AC-2, AC-3, AC-5, AC-6) -->
+      <test for="AC-1" type="manual">
+        Modal Open:
+        - Click "Preview" button after file upload
+        - Verify modal appears with fade-in animation (300ms)
+        - Verify background overlay dims screen
+        - Verify body scroll locked (page doesn't scroll)
+        - Verify default reference image (Portrait) loads
+        - Verify CSS filters applied to "after" image
+        - Verify slider initialized at 50% position
+      </test>
+
+      <test for="AC-2" type="manual">
+        Before/After Slider:
+        - Drag slider handle left/right with mouse
+        - Verify before/after images reveal smoothly (60fps)
+        - Verify vertical divider line follows handle
+        - Tap left/right sides on mobile to snap to 0%/100%
+        - Press Arrow Left/Right keys to move slider (5% steps)
+        - Verify ARIA valuenow updates with slider position
+      </test>
+
+      <test for="AC-3" type="manual">
+        Tab Switching:
+        - Click Portrait, Landscape, Product tabs
+        - Verify reference image changes immediately
+        - Verify slider position preserved across tab changes
+        - Verify CSS filters re-applied to new image
+        - Press Arrow Left/Right when tab focused to switch tabs
+        - Verify screen reader announces "Portrait selected" etc.
+      </test>
+
+      <test for="AC-5" type="manual">
+        Convert Now Button:
+        - Click "Convert Now" button in modal
+        - Verify modal closes with fade-out animation
+        - Verify conversion workflow triggered (progress indicator shown)
+        - Verify file downloads when conversion complete
+      </test>
+
+      <test for="AC-6" type="manual">
+        Close/Cancel:
+        - Click X button in top right → Modal closes
+        - Click Cancel button in footer → Modal closes
+        - Click background overlay → Modal closes
+        - Press Esc key → Modal closes
+        - Verify body scroll unlocked after close
+        - Verify focus returns to Preview button
+        - Verify file still uploaded (can re-open preview)
+      </test>
+
+      <!-- Accessibility Tests (AC-7) -->
+      <test for="AC-7" type="manual">
+        Keyboard Navigation:
+        - Tab through: Tabs → Slider → Convert → Cancel → Close (X)
+        - Shift+Tab reverses cycle
+        - Tab wraps from last to first element (focus trap)
+        - Arrow Left/Right switch tabs (when tab focused)
+        - Arrow Left/Right move slider (when slider focused)
+        - Enter/Space activate buttons and tabs
+        - Esc closes modal
+      </test>
+
+      <test for="AC-7" type="manual">
+        Screen Reader Support:
+        - NVDA (Windows): Announce modal title, tab changes, slider position
+        - VoiceOver (macOS): Announce modal title, tab changes, slider position
+        - TalkBack (Android): Announce modal title, tab changes, slider position
+        - Verify ARIA live regions announce tab changes
+        - Verify slider ARIA valuetext reads "50% filtered"
+      </test>
+
+      <!-- Mobile Tests (AC-8) -->
+      <test for="AC-8" type="manual">
+        Mobile Layout:
+        - Resize viewport to &lt;600px
+        - Verify full-screen modal (no margins)
+        - Verify tabs scrollable horizontally
+        - Verify larger slider handle (80px diameter)
+        - Verify Convert button full-width, fixed at bottom
+        - Verify touch targets minimum 48px height
+        - Tap and drag slider handle on touchscreen
+        - Swipe left/right to switch tabs (optional)
+      </test>
+
+      <!-- Performance Tests (AC-5 from Tech Spec) -->
+      <test for="Performance" type="manual">
+        Lighthouse Audit:
+        - Run Lighthouse on page with modal open
+        - Verify Interaction to Next Paint (INP) &lt;200ms
+        - Verify Cumulative Layout Shift (CLS) = 0 (modal doesn't shift layout)
+        - Verify modal animation smooth (no janky frames)
+      </test>
+
+      <test for="Performance" type="manual">
+        Slider Smoothness:
+        - Open DevTools Performance panel
+        - Record while dragging slider
+        - Verify 60fps minimum (no dropped frames)
+        - Verify GPU acceleration used (check Layers panel)
+        - Test on 3-year-old mobile device (iPhone 8, Android mid-range)
+      </test>
+
+      <!-- Browser Compatibility Tests -->
+      <test for="Browser Support" type="manual">
+        Cross-Browser Testing:
+        - Chrome (latest): Modal, slider, CSS filters work
+        - Firefox (latest): Modal, slider, CSS filters work
+        - Safari (latest): Modal, slider, CSS filters work
+        - Edge (latest): Modal, slider, CSS filters work
+        - Verify WebP images load on modern browsers
+        - Verify JPEG fallback loads on older browsers
+      </test>
+
+      <!-- Edge Cases -->
+      <test for="Edge Cases" type="manual">
+        - No adjustments (all parameters zero): Show "No adjustments" message
+        - Maximum adjustments (exposure +2.0): Verify CSS filter clamping
+        - Reference image fails to load: Show error or fallback to Portrait
+        - Modal opened twice: Verify only one modal instance
+        - Slider at extremes (0% or 100%): Verify full before/after
+        - Tab switch mid-slider drag: Handle gracefully
+        - Esc pressed multiple times: No errors, modal closes once
+      </test>
+    </ideas>
+  </tests>
+</story-context>

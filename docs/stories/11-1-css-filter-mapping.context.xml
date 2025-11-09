@@ -1,0 +1,219 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>epic-11</epicId>
+    <storyId>11-1</storyId>
+    <title>CSS Filter-Based Preview (Exposure, Contrast, Saturation, Hue)</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/11-1-css-filter-mapping.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer evaluating preset conversions</asA>
+    <iWant>a near-instant preview of how a preset will affect my images using CSS filters</iWant>
+    <soThat>I can quickly assess conversion results without waiting for full processing</soThat>
+    <tasks>
+      1. Create CSS Filter Mapping Function (AC-1, AC-2)
+      2. Apply CSS Filter to Preview Image (AC-3)
+      3. Add Accuracy Disclaimer (AC-4)
+      4. Browser Compatibility Detection (AC-5)
+      5. Performance Testing (AC-6)
+      6. Write Unit Tests (AC-7)
+      7. Integration with Preset Upload Flow (AC-3)
+      8. Documentation (AC-4)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    AC-1: Recipe Parameter to CSS Filter Mapping
+    - Exposure → brightness() CSS filter (range: -2.0 to +2.0 → 0% to 200%)
+    - Contrast → contrast() CSS filter (range: -1.0 to +1.0 → 0% to 200%)
+    - Saturation → saturate() CSS filter (range: -1.0 to +1.0 → 0% to 200%)
+    - Hue → hue-rotate() CSS filter (range: -180 to +180 degrees)
+    - Temperature/Tint → sepia() + hue-rotate() approximation
+    - Multiple filters combined in single CSS filter property
+
+    AC-2: CSS Filter Function Implementation
+    - JavaScript function recipeToCSS Filters(recipe) converts Recipe object to CSS filter string
+    - Edge case handling (all zeros, out-of-range, invalid parameters)
+
+    AC-3: Real-Time Preview Rendering
+    - Preview updates instantly (<100ms) when preset selected
+    - CSS filter applied to preview image element
+    - Smooth transitions between presets (CSS transition 0.3s)
+    - Works across all modern browsers (Chrome 18+, Firefox 35+, Safari 9.1+, Edge 12+)
+
+    AC-4: Clear Accuracy Disclaimer
+    - Label prominently displayed: "Approximate preview using CSS filters"
+    - Tooltip/help text explains limitations
+    - No misleading claims about preview accuracy
+    - Disclaimer icon (ℹ️ or ?) next to label
+
+    AC-5: Browser Compatibility Testing
+    - CSS filter support verified on Chrome, Firefox, Safari, Edge (latest 2 versions)
+    - Fallback for unsupported browsers (detect with CSS.supports())
+    - Mobile browser testing (iOS Safari, Chrome for Android, Samsung Internet)
+
+    AC-6: Performance Optimization
+    - CSS filter application completes in <100ms
+    - GPU acceleration enabled (will-change: filter)
+    - No JavaScript blocking during filter application
+    - Performance tested on mid-range devices (iPhone 8, Android Snapdragon 665)
+
+    AC-7: Unit Test Coverage
+    - recipeToCSS Filters() function fully tested
+    - Edge case tests (null recipe, invalid parameters, extreme values)
+    - Coverage target: 100% for recipeToCSS Filters()
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-11.md" title="Epic Technical Specification: Image Preview System (Phase 1)" section="Overview">
+        Epic 11 adds visual preset preview using CSS filters for instant, approximate previews—trading pixel-perfect accuracy for speed and simplicity. Implementation leverages browser-native CSS filter functions (brightness, contrast, saturate, hue-rotate, sepia) to approximate UniversalRecipe parameters.
+      </doc>
+
+      <doc path="docs/tech-spec-epic-11.md" title="Epic 11 Technical Specification" section="Data Models and Contracts">
+        CSS Filter Mapping (preview.js): Function recipeToCSS Filters(recipe) maps UniversalRecipe parameters to CSS filter string. Exposure (-2.0 to +2.0) → brightness(0% to 200%), Contrast (-1.0 to +1.0) → contrast(0% to 200%), Saturation (-1.0 to +1.0) → saturate(0% to 200%), Temperature/tint → sepia() + hue-rotate() approximation.
+      </doc>
+
+      <doc path="docs/tech-spec-epic-11.md" title="Epic 11 Technical Specification" section="Services and Modules">
+        New modules: web/js/preview.js (Preview modal, CSS filter mapping, slider logic), web/css/preview.css (Modal overlay, slider styles, tab navigation), web/images/preview-*.webp (Reference images)
+      </doc>
+
+      <doc path="docs/tech-spec-epic-11.md" title="Epic 11 Technical Specification" section="Non-Functional Requirements - Performance">
+        Performance targets: Preview rendering <100ms (instant feel), CSS filter application <10ms (browser-native, GPU-accelerated), Slider interaction 60fps (16ms per frame), Reference image load <500ms on 3G
+      </doc>
+
+      <doc path="docs/tech-spec-epic-2.md" title="Technical Specification: Epic 2 - Web Interface" section="Technical Decisions">
+        Frontend framework: Vanilla JavaScript (zero dependencies). Browser compatibility target: Chrome/Firefox/Safari/Edge (latest 2 versions). WASM loading strategy: Eager loading + Service Worker caching. Required browser features: WebAssembly, File API, drag-and-drop events, Promises/async-await
+      </doc>
+
+      <doc path="docs/browser-compatibility.md" title="Browser Compatibility Report" section="Browser Compatibility Matrix">
+        CSS filter support: Chrome 18+ (filter support since 2012), Firefox 35+ (filter support since 2015), Safari 9.1+ (filter support since 2016), Edge 12+ (filter support since 2015). Web API support verified for WebAssembly MVP, FileReader API, Blob API, Drag and Drop Events, CSS Custom Properties.
+      </doc>
+
+      <doc path="docs/stories/10-7-accessibility-enhancements.md" title="Story 10.7: Accessibility Enhancements" section="Integration Notes">
+        Preview modal (Story 11.3) must be keyboard accessible (AC-7 from Story 10.7). Preview slider (Story 11.4) must support arrow keys (AC-1 from Story 10.7). Preview disclaimer (Story 11.1) must use semantic HTML (AC-4 from Story 10.7). CSS transitions (Story 11.1) must respect prefers-reduced-motion (AC-7 from Story 10.7).
+      </doc>
+    </docs>
+
+    <code>
+      <artifact path="web/static/main.js" kind="module" symbol="init" lines="1-80" reason="Main web interface entry point - shows how to integrate new preview.js module with existing upload workflow and event system. Uses ES6 module imports, custom events (fileLoaded, formatDetected), and WASM integration patterns that preview.js should follow.">
+      </artifact>
+
+      <artifact path="web/static/format-detector.js" kind="module" symbol="detectFileFormat" lines="1-50" reason="Format detection using WASM - demonstrates how to call WASM functions from JavaScript and handle results. Preview.js will need to parse UniversalRecipe from uploaded files using similar WASM calls.">
+      </artifact>
+
+      <artifact path="web/static/parameter-display.js" kind="module" symbol="displayParameters" lines="1-100" reason="Parameter display module from Story 2-4 - shows how to extract and display UniversalRecipe parameters. Preview.js will reuse similar parameter extraction logic to map recipe values to CSS filters.">
+      </artifact>
+
+      <artifact path="web/static/error-handler.js" kind="module" symbol="checkBrowserCompatibility" lines="133-155" reason="Browser compatibility detection from Story 6-4 - demonstrates how to check for browser features using feature detection. Preview.js should use similar pattern for CSS.supports() check for filter support.">
+      </artifact>
+
+      <artifact path="web/static/style.css" kind="stylesheet" lines="1-100" reason="Main stylesheet for web interface - defines existing UI patterns (color scheme, typography, layout) that preview.css should follow for consistency. Includes CSS custom properties, Flexbox patterns, and responsive breakpoints.">
+      </artifact>
+
+      <artifact path="web/static/style.css" kind="stylesheet" symbol=".unsupported-browser" lines="1634-1750" reason="Unsupported browser screen styling from Story 6-4 - shows graceful degradation pattern for browsers without required features. Preview.js should use similar pattern for browsers without CSS filter support.">
+      </artifact>
+
+      <artifact path="web/static/converter.js" kind="module" symbol="convertFile" lines="1-80" reason="WASM conversion orchestration - demonstrates async/await patterns for WASM function calls, error handling, and progress feedback. Preview.js will call WASM parser functions using similar patterns.">
+      </artifact>
+
+      <artifact path="web/static/responsive.js" kind="module" symbol="initializeResponsive" lines="1-50" reason="Mobile responsive adaptations from Story 2-10 - shows touch detection and orientation handling. Preview slider (Story 11.4) will need similar touch support for mobile devices.">
+      </artifact>
+    </code>
+
+    <dependencies>
+      <ecosystem name="web">
+        <package name="CSS Filter Effects Module Level 1" version="W3C Recommendation" usage="Browser-native CSS filters (brightness, contrast, saturate, hue-rotate, sepia)" />
+        <package name="WebAssembly MVP" version="Browser native" usage="WASM conversion engine from Epic 1" />
+        <package name="File API" version="Browser native" usage="FileReader, Blob, URL.createObjectURL for file handling" />
+        <package name="ES6 Modules" version="Browser native" usage="import/export syntax, no bundler required" />
+      </ecosystem>
+
+      <ecosystem name="testing">
+        <package name="Jest" version="latest" usage="JavaScript unit testing for recipeToCSS Filters() function" />
+        <package name="Lighthouse CI" version="latest" usage="Performance auditing for <100ms preview rendering target" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Must maintain <100ms preview rendering (instant feel per AC-3, AC-6)
+    - CSS filters only - no JavaScript image processing in Phase 1 (per tech spec)
+    - Works across all modern browsers: Chrome 18+, Firefox 35+, Safari 9.1+, Edge 12+ (AC-3, AC-5)
+    - GPU acceleration required via will-change: filter (AC-6)
+    - No external image requests - reference images bundled in web/images/ (per tech spec)
+    - Follow Epic 2 patterns: ES6 modules, vanilla JavaScript, modular architecture (per tech spec Decision 1)
+    - Clear accuracy disclaimer required - no misleading claims (AC-4)
+    - Temperature/tint approximation only - CSS lacks true color temperature adjustment (per dev notes)
+    - Tone curves not supported in Phase 1 - CSS filters don't support arbitrary curves (per tech spec Out of Scope)
+    - Must respect prefers-reduced-motion for CSS transitions (per Story 10.7 integration)
+    - Keyboard accessible - Esc to close modal, Tab navigation (per Story 10.7)
+    - Mobile-friendly - touch support for slider (defer to Story 11.4)
+  </constraints>
+
+  <interfaces>
+    <interface name="recipeToCSS Filters(recipe)" kind="function" signature="recipeToCSS Filters(recipe: Object): string" path="web/js/preview.js">
+      Convert UniversalRecipe parameters to CSS filter string. Returns combined filter string (e.g., "brightness(150%) contrast(130%)") or "none" if no adjustments.
+    </interface>
+
+    <interface name="applyPreviewFilter(recipe)" kind="function" signature="applyPreviewFilter(recipe: Object): void" path="web/js/preview.js">
+      Apply CSS filter to preview image element. Sets previewImage.style.filter to result of recipeToCSS Filters().
+    </interface>
+
+    <interface name="clamp(value, min, max)" kind="function" signature="clamp(value: number, min: number, max: number): number" path="web/js/preview.js">
+      Clamp numeric value to min/max range. Used to ensure CSS filter values stay within valid range (0-200%).
+    </interface>
+
+    <interface name="isCSSFilterSupported()" kind="function" signature="isCSSFilterSupported(): boolean" path="web/js/preview.js">
+      Detect CSS filter support using CSS.supports() API. Returns true if browser supports CSS filters, false otherwise.
+    </interface>
+
+    <interface name="checkBrowserCompatibility()" kind="function" signature="checkBrowserCompatibility(): boolean" path="web/static/error-handler.js">
+      Existing browser compatibility detection from Story 6-4. Checks WebAssembly, FileReader, and Blob support. Preview.js should extend this pattern for CSS filter detection.
+    </interface>
+
+    <interface name="UniversalRecipe" kind="data-model" signature="{ exposure: number, contrast: number, saturation: number, hue: number, temperature: number, tint: number, ... }" path="internal/models/recipe.go">
+      Core data structure from Epic 1. Contains all recipe parameters that preview.js will map to CSS filters. JavaScript receives as JSON from WASM parser.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit testing with Jest for JavaScript functions. Focus on recipeToCSS Filters() function with 100% coverage target (AC-7). Test edge cases: null recipe, zero parameters, out-of-range values, invalid parameter types. Integration testing via manual browser testing (Chrome, Firefox, Safari, Edge). Performance testing with Lighthouse CI (<100ms target) and manual device testing (iPhone 8, Android mid-range). Browser compatibility testing using CSS.supports() feature detection and manual cross-browser verification.
+    </standards>
+
+    <locations>
+      web/js/__tests__/preview.test.js - Unit tests for preview.js functions
+      web/static/*.test.js - Existing test pattern from Epic 2 (currently no tests, establish pattern)
+    </locations>
+
+    <ideas>
+      <test ac="AC-1">Unit test: Exposure +0.5 maps to "brightness(150%)"</test>
+      <test ac="AC-1">Unit test: Contrast +0.3 maps to "contrast(130%)"</test>
+      <test ac="AC-1">Unit test: Saturation -0.5 maps to "saturate(50%)"</test>
+      <test ac="AC-1">Unit test: Hue +30 maps to "hue-rotate(30deg)"</test>
+      <test ac="AC-1">Unit test: Temperature +20 maps to "sepia(6) hue-rotate(10deg)"</test>
+      <test ac="AC-1">Unit test: Multiple parameters combine correctly</test>
+      <test ac="AC-2">Unit test: Zero parameters return "none"</test>
+      <test ac="AC-2">Unit test: Out-of-range exposure (+5.0) clamps to "brightness(200%)"</test>
+      <test ac="AC-2">Unit test: Negative exposure (-3.0) clamps to "brightness(0%)"</test>
+      <test ac="AC-2">Unit test: Null recipe returns "none"</test>
+      <test ac="AC-2">Unit test: Invalid parameter types skip gracefully</test>
+      <test ac="AC-3">Manual test: Preview updates in <100ms when preset selected</test>
+      <test ac="AC-3">Manual test: CSS filter applied to preview image element</test>
+      <test ac="AC-3">Manual test: Smooth transitions between presets (CSS transition)</test>
+      <test ac="AC-4">Manual test: Disclaimer label visible in modal</test>
+      <test ac="AC-4">Manual test: Tooltip explains CSS filter limitations</test>
+      <test ac="AC-5">Manual test: CSS filter support verified on Chrome, Firefox, Safari, Edge</test>
+      <test ac="AC-5">Manual test: Fallback message for unsupported browsers (CSS.supports())</test>
+      <test ac="AC-5">Manual test: Mobile browsers (iOS Safari, Chrome Android, Samsung Internet)</test>
+      <test ac="AC-6">Performance test: Filter application <100ms (performance.now())</test>
+      <test ac="AC-6">Performance test: GPU acceleration enabled (Chrome DevTools)</test>
+      <test ac="AC-6">Performance test: Mid-range devices (iPhone 8, Android Snapdragon 665)</test>
+      <test ac="AC-7">Unit test: 100% coverage for recipeToCSS Filters() function</test>
+    </ideas>
+  </tests>
+</story-context>

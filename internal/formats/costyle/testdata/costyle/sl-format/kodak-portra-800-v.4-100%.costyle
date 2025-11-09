@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SL Engine="1100">
+ <E K="ICCProfile" V="kodak-portra-800-v.4-100%.icc"/>
+ <E K="Name" V="Kodak Portra 800 V.4 100%"/>
+ <E K="StyleSource" V="Styles"/>
+ <E K="UUID" V="{311C62BE-CCF5-4BBC-AD57-AA43041FFDFE}"/>
+ <E K="HighlightRecovery" V="50.0"/>
+ <E K="Midtone" V="0;0;0;0.0500000007450581"/>
+</SL>

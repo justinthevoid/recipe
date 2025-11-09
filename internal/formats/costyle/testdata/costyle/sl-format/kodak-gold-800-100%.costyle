@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SL Engine="1100">
+ <E K="ICCProfile" V="kodak-gold-800-100%.icc"/>
+ <E K="Name" V="Kodak Gold 800 100%"/>
+ <E K="StyleSource" V="Styles"/>
+ <E K="UUID" V="{DCE5BA3B-51E9-4AF7-8831-8E6A956D7D81}"/>
+ <E K="HighlightRecovery" V="50.0"/>
+ <E K="Midtone" V="0;0;0;0.0500000007450581"/>
+</SL>

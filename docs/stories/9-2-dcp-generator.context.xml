@@ -1,0 +1,359 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>9.2</storyId>
+    <title>DNG Camera Profile (DCP) Generator</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/9-2-dcp-generator.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>Recipe to generate valid DNG Camera Profile (.dcp) files from UniversalRecipe
+      representation</iWant>
+    <soThat>I can convert my presets from other formats (NP3, XMP, lrtemplate, .costyle) to Adobe
+      camera profiles and use them in Lightroom, Camera Raw, and with DNG files</soThat>
+    <tasks>
+      ### Task 1: Implement Tone Curve Generation (AC-3)
+      - Implement universalToToneCurve() function with exposure/contrast/highlights/shadows mapping
+      - Ensure monotonic curve (output[i] >= output[i-1])
+      - Test with various parameter combinations
+
+      ### Task 2: Generate Camera Profile XML (AC-2, AC-4)
+      - Implement generateProfile() function with Adobe Camera Raw namespace
+      - Implement identityMatrix() helper (3x3 identity matrix)
+      - Validate XML output (well-formed, proper namespace)
+
+      ### Task 3: Create TIFF File with Embedded XML (AC-1, AC-2)
+      - Implement createTIFF() function using github.com/google/tiff
+      - Embed camera profile XML in tag 50740
+      - Verify TIFF magic bytes and IFD structure
+
+      ### Task 4: Implement Generate() Function (AC-1 to AC-4)
+      - Implement Generate(recipe *universal.Recipe) ([]byte, error)
+      - Add error handling for nil recipe input
+      - Validate recipe parameters before generation
+
+      ### Task 5: Write Unit Tests (AC-6)
+      - Write 8 comprehensive unit tests covering all generation scenarios
+      - Verify ≥85% test coverage for dcp/generate.go, dcp/tiff.go, dcp/profile.go
+      - All tests pass in CI
+
+      ### Task 6: Manual Validation in Adobe Software (AC-5)
+      - Generate 3 test DCP files (neutral, portrait, landscape presets)
+      - Test in Adobe Camera Raw and Lightroom Classic
+      - Document validation results in testdata/dcp/validation-report.md
+
+      ### Task 7: Documentation (AC-1 to AC-5)
+      - Add function comments for Generate()
+      - Update docs/parameter-mapping.md with DCP generation mappings
+      - Add README notes in testdata/dcp/
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    **AC-1: Generate Valid TIFF Structure**
+    - Create TIFF file with proper header (II or MM byte order marker)
+    - Generate Image File Directory (IFD) with required tags
+    - Include standard TIFF tags (ImageWidth, ImageLength, SamplesPerPixel, etc.)
+    - Write TIFF file using github.com/google/tiff library
+    - Validate TIFF structure (well-formed, valid byte order)
+    - Generated TIFF files open without errors in TIFF readers
+
+    **AC-2: Embed Camera Profile XML in Tag 50740**
+    - Generate Adobe Camera Profile XML from UniversalRecipe
+    - Embed XML data in TIFF tag 50740 (CameraProfile)
+    - Include required XML elements (ProfileName, ToneCurve, ColorMatrix)
+    - Use Adobe Camera Raw namespace (http://ns.adobe.com/camera-raw-settings/1.0/)
+    - Format XML with proper RDF structure (rdf:Seq, rdf:li elements)
+    - XML is human-readable (formatted with indentation)
+
+    **AC-3: Map UniversalRecipe to DCP Tone Curve**
+    - Generate 5-point tone curve from UniversalRecipe adjustments
+    - Apply exposure, contrast, highlights, shadows transformations
+    - Clamp all curve points to valid 0-255 range
+    - Ensure monotonic curve (output[i] >= output[i-1])
+
+    **AC-4: Generate Identity Color Matrices**
+    - Create ColorMatrix1 with identity values (3x3 diagonal matrix)
+    - Create ColorMatrix2 with same identity values
+    - Format matrices as RDF lists
+    - Include ProfileCalibrationSignature = "com.adobe"
+
+    **AC-5: Validate Generated DCP**
+    - Validate TIFF structure, XML structure, and tone curve points
+    - Generated DCP loads in Adobe Camera Raw without errors
+    - Generated DCP loads in Lightroom Classic without errors
+    - Tone adjustments render correctly (visual spot-check)
+
+    **AC-6: Unit Test Coverage**
+    - Unit tests for Generate() function with various inputs
+    - Test edge cases and TIFF/XML structure correctness
+    - Test coverage ≥85% for dcp/generate.go, dcp/tiff.go, dcp/profile.go
+    - All tests pass in CI
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-9.md</path>
+        <title>Epic Technical Specification: DCP Camera Profile Support</title>
+        <section>Generate DCP Files (AC-2)</section>
+        <snippet>Generate TIFF-based DCP file structure per Adobe DNG Specification 1.6. Embed XML
+          camera profile data in TIFF tag 50740. Map UniversalRecipe color parameters to DCP tone
+          curve equivalents. Generate required matrices (identity matrices for non-calibration use).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-9.md</path>
+        <title>Tone Curve Generation Formulas</title>
+        <section>Data Models and Contracts</section>
+        <snippet>5-point tone curve generation: Start with linear curve (0,0 → 64,64 → 128,128 →
+          192,192 → 255,255). Apply exposure: Vertical shift of midpoint (128 → 128+exposure*64).
+          Apply contrast: Steepen/flatten slope around midpoint. Apply highlights: Adjust top-end
+          points (192-255 range). Apply shadows: Adjust bottom-end points (0-64 range).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-9.md</path>
+        <title>TIFF Writing Pattern with github.com/google/tiff</title>
+        <section>Implementation Patterns</section>
+        <snippet>Create TIFF with tiff.New(), set standard tags (ImageWidth=1, ImageLength=1,
+          SamplesPerPixel=3), embed camera profile XML in custom tag 50740, encode to buffer with
+          tiff.Encode(). Minimal TIFF IFD for DCP profile container.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD-Path-A.md</path>
+        <title>DCP Camera Profile Support (Epic 2)</title>
+        <section>FR-2.2: Generate DCP Files</section>
+        <snippet>Generate TIFF-based DCP file structure per Adobe spec. Map UniversalRecipe
+          parameters to DCP equivalents. Generate identity color matrices (no camera calibration).
+          Create tone curves from exposure/contrast/highlights/shadows. Generated DCPs must load in
+          Adobe Camera Raw and Lightroom.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Go 1.24+ Technology Stack</title>
+        <section>Technology Stack Details</section>
+        <snippet>Recipe uses Go 1.24+ with enhanced WASM support, Cobra CLI framework, and vanilla
+          JavaScript for web interface. Hub-and-spoke architecture with UniversalRecipe intermediate
+          representation. Zero external dependencies for core library.</snippet>
+      </doc>
+      <doc>
+        <path>docs/parameter-mapping.md</path>
+        <title>Tone Curve Mappings</title>
+        <section>Tone Curves</section>
+        <snippet>XMP and lrtemplate support custom tone curves with multiple control points
+          (ToneCurvePV2012). NP3 uses fixed lookup table with limited curve support. Point curves
+          stored as arrays of {Input, Output} pairs (0-255 range).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>63-154</lines>
+        <reason>Core data structure with Exposure, Contrast, Highlights, Shadows, Whites, Blacks
+          fields that map to DCP tone curves. Reference for all tone adjustment parameters.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>ToneCurvePoint</symbol>
+        <lines>10-14</lines>
+        <reason>Point curve structure with Input/Output (0-255) that matches DCP tone curve point
+          format. Used for PointCurve field in UniversalRecipe.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>260-290</lines>
+        <reason>Example parser showing extraction of tone adjustments (exposure, contrast,
+          highlights, shadows, whites, blacks) from XML format. Pattern to follow for DCP XML
+          parsing.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/generate.go</path>
+        <kind>generator</kind>
+        <symbol>convertToNP3Parameters</symbol>
+        <lines>177-210</lines>
+        <reason>Example generator showing conversion from UniversalRecipe to format-specific
+          parameters, including tone curve point conversion. Pattern to follow for DCP generation.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/generate.go</path>
+        <kind>generator</kind>
+        <symbol>writeToneCurve</symbol>
+        <lines>812-830</lines>
+        <reason>Example of writing tone curve control points to binary format. Shows pattern for
+          handling curve point count and coordinate pairs.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/costyle/generate.go</path>
+        <kind>generator</kind>
+        <symbol>Generate</symbol>
+        <lines>1-50</lines>
+        <reason>Recently completed XML generation example (Story 8-1). Shows xml.MarshalIndent()
+          pattern, namespace handling, and TIFF-like structure. Direct reference for DCP XML
+          generation.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/lut/generator.go</path>
+        <kind>utility</kind>
+        <symbol>applyToneCurve</symbol>
+        <lines>115-140</lines>
+        <reason>Shows tone curve application logic - how contrast/highlights/shadows/whites/blacks
+          affect luminance curve. Reference for understanding tone curve mathematics.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/create_custom_dcp.py</path>
+        <kind>script</kind>
+        <symbol>DCPBuilder</symbol>
+        <lines>42-80</lines>
+        <reason>Python reference implementation showing TIFF tag constants (TAG_COLOR_MATRIX1=50721,
+          TAG_PROFILE_NAME=50936) and DCP structure. Useful for understanding Adobe DCP format.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go_stdlib>
+        <package>encoding/xml</package>
+        <purpose>Marshal/unmarshal Adobe Camera Profile XML structure</purpose>
+      </go_stdlib>
+      <go_stdlib>
+        <package>bytes</package>
+        <purpose>Buffer for TIFF encoding operations</purpose>
+      </go_stdlib>
+      <go_stdlib>
+        <package>fmt</package>
+        <purpose>Error formatting and string operations</purpose>
+      </go_stdlib>
+      <external>
+        <package>github.com/google/tiff</package>
+        <version>latest</version>
+        <purpose>TIFF read/write library for DCP container format. Required because Go stdlib
+          image/tiff is decoder-only and doesn't support custom tags.</purpose>
+        <status>NOT YET ADDED - must add to go.mod</status>
+      </external>
+      <internal>
+        <package>github.com/justin/recipe/internal/models</package>
+        <purpose>UniversalRecipe struct with tone adjustment fields</purpose>
+      </internal>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>DCP files must follow Adobe DNG Specification 1.6 for compatibility with Camera Raw
+      and Lightroom</constraint>
+    <constraint>TIFF tag 50740 (CameraProfile) must contain valid XML with Adobe Camera Raw
+      namespace (http://ns.adobe.com/camera-raw-settings/1.0/)</constraint>
+    <constraint>Tone curve must be 5-point piecewise linear curve (0, 64, 128, 192, 255 input
+      points)</constraint>
+    <constraint>All tone curve output values must be clamped to 0-255 range and maintain monotonic
+      property (output[i] >= output[i-1])</constraint>
+    <constraint>Color matrices must be 3x3 identity matrices (diagonal values=1.0, off-diagonal=0.0)
+      since Recipe doesn't perform camera calibration</constraint>
+    <constraint>XML must be human-readable (formatted with indentation via xml.MarshalIndent)</constraint>
+    <constraint>Must use github.com/google/tiff library (not stdlib image/tiff which is decode-only)</constraint>
+    <constraint>Test coverage target: ≥85% for generate.go, tiff.go, profile.go</constraint>
+    <constraint>Performance target: DCP generation &lt;200ms (slower than other formats due to TIFF
+      overhead)</constraint>
+    <constraint>Hub-and-spoke pattern: Generate() function takes UniversalRecipe as input, returns
+      []byte DCP file</constraint>
+    <constraint>Manual validation required: Generated DCP must load in Adobe Camera Raw and
+      Lightroom Classic without errors</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Generate</name>
+      <kind>function</kind>
+      <signature>func Generate(recipe *models.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/dcp/generate.go</path>
+      <description>Main entry point for DCP generation. Takes UniversalRecipe and returns TIFF-based
+        DCP file bytes. Orchestrates universalToToneCurve() → generateProfile() → createTIFF()
+        pipeline.</description>
+    </interface>
+    <interface>
+      <name>universalToToneCurve</name>
+      <kind>function</kind>
+      <signature>func universalToToneCurve(recipe *models.UniversalRecipe) []ToneCurvePoint</signature>
+      <path>internal/formats/dcp/profile.go</path>
+      <description>Converts UniversalRecipe tone adjustments (Exposure, Contrast, Highlights,
+        Shadows) to 5-point DCP tone curve. Returns array of {Input, Output} points clamped to
+        0-255.</description>
+    </interface>
+    <interface>
+      <name>generateProfile</name>
+      <kind>function</kind>
+      <signature>func generateProfile(recipe *models.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/dcp/profile.go</path>
+      <description>Generates Adobe Camera Profile XML from UniversalRecipe. Includes tone curve,
+        identity color matrices (ColorMatrix1, ColorMatrix2), and profile name. Returns formatted
+        XML with namespace declaration.</description>
+    </interface>
+    <interface>
+      <name>createTIFF</name>
+      <kind>function</kind>
+      <signature>func createTIFF(xmlData []byte) ([]byte, error)</signature>
+      <path>internal/formats/dcp/tiff.go</path>
+      <description>Creates minimal TIFF file structure with embedded camera profile XML in tag
+        50740. Uses github.com/google/tiff library. Sets standard TIFF tags (ImageWidth=1,
+        ImageLength=1, SamplesPerPixel=3).</description>
+    </interface>
+    <interface>
+      <name>identityMatrix</name>
+      <kind>function</kind>
+      <signature>func identityMatrix() *Matrix</signature>
+      <path>internal/formats/dcp/profile.go</path>
+      <description>Returns 3x3 identity matrix for ColorMatrix1/ColorMatrix2. Diagonal values = 1.0,
+        off-diagonal = 0.0. Used because Recipe doesn't perform full camera calibration.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Testing follows Recipe's established patterns: table-driven tests with real sample
+      files, round-trip validation, ≥85% coverage target. Uses Go standard testing package with
+      subtests for granular failure reporting. Benchmark tests validate &lt;200ms generation
+      performance. Manual validation in Adobe Camera Raw and Lightroom Classic required for AC-5
+      (visual spot-check that tone adjustments render correctly).</standards>
+    <locations>
+      <location>internal/formats/dcp/generate_test.go</location>
+      <location>internal/converter/converter_test.go (extend with DCP cases)</location>
+      <location>testdata/dcp/ (sample DCP files and validation results)</location>
+    </locations>
+    <ideas>
+      <test id="AC-1"
+        description="TestGenerate_ValidRecipe - Generate DCP from populated UniversalRecipe with exposure +0.5, contrast +0.3, highlights -0.2. Validate TIFF magic bytes (II or MM), check IFD structure, verify tag 50740 exists."></test>
+      <test id="AC-1"
+        description="TestTIFFStructure - Validate generated TIFF has correct header, IFD with required tags (ImageWidth, ImageLength, SamplesPerPixel, tag 50740). Use github.com/google/tiff to read back and verify."></test>
+      <test id="AC-2"
+        description="TestGenerateProfile_XML - Generate camera profile XML from UniversalRecipe. Validate namespace (http://ns.adobe.com/camera-raw-settings/1.0/), check required elements (ProfileName, ToneCurve, ColorMatrix). Parse with xml.Unmarshal to verify well-formed."></test>
+      <test id="AC-2"
+        description="TestXMLFormatting - Verify generated XML is human-readable (indented, not minified). Check xml.Header present, proper RDF structure (rdf:Seq, rdf:li elements)."></test>
+      <test id="AC-3"
+        description="TestUniversalToToneCurve - Test tone curve generation with various parameter combinations: (1) Neutral (all zeros) - expect linear curve. (2) Exposure +1.0 - expect midpoint shifted upward. (3) Contrast +0.5 - expect steeper slope. (4) Highlights -0.3, Shadows +0.2 - expect top/bottom points adjusted. Verify all outputs 0-255 and monotonic."></test>
+      <test id="AC-3"
+        description="TestToneCurveClamp - Test extreme values (exposure +5.0, contrast +2.0) to ensure clamping to 0-255 range. Test negative extremes (exposure -5.0, contrast -2.0)."></test>
+      <test id="AC-3"
+        description="TestToneCurveMonotonic - Verify output[i] >= output[i-1] for all curve points after applying all adjustments. Test with various combinations that might violate monotonicity."></test>
+      <test id="AC-4"
+        description="TestIdentityMatrix - Verify identityMatrix() returns 3x3 matrix with [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]. Check ColorMatrix1 and ColorMatrix2 both use identity."></test>
+      <test id="AC-5"
+        description="TestGenerate_EmptyRecipe - Generate from UniversalRecipe with all zero values (neutral preset). Verify linear tone curve generated, valid TIFF structure."></test>
+      <test id="AC-5"
+        description="TestGenerate_ExtremeValues - Test with extreme parameters: exposure +2.0, contrast +1.0, highlights +100, shadows -100. Verify valid DCP output, no panics."></test>
+      <test id="AC-5"
+        description="TestRoundTrip_DCP (requires story 9-1 Parse) - Generate DCP → Parse back → Compare. Verify 95%+ tone curve accuracy preserved (allow ±1 due to quantization)."></test>
+      <test id="AC-6"
+        description="TestCoverage - Run 'go test -cover ./internal/formats/dcp/' and verify ≥85% coverage for generate.go, tiff.go, profile.go files."></test>
+      <test id="AC-6"
+        description="BenchmarkGenerate - Benchmark DCP generation with typical UniversalRecipe. Target: &lt;200ms (accept slower than other formats due to TIFF overhead)."></test>
+      <test id="Manual-AC-5"
+        description="Manual Test - Adobe Camera Raw: Generate 3 test DCPs (neutral, portrait +exp/+contrast, landscape +sat/-highlights). Open in Camera Raw, verify no import errors, tone adjustments visible in histogram."></test>
+      <test id="Manual-AC-5"
+        description="Manual Test - Lightroom Classic: Import same 3 test DCPs into Lightroom. Apply to test RAW image. Verify tone curve adjustments render correctly (visual spot-check before/after). Document results in testdata/dcp/validation-report.md."></test>
+    </ideas>
+  </tests>
+</story-context>
