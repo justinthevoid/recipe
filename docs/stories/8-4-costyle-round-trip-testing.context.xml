@@ -1,0 +1,338 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>8</epicId>
+    <storyId>4</storyId>
+    <title>Capture One Round-Trip Conversion Testing</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/8-4-costyle-round-trip-testing.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>Recipe to verify that Capture One .costyle files can be round-trip converted (costyle → UniversalRecipe → costyle) with 95%+ accuracy</iWant>
+    <soThat>I can trust that my preset adjustments will be preserved when converting between formats, and I have confidence in the conversion quality before using Recipe in production workflows</soThat>
+    <tasks>
+      <task id="1" title="Implement Round-Trip Test Function">
+        <subtasks>
+          <subtask>Create TestRoundTrip_Costyle() function in costyle_test.go</subtask>
+          <subtask>Implement round-trip test flow: Parse → Generate → Parse → Compare</subtask>
+          <subtask>Implement compareRecipes() helper function with parameter-by-parameter comparison</subtask>
+          <subtask>Load 5+ real .costyle samples from testdata/costyle/</subtask>
+          <subtask>Run round-trip test on each sample file</subtask>
+        </subtasks>
+      </task>
+      <task id="2" title="Implement Parameter Comparison Logic">
+        <subtasks>
+          <subtask>Create compareParameter() functions for different parameter types</subtask>
+          <subtask>Exposure: Exact match within float precision</subtask>
+          <subtask>Contrast, Saturation, Tint, Clarity: Within ±1 integer value</subtask>
+          <subtask>Temperature: Within ±2 units (Kelvin conversion tolerance)</subtask>
+          <subtask>Color balance: Within ±1 per channel</subtask>
+          <subtask>Count matched vs total parameters, return accuracy percentage</subtask>
+        </subtasks>
+      </task>
+      <task id="3" title="Calculate and Report Accuracy Metrics">
+        <subtasks>
+          <subtask>Implement calculateAccuracy() function</subtask>
+          <subtask>Generate parameter breakdown report with AccuracyReport struct</subtask>
+          <subtask>Output report in JSON format</subtask>
+          <subtask>Calculate aggregate metrics: min/max/average accuracy</subtask>
+          <subtask>Fail test if average accuracy &lt; 95%</subtask>
+        </subtasks>
+      </task>
+      <task id="4" title="Document Lossy Conversions">
+        <subtasks>
+          <subtask>Create docs/known-conversion-limitations.md document</subtask>
+          <subtask>Document parameters not representable in UniversalRecipe</subtask>
+          <subtask>Document acceptable precision loss examples</subtask>
+          <subtask>Document unacceptable precision loss examples</subtask>
+          <subtask>Update parameter-mapping.md with round-trip accuracy notes</subtask>
+        </subtasks>
+      </task>
+      <task id="5" title="Acquire Real-World Test Samples">
+        <subtasks>
+          <subtask>Search Etsy/marketplaces for .costyle preset packs</subtask>
+          <subtask>Download/purchase 5+ .costyle files from different creators</subtask>
+          <subtask>Add samples to testdata/costyle/real-world/ directory</subtask>
+          <subtask>Document sample sources in testdata/costyle/README.md</subtask>
+          <subtask>Verify samples are valid .costyle files</subtask>
+        </subtasks>
+      </task>
+      <task id="6" title="Visual Validation in Capture One">
+        <subtasks>
+          <subtask>Install Capture One Pro trial version</subtask>
+          <subtask>Generate 3 test .costyle files from round-trip conversion</subtask>
+          <subtask>Prepare test images (portrait, landscape, product)</subtask>
+          <subtask>Load original .costyle in Capture One and take screenshots</subtask>
+          <subtask>Load round-trip .costyle in Capture One and take screenshots</subtask>
+          <subtask>Compare screenshots side-by-side</subtask>
+          <subtask>Document validation results with screenshots</subtask>
+        </subtasks>
+      </task>
+      <task id="7" title="Implement Batch Round-Trip Tests">
+        <subtasks>
+          <subtask>Write TestRoundTrip_Costylepack() for bundle round-trip</subtask>
+          <subtask>Write TestRoundTrip_EdgeCases() for edge cases</subtask>
+          <subtask>Write TestRoundTrip_CrossFormat() for cross-format conversions</subtask>
+        </subtasks>
+      </task>
+      <task id="8" title="Integration with CI">
+        <subtasks>
+          <subtask>Ensure round-trip tests run in CI</subtask>
+          <subtask>Configure test timeout (10 minutes)</subtask>
+          <subtask>Add test artifacts upload</subtask>
+          <subtask>Fail build if round-trip accuracy &lt; 95%</subtask>
+        </subtasks>
+      </task>
+      <task id="9" title="Documentation and Examples">
+        <subtasks>
+          <subtask>Update README.md with round-trip accuracy claims</subtask>
+          <subtask>Add round-trip test example to testdata/costyle/README.md</subtask>
+          <subtask>Document test results in testdata/costyle/test-results.md</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" title="Implement Round-Trip Test Suite">
+      <requirement>Create automated round-trip test function in costyle_test.go</requirement>
+      <requirement>Test flow: Parse .costyle → UniversalRecipe → Generate .costyle → Parse → Compare</requirement>
+      <requirement>Verify all core parameters preserved with 95%+ accuracy</requirement>
+      <requirement>Test with minimum 5 real-world .costyle samples from Etsy/marketplaces</requirement>
+      <requirement>Include edge cases: extreme values, minimal presets, complex adjustments</requirement>
+      <requirement>All round-trip tests pass in CI</requirement>
+    </criterion>
+    <criterion id="AC-2" title="Verify Key Adjustments Preserved Exactly">
+      <requirement>Exposure: No precision loss (exact float equality)</requirement>
+      <requirement>Contrast: Within ±1 integer value (acceptable precision loss from float→int→float)</requirement>
+      <requirement>Saturation: Within ±1 integer value</requirement>
+      <requirement>Temperature: Within ±2 units (acceptable given Kelvin conversion)</requirement>
+      <requirement>Tint: Within ±1 integer value</requirement>
+      <requirement>Clarity: Within ±1 integer value</requirement>
+      <requirement>Test verifies each parameter independently</requirement>
+    </criterion>
+    <criterion id="AC-3" title="Document Lossy Conversions">
+      <requirement>Identify parameters not representable in UniversalRecipe</requirement>
+      <requirement>Document expected precision loss (float→int conversions)</requirement>
+      <requirement>Create known-conversion-limitations.md in docs/</requirement>
+      <requirement>List parameters skipped during conversion (local adjustments, layers, masking)</requirement>
+      <requirement>Provide examples of acceptable vs. unacceptable precision loss</requirement>
+      <requirement>Update parameter-mapping.md with round-trip accuracy notes</requirement>
+    </criterion>
+    <criterion id="AC-4" title="Visual Validation in Capture One">
+      <requirement>Generate 3 test .costyle files from round-trip conversion</requirement>
+      <requirement>Load generated files in Capture One Pro (trial version)</requirement>
+      <requirement>Apply to test images (portrait, landscape, product)</requirement>
+      <requirement>Visual spot-check: Verify adjustments render correctly</requirement>
+      <requirement>Compare side-by-side with original .costyle output</requirement>
+      <requirement>Document validation results in test report</requirement>
+    </criterion>
+    <criterion id="AC-5" title="Measure and Report Accuracy Metrics">
+      <requirement>Calculate accuracy percentage for each test file</requirement>
+      <requirement>Report metrics: min/max/average accuracy across all parameters</requirement>
+      <requirement>Target: 95%+ average accuracy across test suite</requirement>
+      <requirement>Generate accuracy report (JSON or markdown format)</requirement>
+      <requirement>Include parameter-by-parameter breakdown</requirement>
+      <requirement>Fail test if accuracy &lt; 95% (hard requirement)</requirement>
+    </criterion>
+    <criterion id="AC-6" title="Test Coverage for Round-Trip Paths">
+      <requirement>Unit tests: TestRoundTrip_Costyle() for single .costyle file</requirement>
+      <requirement>Batch tests: TestRoundTrip_Costylepack() for .costylepack bundles</requirement>
+      <requirement>Edge case tests: Empty recipe, extreme values, missing parameters</requirement>
+      <requirement>Cross-format tests: .costyle → .xmp → .costyle (verify no corruption)</requirement>
+      <requirement>Test coverage ≥85% for round-trip test code</requirement>
+      <requirement>All tests pass in CI</requirement>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-8.md</path>
+        <title>Epic Technical Specification: Capture One Format Support</title>
+        <section>Acceptance Criteria (AC-4: Round-Trip Conversion Testing)</section>
+        <snippet>Round-trip conversion preserves 95%+ of parameter values. Key adjustments (exposure, contrast, saturation) preserved exactly (no precision loss). Document known limitations of lossy conversions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-8.md</path>
+        <title>Epic Technical Specification: Capture One Format Support</title>
+        <section>Test Strategy Summary</section>
+        <snippet>Round-trip test pattern: Parse → Generate → Parse → Compare. Tolerance: ±1 for integer rounding. Coverage target: ≥85% for round-trip test code.</snippet>
+      </doc>
+      <doc>
+        <path>docs/parameter-mapping.md</path>
+        <title>Parameter Mapping Rules</title>
+        <section>Visual Similarity Validation</section>
+        <snippet>Recipe achieves ≥95% visual similarity for most conversions using weighted parameter comparison with tolerance thresholds. Exposure weight: 1.0, Contrast weight: 1.0, Saturation weight: 0.8. Integer tolerance: ±1, Float tolerance: ±0.01.</snippet>
+      </doc>
+      <doc>
+        <path>docs/known-conversion-limitations.md</path>
+        <title>Known Conversion Limitations</title>
+        <section>Overview</section>
+        <snippet>Recipe achieves 95%+ visual similarity for most conversions, but some features are unmappable. Document provides feature-by-feature breakdown with visual impact assessment (Delta E, SSIM) and workarounds.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/8-1-costyle-parser.md</path>
+        <title>Story 8.1: Capture One Parser</title>
+        <section>Dev Notes</section>
+        <snippet>Parse() function extracts exposure, contrast, saturation, temperature, tint, clarity from Capture One .costyle XML. Returns *models.UniversalRecipe.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/8-2-costyle-generator.md</path>
+        <title>Story 8.2: Capture One Generator</title>
+        <section>Dev Notes</section>
+        <snippet>Generate() function creates .costyle XML from UniversalRecipe. Maps parameters with range scaling. Returns formatted XML bytes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/8-3-costylepack-bundles.md</path>
+        <title>Story 8.3: Capture One Pack Support</title>
+        <section>Dev Notes</section>
+        <snippet>Unpack() and Pack() functions handle .costylepack ZIP bundles. Parse multiple .costyle files from archive. Performance target: &lt; 5 seconds for 50-file bundles.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/formats/costyle/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <reason>Parse .costyle XML to UniversalRecipe - used in round-trip test flow (step 1 and 3)</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/costyle/generate.go</path>
+        <kind>generator</kind>
+        <symbol>Generate</symbol>
+        <reason>Generate .costyle XML from UniversalRecipe - used in round-trip test flow (step 2)</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/costyle/pack.go</path>
+        <kind>archiver</kind>
+        <symbol>Unpack</symbol>
+        <symbol>Pack</symbol>
+        <reason>Handle .costylepack bundles - used for TestRoundTrip_Costylepack()</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/roundtrip_test.go</path>
+        <kind>test</kind>
+        <symbol>compareRecipes</symbol>
+        <lines>405-508</lines>
+        <reason>Existing round-trip comparison function - reference pattern for costyle round-trip tests. Implements tolerance-based parameter comparison with weights.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/roundtrip_test.go</path>
+        <kind>test</kind>
+        <symbol>compareRecipesNP3Limited</symbol>
+        <lines>511-599</lines>
+        <reason>Example of limited comparison for formats with unmappable parameters - reference for handling Capture One limitations.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/np3_test.go</path>
+        <kind>test</kind>
+        <symbol>TestRoundTrip</symbol>
+        <lines>507-571</lines>
+        <reason>NP3 round-trip test pattern - reference implementation showing file discovery, Parse → Generate → Parse flow, and parametersMatch() helper.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/np3_test.go</path>
+        <kind>test</kind>
+        <symbol>parametersMatch</symbol>
+        <lines>573-600</lines>
+        <reason>Parameter comparison with tolerance - reference for implementing compareRecipes() for costyle tests.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/lrtemplate/lrtemplate_test.go</path>
+        <kind>test</kind>
+        <symbol>TestRoundTrip</symbol>
+        <lines>1243-1284</lines>
+        <reason>Lrtemplate round-trip test - another reference pattern showing successful round-trip validation with compareRecipes() helper.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/xmp_test.go</path>
+        <kind>test</kind>
+        <reason>XMP round-trip tests - reference for XML-based format round-trip testing (similar to .costyle XML structure).</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <reason>Core data model for all conversions - defines parameters to compare in round-trip tests.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <package name="testing">Standard library testing framework</package>
+        <package name="encoding/json">JSON output for accuracy reports</package>
+        <package name="encoding/xml">XML parsing for .costyle files (via costyle package)</package>
+        <package name="archive/zip">ZIP handling for .costylepack bundles (via costyle package)</package>
+        <package name="path/filepath">File path handling for test discovery</package>
+        <package name="os">File I/O for test samples</package>
+        <package name="math">Float comparison (math.Abs for tolerance checks)</package>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="accuracy">Round-trip accuracy must be ≥95% average across all test files</constraint>
+    <constraint type="tolerance">Exposure: exact match (within float precision ±0.01). Integer parameters: ±1. Temperature: ±2 Kelvin.</constraint>
+    <constraint type="coverage">Test coverage ≥85% for round-trip test code</constraint>
+    <constraint type="performance">Round-trip test suite must complete within CI timeout (10 minutes)</constraint>
+    <constraint type="samples">Minimum 5 real-world .costyle samples required for representative testing</constraint>
+    <constraint type="documentation">All lossy conversions must be documented in known-conversion-limitations.md</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>costyle.Parse</name>
+      <kind>function</kind>
+      <signature>func Parse(data []byte) (*models.UniversalRecipe, error)</signature>
+      <path>internal/formats/costyle/parse.go</path>
+    </interface>
+    <interface>
+      <name>costyle.Generate</name>
+      <kind>function</kind>
+      <signature>func Generate(recipe *models.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/costyle/generate.go</path>
+    </interface>
+    <interface>
+      <name>costyle.Unpack</name>
+      <kind>function</kind>
+      <signature>func Unpack(data []byte) ([]*models.UniversalRecipe, error)</signature>
+      <path>internal/formats/costyle/pack.go</path>
+    </interface>
+    <interface>
+      <name>costyle.Pack</name>
+      <kind>function</kind>
+      <signature>func Pack(recipes []*models.UniversalRecipe, filenames []string) ([]byte, error)</signature>
+      <path>internal/formats/costyle/pack.go</path>
+    </interface>
+    <interface>
+      <name>compareRecipes</name>
+      <kind>test helper</kind>
+      <signature>func compareRecipes(t *testing.T, orig, final *models.UniversalRecipe, tolerance int)</signature>
+      <path>internal/converter/roundtrip_test.go</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Recipe uses Go's standard testing package with table-driven tests. Round-trip tests follow the pattern: (1) Load original file, (2) Parse to UniversalRecipe, (3) Generate target format, (4) Parse generated output, (5) Compare with tolerance. Test coverage target is ≥85%. All tests must pass in CI. Tests use t.Parallel() for performance. Helper functions use t.Helper() for clean stack traces.
+    </standards>
+    <locations>
+      <location>internal/formats/costyle/costyle_test.go - Round-trip tests for .costyle format</location>
+      <location>internal/converter/roundtrip_test.go - Cross-format round-trip tests</location>
+      <location>testdata/costyle/ - Test fixtures and sample .costyle files</location>
+      <location>testdata/costyle/real-world/ - Real-world preset samples from Etsy/marketplaces</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-1">TestRoundTrip_Costyle: Test single .costyle file round-trip with 5+ real samples. Load testdata/costyle/real-world/*.costyle, run Parse → Generate → Parse, verify accuracy ≥95%.</idea>
+      <idea acId="AC-2">TestParameterAccuracy: Verify each parameter independently with appropriate tolerance. Exposure: ±0.01, Contrast/Saturation/Tint/Clarity: ±1, Temperature: ±2.</idea>
+      <idea acId="AC-3">TestEdgeCases: Empty recipe (all zeros), extreme values (exposure +2.0, contrast +100), minimal recipe (only exposure set), complex recipe (all parameters populated).</idea>
+      <idea acId="AC-5">TestAccuracyMetrics: Calculate min/max/avg accuracy across all samples. Generate JSON report with parameter breakdown. Assert avg ≥ 95%.</idea>
+      <idea acId="AC-6">TestRoundTrip_Costylepack: Test .costylepack bundle round-trip. Unpack → Convert recipes → Pack → Unpack → Compare each recipe pair.</idea>
+      <idea acId="AC-6">TestRoundTrip_CrossFormat: Test .costyle → .xmp → .costyle and .costyle → .np3 → .costyle to verify no corruption through intermediate formats.</idea>
+      <idea acId="AC-1">Benchmark tests: BenchmarkRoundTrip_Costyle to measure performance. Target: &lt; 100ms per file.</idea>
+    </ideas>
+  </tests>
+</story-context>

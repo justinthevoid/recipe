@@ -1,0 +1,327 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>4</storyId>
+    <title>Individual File Conversion Controls</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>c:\Users\Justin\void\recipe\docs\stories\10-4-individual-file-actions.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer with files in different formats</asA>
+    <iWant>per-file conversion controls to select different target formats for each file</iWant>
+    <soThat>I can convert files to different formats in a single batch without running separate conversions</soThat>
+    <tasks>
+### Task 1: Add Format Selection Dropdown to File Cards (AC-1)
+### Task 2: Style Format Dropdown and Convert Button (AC-1, AC-2)
+### Task 3: Implement Individual File Conversion (AC-2, AC-3)
+### Task 4: Implement Mixed Format Conversion Support (AC-4)
+### Task 5: Implement Retry Failed Conversions (AC-5)
+### Task 6: Implement Batch and Individual Conversion Coexistence (AC-6)
+### Task 7: Implement Individual File Cancellation (AC-7)
+### Task 8: Manual Testing
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+**AC-1: Per-File Format Selection Dropdown**
+- Each file card displays "Convert to..." dropdown
+- Dropdown shows only valid target formats for the source format
+- Dropdown disabled during conversion ("processing" state)
+- Dropdown hidden when conversion complete ("complete" state)
+- Default selection: First valid target format (alphabetically)
+
+**AC-2: Individual "Convert" Button**
+- Each file card has "Convert" button
+- Button enabled when file in "queued" state
+- Button disabled during conversion ("processing" state)
+- Button hidden when conversion complete ("complete" state, replaced by download)
+- Button text: "Convert" (no icon needed)
+- Clicking button starts conversion for that file only (not batch)
+
+**AC-3: Individual File Conversion Flow**
+- User selects target format from dropdown
+- User clicks "Convert" button
+- File status changes: queued → processing → complete/error
+- Only selected file converts (other files remain in queued state)
+- User can convert files in any order (file 3 before file 1, etc.)
+- Batch progress indicator shows per-file progress (not required to convert all files)
+
+**AC-4: Mixed Format Conversion Support**
+- User can select different target formats for different files
+- Each file converts to its selected target format
+- Download buttons show correct format: "Download XMP", "Download lrtemplate", etc.
+- Downloaded filenames reflect target format
+
+**AC-5: Retry Failed Conversions**
+- Files in "error" state show "Retry" button (replaces "Convert" button)
+- Clicking "Retry" re-attempts conversion with same target format
+- Error message clears when retry starts (status → processing)
+- If retry succeeds → status changes to complete
+- If retry fails → error message updates with new error
+- Retry attempts not limited (user can retry indefinitely)
+
+**AC-6: Batch vs Individual Conversion Coexistence**
+- Batch "Convert All" button converts all queued files to same format
+- Individual "Convert" buttons convert single files to custom formats
+- User can mix: batch convert 5 files, then individually convert remaining 2
+- Batch progress tracks both batch-converted and individually-converted files
+- No conflict: user can't trigger batch and individual conversions simultaneously
+
+**AC-7: Conversion Cancel for Individual Files**
+- Individual file conversion can be cancelled during "processing" state
+- File card shows "Cancel" button (replaces "Convert")
+- Clicking "Cancel" aborts conversion for that file
+- File status reverts to "queued" (user can convert again)
+- Cancelling individual file doesn't affect other files
+- No confirmation dialog for individual cancel
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+    <doc>
+      <path>docs/tech-spec-epic-10.md</path>
+      <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+      <section>AC-7: Individual File Conversion</section>
+      <snippet>Per-file conversion controls allow users to select different target formats for each file and convert files individually or in batch mode. Supports retry for failed conversions and individual file cancellation during processing.</snippet>
+    </doc>
+    <doc>
+      <path>docs/PRD-Path-A.md</path>
+      <title>Product Requirements Document (Path A)</title>
+      <section>Epic 3: Enhanced Web UI/UX - FR-3.7</section>
+      <snippet>Improved conversion flow with format detection, dropdown format selection, batch and individual conversion options, instant conversion (<100ms), download buttons, and "Start Fresh" to reset interface.</snippet>
+    </doc>
+    <doc>
+      <path>docs/stories/10-2-batch-file-upload.md</path>
+      <title>Story 10.2: Batch File Upload</title>
+      <section>UploadManager class, file card creation</section>
+      <snippet>Provides foundation for file upload handling with UploadManager class, file card components showing filename/format badge/size/status, and grid layout for batch files.</snippet>
+    </doc>
+    <doc>
+      <path>docs/stories/10-3-progress-indicators.md</path>
+      <title>Story 10.3: Progress Indicators</title>
+      <section>Status updates, download functionality</section>
+      <snippet>Implements per-file status tracking (queued/processing/complete/error), updateFileStatus() function, download button functionality, and batch progress indicators for multi-file conversions.</snippet>
+    </doc>
+    <doc>
+      <path>docs/stories/4-3-batch-progress-display.md</path>
+      <title>Story 4.3: TUI Batch Progress Display</title>
+      <section>Batch vs individual conversion patterns</section>
+      <snippet>TUI implementation of batch conversion with worker pool pattern, sequential processing, progress tracking, and cancellation handling. Demonstrates batch/individual conversion coordination patterns.</snippet>
+    </doc>
+    </docs>
+    <code>
+    <code>
+      <path>web/static/index.html</path>
+      <kind>HTML</kind>
+      <symbol>Main structure</symbol>
+      <lines>1-64</lines>
+      <reason>Current web interface structure - shows existing drop zone, status displays, and conversion controls that will be extended for individual file actions</reason>
+    </code>
+    <code>
+      <path>web/js/upload.js</path>
+      <kind>JavaScript Module</kind>
+      <symbol>UploadManager class</symbol>
+      <lines>N/A - to be created in Story 10-2</lines>
+      <reason>Core upload management class that will be extended to support per-file conversion, format selection dropdowns, and retry functionality</reason>
+    </code>
+    <code>
+      <path>web/js/converter.js</path>
+      <kind>JavaScript Module</kind>
+      <symbol>convertFile function</symbol>
+      <lines>N/A - existing from Story 2-6</lines>
+      <reason>WASM conversion bridge that accepts file data and target format - will be called per-file for individual conversions with AbortSignal support</reason>
+    </code>
+    <code>
+      <path>web/css/components.css</path>
+      <kind>CSS</kind>
+      <symbol>File card styles</symbol>
+      <lines>N/A - to be created in Story 10-2</lines>
+      <reason>File card component styles that will be extended with conversion section (.file-card__conversion) for format dropdown and convert button</reason>
+    </code>
+    <code>
+      <path>cmd/tui/batch.go</path>
+      <kind>Go</kind>
+      <symbol>startConversion, convertBatchCmd</symbol>
+      <lines>45-75</lines>
+      <reason>TUI batch conversion implementation demonstrates sequential processing pattern and concurrency control that applies to web individual conversions</reason>
+    </code>
+    </code>
+        <dependencies>
+      <javascript>
+        <package>vanilla-js</package>
+        <version>native</version>
+        <purpose>No external dependencies - native Web APIs only</purpose>
+      </javascript>
+      <browser-apis>
+        <api>FileReader API</api>
+        <purpose>Read uploaded file contents as ArrayBuffer</purpose>
+      </browser-apis>
+      <browser-apis>
+        <api>AbortController API</api>
+        <purpose>Cancel individual file conversions in progress</purpose>
+      </browser-apis>
+      <browser-apis>
+        <api>Blob API</api>
+        <purpose>Create downloadable files from converted data</purpose>
+      </browser-apis>
+      <browser-apis>
+        <api>URL.createObjectURL</api>
+        <purpose>Generate download URLs for converted files</purpose>
+      </browser-apis>
+      <wasm>
+        <binary>recipe.wasm</binary>
+        <purpose>Core conversion engine (existing from Story 2-6)</purpose>
+      </wasm>
+    </dependencies>
+  </artifacts>
+
+    <constraints>
+    <constraint type="architecture">All processing must remain client-side (WASM) - no server uploads</constraint>
+    <constraint type="performance">Individual conversions must complete in <100ms per file</constraint>
+    <constraint type="browser">Must support Chrome 90+, Firefox 88+, Safari 14+, Edge 90+ (AbortController required)</constraint>
+    <constraint type="dependencies">Zero external JavaScript libraries - vanilla JS only</constraint>
+    <constraint type="concurrency">Sequential processing (one file at a time) to prevent memory pressure</constraint>
+    <constraint type="ui">Dropdown must show only valid target formats (exclude source format)</constraint>
+    <constraint type="state">File status must persist across user interactions (queued, processing, complete, error)</constraint>
+    <constraint type="accessibility">Keyboard navigation required (Tab through controls, Enter to convert)</constraint>
+  </constraints>
+    <interfaces>
+    <interface>
+      <name>UploadManager.convertIndividualFile</name>
+      <kind>JavaScript Function</kind>
+      <signature>async convertIndividualFile(fileId: string): Promise&lt;void&gt;</signature>
+      <path>web/js/upload.js</path>
+    </interface>
+    <interface>
+      <name>UploadManager.getValidTargetFormats</name>
+      <kind>JavaScript Function</kind>
+      <signature>getValidTargetFormats(sourceFormat: string): string[]</signature>
+      <path>web/js/upload.js</path>
+    </interface>
+    <interface>
+      <name>convertFile (WASM Bridge)</name>
+      <kind>JavaScript Function</kind>
+      <signature>async convertFile(data: Uint8Array, targetFormat: string, signal?: AbortSignal): Promise&lt;{data: Uint8Array, format: string}&gt;</signature>
+      <path>web/js/converter.js</path>
+    </interface>
+    <interface>
+      <name>UploadManager.updateFileStatus</name>
+      <kind>JavaScript Function</kind>
+      <signature>updateFileStatus(fileId: string, status: string, errorMessage?: string): void</signature>
+      <path>web/js/upload.js</path>
+    </interface>
+    <interface>
+      <name>UploadManager.downloadFile</name>
+      <kind>JavaScript Function</kind>
+      <signature>downloadFile(fileId: string): void</signature>
+      <path>web/js/upload.js</path>
+    </interface>
+  </interfaces>
+    <tests>
+    <standards>
+Recipe uses manual browser testing for web UI stories (no automated JavaScript testing framework currently). Testing standards:
+- Manual testing across browsers: Chrome, Firefox, Safari, Edge
+- Device testing: Desktop (1920x1080), Tablet (768px), Mobile (375px)
+- Accessibility testing: Keyboard navigation (Tab, Enter, Esc), screen reader compatibility
+- Performance validation: Conversion timing (<100ms target), UI responsiveness (60fps interactions)
+- Cross-browser feature detection: AbortController support check with graceful degradation
+    </standards>
+    <locations>
+      <location>web/static/index.html - Manual browser testing</location>
+      <location>web/js/upload.js - Manual unit testing via browser console</location>
+      <location>web/css/components.css - Visual regression via manual inspection</location>
+    </locations>
+    <ideas>
+      <test id="AC-1" type="manual">
+        <description>Per-file format selection dropdown</description>
+        <steps>
+          1. Upload NP3 file → Verify dropdown shows XMP, lrtemplate, Capture One, DCP (4 options, source excluded)
+          2. Upload XMP file → Verify dropdown shows NP3, lrtemplate, Capture One, DCP
+          3. Verify dropdown disabled during "processing" state
+          4. Verify dropdown hidden when "complete" state
+        </steps>
+      </test>
+      <test id="AC-2" type="manual">
+        <description>Individual "Convert" button</description>
+        <steps>
+          1. Upload 3 files → Verify each has "Convert" button
+          2. Click "Convert" on file 2 → Verify only file 2 processes (files 1 and 3 remain queued)
+          3. Verify button disabled during "processing" state
+          4. Verify button hidden when "complete" state (replaced by download)
+        </steps>
+      </test>
+      <test id="AC-3" type="manual">
+        <description>Individual file conversion flow</description>
+        <steps>
+          1. Upload 5 files → Select different formats for each
+          2. Convert file 3 first (not sequential) → Verify only file 3 processes
+          3. Convert file 1, then file 5 → Verify sequential processing works
+          4. Verify batch progress: "3 of 5 converted"
+        </steps>
+      </test>
+      <test id="AC-4" type="manual">
+        <description>Mixed format conversion support</description>
+        <steps>
+          1. Upload 3 files (NP3, XMP, lrtemplate)
+          2. Select: NP3 → XMP, XMP → DCP, lrtemplate → NP3
+          3. Convert all → Verify each downloads with correct format
+          4. Verify filenames: preset_converted.xmp, style_converted.dcp, template_converted.np3
+        </steps>
+      </test>
+      <test id="AC-5" type="manual">
+        <description>Retry failed conversions</description>
+        <steps>
+          1. Upload corrupted file → Verify conversion fails → "Retry" button appears
+          2. Click "Retry" → Verify conversion re-attempts
+          3. Retry 5 times → Verify no limit on retry attempts
+          4. Verify error message clears when retry starts
+        </steps>
+      </test>
+      <test id="AC-6" type="manual">
+        <description>Batch vs individual conversion coexistence</description>
+        <steps>
+          1. Upload 10 files → Batch convert 5 to XMP
+          2. Individually convert 3 to DCP → Verify both work together
+          3. Verify batch progress: "8 of 10 converted"
+          4. Verify no conflict when triggering batch and individual simultaneously
+        </steps>
+      </test>
+      <test id="AC-7" type="manual">
+        <description>Individual file cancellation</description>
+        <steps>
+          1. Start conversion → Click "Cancel" during "processing" state
+          2. Verify status reverts to "queued"
+          3. Verify "Convert" button reappears
+          4. Verify cancelling file doesn't affect other files
+          5. Verify no confirmation dialog for individual cancel
+        </steps>
+      </test>
+      <test id="Edge-Case-1" type="manual">
+        <description>AbortController not supported</description>
+        <steps>
+          1. Test in old browser (simulate by disabling AbortController)
+          2. Verify cancel button hidden if AbortController unsupported
+          3. Verify conversions still work (cancel feature gracefully degrades)
+        </steps>
+      </test>
+      <test id="Edge-Case-2" type="manual">
+        <description>User changes format dropdown mid-conversion</description>
+        <steps>
+          1. Start conversion → Try to change format dropdown
+          2. Verify dropdown disabled (no effect)
+        </steps>
+      </test>
+      <test id="Edge-Case-3" type="manual">
+        <description>User removes file during conversion</description>
+        <steps>
+          1. Start conversion → Click "Remove" during "processing"
+          2. Verify graceful cleanup (no errors in console)
+          3. Verify conversion aborts cleanly
+        </steps>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

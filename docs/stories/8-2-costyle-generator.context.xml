@@ -1,0 +1,180 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>8</epicId>
+    <storyId>2</storyId>
+    <title>Capture One .costyle Generator</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/8-2-costyle-generator.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer</asA>
+    <iWant>Recipe to generate valid Capture One .costyle preset files from UniversalRecipe representation</iWant>
+    <soThat>I can convert my presets from other formats (XMP, lrtemplate, NP3) to Capture One styles and use them in Capture One Pro editing software</soThat>
+    <tasks>
+      - Implement Generate() function with UniversalRecipe to CaptureOneStyle mapping
+      - Implement scaling helper functions (scaleToInt, scaleToFloat, kelvinToC1Temperature)
+      - Handle edge cases (nil recipe, empty recipe, out-of-range values, metadata preservation)
+      - Format XML output with proper indentation and XML declaration
+      - Write comprehensive unit tests (≥85% coverage)
+      - Manual validation in Capture One Pro
+      - Update documentation (parameter-mapping.md, testdata README)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    - AC-1: Generate valid .costyle XML structure with required elements, namespaces, human-readable formatting
+    - AC-2: Map UniversalRecipe fields to .costyle parameters with correct scaling (Exposure, Contrast, Saturation, Temperature, Tint, Clarity)
+    - AC-3: Handle edge cases (missing parameters, out-of-range values clamped, metadata preserved, unsupported parameters skipped)
+    - AC-4: Validate generated output (loads in Capture One Pro, parameter values match input, XML validates, round-trip 95%+ accuracy)
+    - AC-5: Unit test coverage ≥85% for costyle/generate.go, all tests pass in CI
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-8.md</path>
+        <title>Epic 8 Technical Specification: Capture One Format Support</title>
+        <section>Data Models and Contracts</section>
+        <snippet>Defines CaptureOneStyle struct with XML tags, parameter ranges (Exposure -2.0/+2.0, Contrast/Saturation/etc -100/+100), and UniversalRecipe mapping strategy. Includes Generate() function signature and scaling formulas.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-8.md</path>
+        <title>Epic 8 Technical Specification</title>
+        <section>APIs and Interfaces - Generate Function</section>
+        <snippet>Generate() creates .costyle XML from UniversalRecipe using xml.MarshalIndent, returns formatted XML bytes. Maps UniversalRecipe fields with range scaling (e.g., UR -1.0/+1.0 → C1 -100/+100 for contrast/saturation).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-8.md</path>
+        <title>Epic 8 Technical Specification</title>
+        <section>Dev Notes - Scaling Formulas</section>
+        <snippet>Provides concrete implementations: scaleToInt() for contrast/saturation scaling, kelvinToC1Temperature() for temperature conversion (5500K reference, 60K per unit). Includes examples and clamping logic.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/8-1-costyle-parser.md</path>
+        <title>Story 8-1: Costyle Parser</title>
+        <section>Dev Notes - Learnings</section>
+        <snippet>Establishes package structure (internal/formats/costyle/), CaptureOneStyle struct definitions, parameter ranges, error handling pattern (fmt.Errorf with %w), and test coverage target (≥85%).</snippet>
+      </doc>
+      <doc>
+        <path>docs/parameter-mapping.md</path>
+        <title>Parameter Mapping Reference</title>
+        <section>Format-specific mappings</section>
+        <snippet>Documents parameter mappings and scaling formulas between UniversalRecipe and various formats. Will be updated with .costyle generation mappings showing reverse scaling (UR → Capture One).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>internal/formats/xmp/generate.go</path>
+        <kind>generator</kind>
+        <symbol>Generate</symbol>
+        <lines>1-600</lines>
+        <reason>Proven pattern for XML generation from UniversalRecipe. Uses encoding/xml with MarshalIndent, prepends XML declaration, handles parameter mapping with validation. Same pattern applies to .costyle generation.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/xmp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>ConversionError, XMPDocument, Description</symbol>
+        <lines>40-170</lines>
+        <reason>Defines ConversionError type (Operation, Format, Field, Cause) and XML struct pattern with namespace tags. Reuse error wrapping pattern for costyle/generate.go.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/np3/generate.go</path>
+        <kind>generator</kind>
+        <symbol>Generate</symbol>
+        <lines>1-400</lines>
+        <reason>Example of binary format generator with parameter scaling, range validation, and edge case handling. Similar scaling logic needed for costyle integer parameters.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/models/recipe.go</path>
+        <kind>model</kind>
+        <symbol>UniversalRecipe</symbol>
+        <lines>60-154</lines>
+        <reason>Defines UniversalRecipe struct with all fields (Exposure, Contrast, Saturation, Temperature, Tint, Clarity, etc.). Source for mapping to .costyle parameters.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/converter/converter.go</path>
+        <kind>service</kind>
+        <symbol>Convert</symbol>
+        <lines>53-100</lines>
+        <reason>Shows format detection and conversion routing pattern. Will be extended with costyle format case in generate switch statement (Story 8-5 integration).</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <package name="encoding/xml" version="stdlib">XML marshaling for .costyle generation</package>
+        <package name="fmt" version="stdlib">Error wrapping with %w verb</package>
+        <package name="math" version="stdlib">Math.Round for float to int conversion in scaling functions</package>
+        <package name="github.com/justin/recipe/internal/models" version="local">UniversalRecipe struct definition</package>
+      </go>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - MUST use encoding/xml stdlib package only (zero external dependencies)
+    - MUST achieve ≥85% test coverage for generate.go
+    - MUST follow ConversionError wrapping pattern from xmp/parse.go
+    - MUST generate human-readable XML with 2-space indentation
+    - MUST prepend XML declaration: &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+    - MUST clamp out-of-range values to valid Capture One ranges
+    - MUST omit zero-valued parameters for cleaner XML output
+    - MUST reuse CaptureOneStyle struct from Story 8-1 (types.go)
+    - MUST include scaling helper functions in generate.go
+    - Target performance: &lt;100ms per conversion
+    - Code must pass gofmt and go vet without warnings
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Generate</name>
+      <kind>function</kind>
+      <signature>func Generate(recipe *models.UniversalRecipe) ([]byte, error)</signature>
+      <path>internal/formats/costyle/generate.go</path>
+    </interface>
+    <interface>
+      <name>scaleToInt</name>
+      <kind>function</kind>
+      <signature>func scaleToInt(value float64, min, max int) int</signature>
+      <path>internal/formats/costyle/generate.go</path>
+    </interface>
+    <interface>
+      <name>scaleToFloat</name>
+      <kind>function</kind>
+      <signature>func scaleToFloat(value float64, min, max float64) float64</signature>
+      <path>internal/formats/costyle/generate.go</path>
+    </interface>
+    <interface>
+      <name>kelvinToC1Temperature</name>
+      <kind>function</kind>
+      <signature>func kelvinToC1Temperature(kelvin float64) int</signature>
+      <path>internal/formats/costyle/generate.go</path>
+    </interface>
+    <interface>
+      <name>CaptureOneStyle (reuse from 8-1)</name>
+      <kind>struct</kind>
+      <signature>type CaptureOneStyle struct { XMLName xml.Name; RDF RDF }</signature>
+      <path>internal/formats/costyle/types.go</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Follow Recipe project testing standards: table-driven tests, ≥85% coverage target, use testdata/ for sample files, benchmark tests for performance validation (&lt;100ms target), ConversionError validation in error cases. All tests must pass in CI pipeline.
+    </standards>
+    <locations>
+      - internal/formats/costyle/generate_test.go (new file)
+      - testdata/costyle/ (sample .costyle files for round-trip testing, from Story 8-1)
+    </locations>
+    <ideas>
+      - TestGenerate_ValidRecipe: Generate from populated UniversalRecipe, verify XML well-formed and parameter values match input
+      - TestGenerate_EmptyRecipe: Generate from empty UniversalRecipe (all zero values), verify minimal valid .costyle with neutral parameters
+      - TestGenerate_OutOfRangeValues: Test clamping behavior (Exposure=5.0 should clamp to 2.0)
+      - TestGenerate_MetadataPreservation: Verify name/author/description fields preserved from Metadata map
+      - TestGenerate_RoundTrip: Parse sample .costyle → Generate → Parse again, compare 95%+ match
+      - TestScalingFunctions: Unit tests for scaleToInt/scaleToFloat/kelvinToC1Temperature helpers
+      - BenchmarkGenerate: Verify performance &lt;100ms (likely much faster, similar to XMP)
+    </ideas>
+  </tests>
+</story-context>

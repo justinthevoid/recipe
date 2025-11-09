@@ -106,3 +106,37 @@ development_status:
   7-5-cloudflare-pages-deployment: done  # Code review: APPROVED (2025-11-08 after resolution) - Manual deployment to https://recipe.justins.studio, all blocking issues resolved (commit c64c215), production ready
   7-6-github-releases-setup: done  # Code review: APPROVED (2025-11-08) - Production release v0.1.0 live, all 8 ACs verified, 44-second build time, one advisory note (README username mismatch)
   epic-7-retrospective: optional
+
+  # === PATH A ENHANCEMENTS (2025-11-08) ===
+  # Epic 8: Capture One Format Support (Path A FR-1)
+  epic-8: contexted  # Path A: Capture One .costyle format support - Tech spec: docs/tech-spec-epic-8.md
+  8-1-costyle-parser: done  # Code review: APPROVED (2025-11-09) - All 4 ACs verified (100%), 35/36 tasks complete (97.2%), 96.5% test coverage (11.5% above requirement), 6,295x performance target exceeded (0.016ms vs 100ms), zero blocking issues, production ready
+  8-2-costyle-generator: done  # Code review: APPROVED (2025-11-09 re-review) - All critical issues resolved, 100% round-trip accuracy for Tint/Color Balance, 31/31 tests pass, 85.9% coverage, production ready
+  8-3-costylepack-bundles: done  # Code review: APPROVED (2025-11-09) - All 6 ACs verified (100%), 48/48 tasks complete, 85.9% coverage (exceeds 85% target), 5,649x performance target exceeded (0.885ms vs 5,000ms), zero blocking issues, production ready
+  8-4-costyle-round-trip-testing: review  # Round-trip conversion testing with 95%+ preservation - Code review follow-up (2025-11-09) - AC-1 RESOLVED: 5 XMP-style samples with 98.54% accuracy (exceeds 95% target), AC-4 PENDING: visual validation requires Capture One Pro trial installation (manual testing, user-dependent), 85.9% coverage maintained - Story: docs/stories/8-4-costyle-round-trip-testing.md - Context: docs/stories/8-4-costyle-round-trip-testing.context.xml
+  8-5-costyle-integration: ready-for-dev  # CLI/TUI/Web integration for Capture One format - Story created: docs/stories/8-5-costyle-integration.md (2025-11-08) - Context: docs/stories/8-5-costyle-integration.context.xml (2025-11-09)
+
+  # Epic 9: DCP Camera Profile Support (Path A FR-2)
+  epic-9: contexted  # Path A: DNG Camera Profile (DCP) support - Tech spec: docs/tech-spec-epic-9.md
+  9-1-dcp-parser: ready-for-dev  # Parse TIFF-based DCP files and extract tone curves - Story created: docs/stories/9-1-dcp-parser.md (2025-11-08) - Context: docs/stories/9-1-dcp-parser.context.xml (2025-11-09)
+  9-2-dcp-generator: ready-for-dev  # Generate DCP files with tone curves from UniversalRecipe - Story created: docs/stories/9-2-dcp-generator.md (2025-11-08) - Context: docs/stories/9-2-dcp-generator.context.xml (2025-11-09)
+  9-3-dcp-parameter-mapping: ready-for-dev  # Document DCP parameter mapping and conversion formulas - Story created: docs/stories/9-3-dcp-parameter-mapping.md (2025-11-08) - Context: docs/stories/9-3-dcp-parameter-mapping.context.xml (2025-11-09)
+  9-4-dcp-compatibility-validation: ready-for-dev  # Validate DCP compatibility with Adobe Camera Raw/Lightroom - Story created: docs/stories/9-4-dcp-compatibility-validation.md (2025-11-08) - Context: docs/stories/9-4-dcp-compatibility-validation.context.xml (2025-11-09)
+
+  # Epic 10: Enhanced Web UI/UX (Path A FR-3)
+  epic-10: contexted  # Path A: Redesigned web interface with batch processing - Tech spec: docs/tech-spec-epic-10.md
+  10-1-landing-page-redesign: ready-for-dev  # Redesigned landing page with visual format badges - Story created: docs/stories/10-1-landing-page-redesign.md (2025-11-08) - Context: docs/stories/10-1-landing-page-redesign.context.xml (2025-11-09)
+  10-2-batch-file-upload: ready-for-dev  # Batch file upload with drag-and-drop support - Story created: docs/stories/10-2-batch-file-upload.md (2025-11-08) - Context: docs/stories/10-2-batch-file-upload.context.xml (2025-11-09)
+  10-3-progress-indicators: ready-for-dev  # Progress indicators for batch conversions - Story created: docs/stories/10-3-progress-indicators.md (2025-11-08) - Context: docs/stories/10-3-progress-indicators.context.xml (2025-11-09)
+  10-4-individual-file-actions: ready-for-dev  # Per-file conversion controls and error handling - Story created: docs/stories/10-4-individual-file-actions.md (2025-11-08) - Context: docs/stories/10-4-individual-file-actions.context.xml (2025-11-09)
+  10-5-responsive-mobile-design: ready-for-dev  # Mobile-responsive design and touch interactions - Story created: docs/stories/10-5-responsive-mobile-design.md (2025-11-08) - Context: docs/stories/10-5-responsive-mobile-design.context.xml (2025-11-09)
+  10-6-performance-optimization: ready-for-dev  # Performance optimization for 3G load times - Story created: docs/stories/10-6-performance-optimization.md (2025-11-08) - Context: docs/stories/10-6-performance-optimization.context.xml (2025-11-09)
+  10-7-accessibility-enhancements: ready-for-dev  # Accessibility enhancements (ARIA, keyboard navigation) - Story created: docs/stories/10-7-accessibility-enhancements.md (2025-11-08) - Context: docs/stories/10-7-accessibility-enhancements.context.xml (2025-11-09)
+
+  # Epic 11: Image Preview System (Path A FR-4)
+  epic-11: contexted  # Path A: CSS filter-based preview system - Tech spec: docs/tech-spec-epic-11.md
+  11-1-css-filter-mapping: ready-for-dev  # CSS filter-based preview (exposure, contrast, saturation, hue) - Story created: docs/stories/11-1-css-filter-mapping.md (2025-11-08) - Context: docs/stories/11-1-css-filter-mapping.context.xml (2025-11-09)
+  11-2-reference-image-bundle: ready-for-dev  # Reference image bundle (Portrait, Landscape, Product) - Story created: docs/stories/11-2-reference-image-bundle.md (2025-11-09) - Context: docs/stories/11-2-reference-image-bundle.context.xml (2025-11-09)
+  11-3-preview-modal-interface: ready-for-dev  # Preview modal with before/after slider - Story created: docs/stories/11-3-preview-modal-interface.md (2025-11-09) - Context: docs/stories/11-3-preview-modal-interface.context.xml (2025-11-09)
+  11-4-preview-slider-interaction: ready-for-dev  # Interactive slider with keyboard/touch support - Story created: docs/stories/11-4-preview-slider-interaction.md (2025-11-09) - Context: docs/stories/11-4-preview-slider-interaction.context.xml (2025-11-09)
+  11-5-preview-disclaimer: ready-for-dev  # Clear disclaimer about CSS filter approximation - Story created: docs/stories/11-5-preview-disclaimer.md (2025-11-09) - Context: docs/stories/11-5-preview-disclaimer.context.xml (2025-11-09)

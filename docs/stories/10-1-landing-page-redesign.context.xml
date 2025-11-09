@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>1</storyId>
+    <title>Landing Page Redesign with Hero Section</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/10-1-landing-page-redesign.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer visiting Recipe's website</asA>
+    <iWant>a modern, visually appealing landing page with clear value proposition and format badges</iWant>
+    <soThat>I immediately understand Recipe's purpose, see supported formats at a glance, and feel
+      confident using the tool</soThat>
+    <tasks>
+      <task id="1">Create Hero Section (AC-1)</task>
+      <task id="2">Create Format Badge System (AC-2)</task>
+      <task id="3">Implement Single-Page Layout (AC-3)</task>
+      <task id="4">Implement Responsive Design (AC-4)</task>
+      <task id="5">Optimize for Performance (AC-5)</task>
+      <task id="6">Implement Clean Typography (AC-6)</task>
+      <task id="7">Remove All External Dependencies (AC-7)</task>
+      <task id="8">Manual Testing and Validation</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" priority="critical">
+      <title>Hero Section with Clear Value Proposition</title>
+      <description>Hero section at top with headline, subheadline, call-to-action button</description>
+      <verification>
+        - Headline: "Convert Photo Presets. Instantly. Privately."
+        - Subheadline explains Recipe's purpose (1-2 sentences max)
+        - Clean typography using system fonts
+        - Visually distinct from main content
+        - "Get Started" button scrolls to upload section
+      </verification>
+    </criterion>
+    <criterion id="AC-2" priority="critical">
+      <title>Visual Format Badges</title>
+      <description>Format badges with defined brand colors prominently displayed</description>
+      <verification>
+        - 5 badges: NP3 (#FFC107), XMP (#0073E6), lrtemplate (#D81B60), Capture One (#9C27B0), DCP
+        (#4CAF50)
+        - Shows format abbreviation and full name on hover
+        - Consistent styling (rounded corners, bold text, white text on colored background)
+        - Accessible: Color not sole indicator
+      </verification>
+    </criterion>
+    <criterion id="AC-3" priority="high">
+      <title>Single-Page Layout</title>
+      <description>All core functionality on single page with smooth scroll behavior</description>
+      <verification>
+        - Sections: Hero, Format badges, Upload, Conversion
+        - Smooth scroll between sections (CSS scroll-behavior: smooth)
+        - No page reloads during conversion (SPA behavior)
+      </verification>
+    </criterion>
+    <criterion id="AC-4" priority="critical">
+      <title>Responsive Design</title>
+      <description>Layout adapts to mobile/tablet/desktop breakpoints</description>
+      <verification>
+        - Mobile (320px-767px): Single column, headline 28px, vertical badges
+        - Tablet (768px-1023px): 2-column grid, headline 36px, wrapped badges
+        - Desktop (1024px+): Centered 1200px, headline 48px, badges in row
+        - Touch-friendly 44x44px minimum tap targets
+      </verification>
+    </criterion>
+    <criterion id="AC-5" priority="high">
+      <title>Performance - Fast Load Time</title>
+      <description>Page loads in less than 2 seconds on 3G connection</description>
+      <verification>
+        - WebPageTest validation on 3G (1.6 Mbps, 300ms RTT)
+        - Zero external dependencies (no CDN fonts, no analytics)
+        - CSS minified and inline (or single stylesheet less than 10KB)
+        - JavaScript deferred or async
+        - WASM loaded on-demand
+        - Progressive enhancement: basic HTML/CSS works without JavaScript
+      </verification>
+    </criterion>
+    <criterion id="AC-6" priority="medium">
+      <title>Clean Typography</title>
+      <description>System font stack with defined font sizes and line heights</description>
+      <verification>
+        - System fonts: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto
+        - Font sizes via CSS variables (base: 16px, large: 20px, hero: 48px responsive)
+        - Line heights: body 1.6, headings 1.2
+        - Font weights: normal 400, bold 600
+      </verification>
+    </criterion>
+    <criterion id="AC-7" priority="critical">
+      <title>No External Dependencies</title>
+      <description>Zero third-party scripts or stylesheets, all self-hosted</description>
+      <verification>
+        - No Google Fonts, Bootstrap, Tailwind, or CSS frameworks
+        - No jQuery or utility libraries
+        - No analytics (Google Analytics, Cloudflare Web Analytics)
+        - All assets in web/ directory
+        - Privacy-focused: Zero tracking, zero external requests
+      </verification>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Data Models and Contracts</section>
+        <snippet>CSS Variables for format badge colors (NP3=#FFC107, XMP=#0073E6,
+          lrtemplate=#D81B60, Capture One=#9C27B0, DCP=#4CAF50), typography variables, spacing
+          system, BEM naming convention for CSS classes</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Detailed Design</section>
+        <snippet>Hero section design pattern, format badge desktop layout (5 badges in row),
+          component structure for web/ directory with CSS modules (main.css, components.css,
+          layout.css)</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Non-Functional Requirements - Performance</section>
+        <snippet>3G load time target less than 2 seconds, optimization strategies (system fonts,
+          inline critical CSS, lazy load WASM), performance monitoring with Lighthouse CI (target
+          ≥95), WebPageTest validation</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD-Path-A.md</path>
+        <title>Product Requirements Document - Path A Enhancements</title>
+        <section>User Experience Principles</section>
+        <snippet>Design philosophy: Craft Over Flash, Confidence Through Clarity, Privacy-First
+          Transparency, Progressive Disclosure. Visual personality: Modern but Timeless, Format
+          Badge System with defined color meanings</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-path-a.md</path>
+        <title>Architecture - Recipe Path A Enhancements</title>
+        <section>Epic 3: Enhanced Web UI/UX</section>
+        <snippet>Project structure for web/ directory, CSS architecture (main.css for variables,
+          components.css for badges/buttons, layout.css for responsive grid), responsive breakpoints
+          (mobile less than 768px, tablet 768-1024px, desktop greater than 1024px)</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-path-a.md</path>
+        <title>Architecture - Recipe Path A Enhancements</title>
+        <section>Consistency Rules - CSS Architecture</section>
+        <snippet>Color palette CSS variables, responsive breakpoints with mobile-first approach, BEM
+          naming convention (.block__element--modifier), format badge colors with accessibility
+          notes (yellow/green need dark text)</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>web/index.html</path>
+        <kind>html</kind>
+        <symbol>Landing page structure</symbol>
+        <lines>1-400</lines>
+        <reason>Current landing page HTML structure to be modified - contains hero section, landing
+          content sections, footer structure, and existing privacy/legal sections to preserve</reason>
+      </file>
+      <file>
+        <path>web/static/main.js</path>
+        <kind>javascript</kind>
+        <symbol>Main application initialization</symbol>
+        <lines>1-100</lines>
+        <reason>Existing app initialization pattern - will need to integrate with new CSS modules,
+          maintains WASM loading and event-driven architecture</reason>
+      </file>
+      <file>
+        <path>web/static/style.css</path>
+        <kind>css</kind>
+        <symbol>Current global styles</symbol>
+        <lines>all</lines>
+        <reason>Existing stylesheet to refactor into modular CSS files (main.css, components.css,
+          layout.css) - extract variables, component styles, and responsive patterns</reason>
+      </file>
+      <file>
+        <path>web/static/privacy-messaging.js</path>
+        <kind>javascript</kind>
+        <symbol>Privacy messaging components</symbol>
+        <lines>1-50</lines>
+        <reason>Privacy-first messaging patterns already implemented - ensure hero section aligns
+          with existing privacy communication style</reason>
+      </file>
+      <file>
+        <path>web/static/responsive.js</path>
+        <kind>javascript</kind>
+        <symbol>Responsive adaptations</symbol>
+        <lines>1-50</lines>
+        <reason>Touch detection and orientation handling already implemented - ensure CSS responsive
+          design works with existing JavaScript enhancements</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="web">
+        <package name="vanilla-javascript" version="ES6+"
+          usage="No framework - modern JavaScript with modules" />
+        <package name="css-grid" version="native" usage="Responsive layout system" />
+        <package name="css-flexbox" version="native" usage="Component alignment and badge layout" />
+        <package name="css-variables" version="native" usage="Color palette and design tokens" />
+        <package name="webassembly" version="1.0" usage="Conversion engine (existing, unchanged)" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="performance">Page load time must be less than 2 seconds on 3G connection (1.6
+      Mbps, 300ms RTT) - validated with WebPageTest</constraint>
+    <constraint type="privacy">Zero external dependencies - no CDN fonts, no analytics trackers, no
+      external CSS/JS libraries</constraint>
+    <constraint type="architecture">Vanilla JavaScript only - no React, Vue, Svelte, or other
+      frameworks</constraint>
+    <constraint type="progressive-enhancement">Basic HTML/CSS must work without JavaScript - core
+      message (hero, format badges) visible without JS</constraint>
+    <constraint type="browser-compatibility">Support Chrome 90+, Firefox 88+, Safari 14+, Edge 90+ -
+      no IE11 support needed</constraint>
+    <constraint type="accessibility">Touch targets must be minimum 44x44px on mobile per
+      Apple/Google guidelines</constraint>
+    <constraint type="responsive">Mobile-first CSS approach - base styles for mobile, media queries
+      for larger screens</constraint>
+    <constraint type="naming">BEM naming convention for CSS classes (.block__element--modifier)</constraint>
+    <constraint type="file-organization">CSS modules organized by purpose (main.css global,
+      components.css reusable, layout.css responsive grid)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Hero Section Component</name>
+      <kind>html-css</kind>
+      <signature>
+        &lt;section class="hero"&gt;
+        &lt;div class="hero__container"&gt;
+        &lt;h1 class="hero__title"&gt;Convert Photo Presets. Instantly. Privately.&lt;/h1&gt;
+        &lt;p class="hero__subtitle"&gt;Transform your photo editing presets...&lt;/p&gt;
+        &lt;a href="#upload" class="hero__cta button button--primary"&gt;Get Started&lt;/a&gt;
+        &lt;/div&gt;
+        &lt;/section&gt;
+      </signature>
+      <path>web/index.html (to be modified)</path>
+    </interface>
+    <interface>
+      <name>Format Badge Component</name>
+      <kind>html-css</kind>
+      <signature>
+        &lt;span class="badge badge--np3" title="Nikon Picture Control"&gt;NP3&lt;/span&gt;
+        CSS: .badge { display: inline-block; padding: 0.5rem 1rem; border-radius: 6px; }
+        CSS: .badge--np3 { background-color: var(--color-np3); }
+      </signature>
+      <path>web/css/components.css (to be created)</path>
+    </interface>
+    <interface>
+      <name>CSS Variables Color Palette</name>
+      <kind>css</kind>
+      <signature>
+        :root {
+        --color-np3: #FFC107;
+        --color-xmp: #0073E6;
+        --color-lrtemplate: #D81B60;
+        --color-costyle: #9C27B0;
+        --color-dcp: #4CAF50;
+        --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", ...;
+        }
+      </signature>
+      <path>web/css/main.css (to be created)</path>
+    </interface>
+    <interface>
+      <name>Responsive Breakpoints</name>
+      <kind>css</kind>
+      <signature>
+        /* Mobile first */
+        @media (min-width: 768px) { /* Tablet */ }
+        @media (min-width: 1024px) { /* Desktop */ }
+      </signature>
+      <path>web/css/layout.css (to be created)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Epic 10 focuses on frontend UI/UX with manual testing emphasis. Testing standards: Lighthouse
+      audit for performance/accessibility (target ≥95), WebPageTest for 3G load time (target less
+      than 2 seconds), browser compatibility testing (Chrome, Firefox, Safari, Edge), responsive
+      design testing at defined breakpoints (320px, 768px, 1024px), accessibility testing with
+      keyboard navigation and screen readers (VoiceOver, NVDA), visual regression testing for format
+      badges and hero section
+    </standards>
+
+    <locations>
+      Manual testing documented in story completion notes. Performance benchmarks: WebPageTest (3G),
+      Lighthouse CI. Browser compatibility: BrowserStack or manual testing. Responsive testing:
+      Chrome DevTools device emulation + real devices (iPhone, Android, iPad)
+    </locations>
+
+    <ideas>
+      <test ac="AC-1">
+        <idea>Manual: Verify hero section displays correctly with headline, subheadline, and CTA
+          button. Test "Get Started" button smooth scroll to #upload section</idea>
+        <idea>Lighthouse: Verify hero section passes accessibility audit (color contrast, semantic
+          HTML)</idea>
+      </test>
+      <test ac="AC-2">
+        <idea>Manual: Verify all 5 format badges display with correct colors (visual inspection
+          against hex values). Test hover interaction shows full format name</idea>
+        <idea>Accessibility: Verify badges pass WCAG AA contrast ratio (4.5:1 minimum) - note
+          yellow/green badges may need dark text adjustment</idea>
+      </test>
+      <test ac="AC-3">
+        <idea>Manual: Test smooth scroll from hero CTA to upload section. Verify no page reloads
+          during workflow (check Network tab for zero full-page requests)</idea>
+        <idea>Functional: Test that all sections (hero, formats, upload, conversion) are accessible
+          on single page without navigation</idea>
+      </test>
+      <test ac="AC-4">
+        <idea>Manual: Test responsive breakpoints in Chrome DevTools (320px, 768px, 1024px). Verify
+          hero title font-size changes (28px→36px→48px) and badge layout adapts</idea>
+        <idea>Device: Test on real devices (iPhone SE, iPad, desktop) to verify touch targets
+          ≥44x44px and no horizontal scrolling</idea>
+      </test>
+      <test ac="AC-5">
+        <idea>WebPageTest: Test load time on 3G connection (1.6 Mbps, 300ms RTT) - target less than
+          2 seconds. Verify First Contentful Paint less than 1.5s, Largest Contentful Paint less
+          than 2.0s</idea>
+        <idea>Network: Verify zero external requests (check Network tab - all assets self-hosted in
+          web/ directory)</idea>
+        <idea>Lighthouse: Run audit targeting Performance ≥95, verify no render-blocking resources</idea>
+      </test>
+      <test ac="AC-6">
+        <idea>Manual: Verify typography renders correctly with system fonts on Windows (Segoe UI),
+          macOS (San Francisco), Linux (Roboto)</idea>
+        <idea>Visual: Verify font sizes match CSS variables (base: 16px, large: 20px, hero: 48px on
+          desktop). Check line-height readability</idea>
+      </test>
+      <test ac="AC-7">
+        <idea>Network: Inspect Network tab in browser DevTools - verify zero requests to external
+          domains (no CDN fonts, no analytics scripts)</idea>
+        <idea>Code Review: Audit index.html for external &lt;link&gt; or &lt;script&gt; tags -
+          confirm all assets are relative paths in web/ directory</idea>
+        <idea>Privacy: Test offline mode (disable network) - verify landing page loads and displays
+          correctly (after initial load)</idea>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

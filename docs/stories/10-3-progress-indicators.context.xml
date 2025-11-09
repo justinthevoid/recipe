@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>3</storyId>
+    <title>Progress Indicators for Batch Conversions</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/10-3-progress-indicators.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer converting multiple preset files</asA>
+    <iWant>clear visual feedback on conversion progress for each file and overall batch status</iWant>
+    <soThat>I can monitor conversion progress, identify errors quickly, and know when downloads are ready</soThat>
+    <tasks>
+      <task id="1">Create Batch Progress Indicator Component (AC-1)</task>
+      <task id="2">Implement Per-File Status Indicators (AC-2)</task>
+      <task id="3">Implement updateFileStatus() Function (AC-2, AC-3)</task>
+      <task id="4">Implement Batch Conversion with Progress Updates (AC-1, AC-4)</task>
+      <task id="5">Implement Download Button Functionality (AC-5)</task>
+      <task id="6">Implement Error Handling with Specific Messages (AC-6)</task>
+      <task id="7">Implement Cancel Batch Conversion (AC-7)</task>
+      <task id="8">Manual Testing</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1" priority="critical">
+      <title>Batch Progress Indicator</title>
+      <description>Overall batch progress displayed above file grid with real-time updates</description>
+      <verification>
+        - Progress text format: "Converting 3 of 10..." (dynamic count)
+        - Progress bar visual indicator (0-100% filled bar)
+        - Completion message: "All 10 files converted successfully" (or "8 of 10 converted, 2 failed")
+        - Progress indicator hidden when no conversions in progress
+        - Real-time updates as files complete
+      </verification>
+    </criterion>
+    <criterion id="AC-2" priority="critical">
+      <title>Per-File Status Indicators</title>
+      <description>Each file card displays current conversion status with icon and color coding</description>
+      <verification>
+        - Queued state: Clock icon ⏱️, Gray (#999), "Queued" text, default white background
+        - Processing state: Spinner ⏳, Blue (#0073E6), "Converting..." text, light blue background (#F0F7FF), animated spinner
+        - Complete state: Checkmark ✓, Green (#4CAF50), "Complete" text, light green background (#E8F5E9), download button visible
+        - Error state: X icon ✕, Red (#D32F2F), "Error: specific message" text, light red background (#FFEBEE), error message displayed
+      </verification>
+    </criterion>
+    <criterion id="AC-3" priority="high">
+      <title>Smooth State Transitions</title>
+      <description>Transitions between conversion states are smooth with no layout shifts</description>
+      <verification>
+        - CSS transitions (0.3s ease) between states
+        - Background color fades smoothly
+        - Icon changes instantly (no animation delay)
+        - Status text updates without flicker
+        - No janky updates or layout shifts during state changes
+      </verification>
+    </criterion>
+    <criterion id="AC-4" priority="high">
+      <title>Visual Feedback During Processing</title>
+      <description>Clear visual indication that conversion is in progress</description>
+      <verification>
+        - Spinner animation during processing: Rotating hourglass (360° rotation, 1s duration, infinite loop)
+        - Progress bar shows percentage (0-100%): Filled portion blue (#0073E6), unfilled light gray (#E0E0E0)
+        - Processing state visually distinct with color change and animation
+      </verification>
+    </criterion>
+    <criterion id="AC-5" priority="high">
+      <title>Completion State with Download Buttons</title>
+      <description>Download button appears when file conversion completes</description>
+      <verification>
+        - Download button label: "Download format" (e.g., "Download XMP")
+        - Button styled as primary action (blue background, white text)
+        - Clicking triggers browser download
+        - Downloaded filename: original-name_converted.ext
+        - Download button persists after download (user can download again)
+      </verification>
+    </criterion>
+    <criterion id="AC-6" priority="high">
+      <title>Error State with Specific Error Messages</title>
+      <description>Clear error messages displayed per file with retry option</description>
+      <verification>
+        - Error message displayed per file (not global)
+        - Common error messages: "Invalid file format", "Parsing failed: reason", "Conversion failed: reason", "Unsupported format"
+        - Error message truncated if greater than 50 characters (full message on hover)
+        - Error state persistent until user removes file or retries
+        - Optional: "Retry Conversion" button shown for error state
+      </verification>
+    </criterion>
+    <criterion id="AC-7" priority="medium">
+      <title>Cancel In-Progress Batch Conversions</title>
+      <description>Users can cancel batch conversion while in progress</description>
+      <verification>
+        - "Cancel All" button visible during batch processing
+        - Clicking "Cancel All" stops all pending conversions: Files in "queued" state revert to queued, Files in "processing" state abort conversion (if possible), Completed files remain complete (downloads available)
+        - Confirmation dialog: "Cancel all in-progress conversions?" (Yes/No)
+        - After cancellation, batch progress indicator updates: "Conversion cancelled (3 of 10 complete)"
+        - "Cancel All" button hidden when no conversions in progress
+      </verification>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Data Models and Contracts</section>
+        <snippet>UploadedFile typedef with status field ('queued', 'processing', 'complete', 'error'), BatchProgress typedef (total, completed, failed, queued), Format Badge Component with BEM naming, CSS Variables for format badge colors</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Services and Modules</section>
+        <snippet>upload.js module responsible for batch upload, file card creation, progress tracking. updateFileStatus() function to update card UI based on conversion state. Batch conversion orchestration in app.js</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>APIs and Interfaces</section>
+        <snippet>updateFileStatus(fileId, status, errorMessage) updates card data-status attribute and UI. createFileCard() generates HTML with status section. Batch conversion workflow: Queue files, Convert sequentially, Update progress, Show downloads</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Workflows and Sequencing</section>
+        <snippet>Batch Conversion Workflow: User selects target format, Clicks "Convert All", For each file: Update to 'processing', Call WASM convertFile(), On success/error update status, Show download buttons or errors, Update batch progress text</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-10.md</path>
+        <title>Epic Technical Specification: Enhanced Web UI/UX</title>
+        <section>Acceptance Criteria</section>
+        <snippet>AC-4: Progress Indicators - Batch conversion shows overall progress, Per-file status indicators (queued, processing, complete, error), Smooth transitions, Visual feedback, Download buttons, Error messages, Cancel button</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD-Path-A.md</path>
+        <title>Product Requirements Document - Path A Enhancements</title>
+        <section>Functional Requirements - Epic 3</section>
+        <snippet>FR-3.4: Progress indicators for multi-file conversions - Overall batch progress displayed, Per-file status indicators (queued, processing, complete), Smooth state transitions, Visual feedback during processing, Download buttons on completion, Error state with specific messages, Cancellable batch operations</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-path-a.md</path>
+        <title>Architecture - Recipe Path A Enhancements</title>
+        <section>Epic 3: Enhanced Web UI/UX</section>
+        <snippet>Architecture Components: web/js/upload.js (Batch file handling, progress tracking, updateFileStatus function), web/js/app.js (Batch conversion orchestration, batchConvert function). CSS state-based styling using data-status attribute. Sequential file processing for simplicity</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture-path-a.md</path>
+        <title>Architecture - Recipe Path A Enhancements</title>
+        <section>Consistency Rules - CSS Architecture</section>
+        <snippet>CSS Variables for status colors (Blue=#0073E6 processing, Green=#4CAF50 success, Red=#D32F2F error, Gray=#999 queued). CSS transitions (0.3s ease) for smooth state changes. BEM naming convention for CSS classes (.file-card[data-status="processing"])</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>web/index.html</path>
+        <kind>html</kind>
+        <symbol>Landing page structure with upload section from Story 10-2</symbol>
+        <lines>1-200</lines>
+        <reason>Current HTML to be extended with batch progress component above file grid - contains upload section structure from Story 10-2</reason>
+      </file>
+      <file>
+        <path>web/static/style.css</path>
+        <kind>css</kind>
+        <symbol>Current global styles</symbol>
+        <lines>all</lines>
+        <reason>Will be modularized into main.css, components.css, layout.css - need current styling patterns for batch progress component and status indicators</reason>
+      </file>
+      <file>
+        <path>web/static/upload.js</path>
+        <kind>javascript</kind>
+        <symbol>UploadManager class from Story 10-2</symbol>
+        <lines>all</lines>
+        <reason>Existing UploadManager class will be extended with updateFileStatus(), updateBatchProgress(), and downloadFile() methods for progress tracking</reason>
+      </file>
+      <file>
+        <path>web/static/main.js</path>
+        <kind>javascript</kind>
+        <symbol>Main application initialization</symbol>
+        <lines>all</lines>
+        <reason>Will integrate batch conversion orchestration (startBatchConversion function) with existing UploadManager</reason>
+      </file>
+      <file>
+        <path>web/static/converter.js</path>
+        <kind>javascript</kind>
+        <symbol>WASM conversion interface</symbol>
+        <lines>all</lines>
+        <reason>Existing WASM conversion interface - will be called by batch conversion loop to convert individual files</reason>
+      </file>
+      <file>
+        <path>web/static/error-handler.js</path>
+        <kind>javascript</kind>
+        <symbol>Error handling patterns</symbol>
+        <lines>all</lines>
+        <reason>Existing error messaging patterns - will be reused for conversion error mapping (WASM errors to user-friendly messages)</reason>
+      </file>
+      <file>
+        <path>web/static/file-handler.js</path>
+        <kind>javascript</kind>
+        <symbol>Existing file handling logic</symbol>
+        <lines>all</lines>
+        <reason>Current file upload implementation - references for status update patterns (showLoadingState, hideLoadingState, updateStatus)</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="web">
+        <package name="vanilla-javascript" version="ES6+"
+          usage="No framework - modern JavaScript with modules for batch conversion, progress tracking" />
+        <package name="browser-file-api" version="native"
+          usage="FileReader, Blob, URL.createObjectURL for file handling and downloads" />
+        <package name="css-grid" version="native"
+          usage="Responsive grid layout for file cards (from Story 10-2)" />
+        <package name="css-flexbox" version="native"
+          usage="File card internal layout (header, body, footer)" />
+        <package name="css-variables" version="native" usage="Status colors and design tokens" />
+        <package name="css-transitions" version="native" usage="Smooth state transitions (0.3s ease)" />
+        <package name="css-animations" version="native" usage="Spinner rotation animation (@keyframes)" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Vanilla JavaScript only - no React, Vue, Svelte, or other frameworks. Maintain existing web/ directory structure and patterns from Story 10-2</constraint>
+    <constraint type="sequential-processing">Batch conversion uses sequential file processing (not parallel) for simplicity and predictable progress updates. WASM conversions are fast (less than 100ms per file) so sequential is acceptable</constraint>
+    <constraint type="state-management">Use data-status attribute on file cards for CSS state-based styling. Store file state in UploadManager.files Map structure (fileId to FileData object)</constraint>
+    <constraint type="error-handling">All conversion errors must be caught and mapped to user-friendly messages. Do not expose raw WASM error codes to users</constraint>
+    <constraint type="browser-compatibility">Support Chrome 90+, Firefox 88+, Safari 14+, Edge 90+ - no IE11 support needed. Blob API and URL.createObjectURL are universally supported</constraint>
+    <constraint type="accessibility">Spinner animations use CSS animations (GPU-accelerated). Status icons include text for screen readers. Color is not sole indicator of state</constraint>
+    <constraint type="performance">Progress updates must not block UI (less than 16ms per update for 60fps). Use CSS transitions for smooth animations. Batch DOM updates if converting 100+ files</constraint>
+    <constraint type="naming">BEM naming convention for CSS classes (.batch-progress, .batch-progress__fill, .file-card[data-status="processing"]) - follow existing pattern from Story 10-2</constraint>
+    <constraint type="cancellation">Cancellation uses boolean flag (conversionAborted) checked between file conversions. Cannot abort WASM conversion mid-file (too fast)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>updateFileStatus Method</name>
+      <kind>javascript-method</kind>
+      <signature>
+        updateFileStatus(fileId, status, errorMessage = null) {
+        // Update fileData.status in this.files Map
+        // Update card data-status attribute (triggers CSS transition)
+        // Update icon and text based on status
+        // Show/hide download button based on status
+        }
+      </signature>
+      <path>web/static/upload.js (UploadManager class method)</path>
+    </interface>
+    <interface>
+      <name>updateBatchProgress Method</name>
+      <kind>javascript-method</kind>
+      <signature>
+        updateBatchProgress(completed, total) {
+        // Update batch progress title text
+        // Update progress bar fill width (percentage)
+        // Show/hide batch progress component
+        // Show completion message when all files processed
+        }
+      </signature>
+      <path>web/static/upload.js (UploadManager class method)</path>
+    </interface>
+    <interface>
+      <name>downloadFile Method</name>
+      <kind>javascript-method</kind>
+      <signature>
+        downloadFile(fileId) {
+        // Get fileData from this.files Map
+        // Create Blob from fileData.outputData
+        // Create temporary URL with URL.createObjectURL()
+        // Trigger browser download with element click
+        // Clean up URL with URL.revokeObjectURL()
+        }
+      </signature>
+      <path>web/static/upload.js (UploadManager class method)</path>
+    </interface>
+    <interface>
+      <name>startBatchConversion Function</name>
+      <kind>javascript-function</kind>
+      <signature>
+        async function startBatchConversion(uploadManager, targetFormat) {
+        // Initialize batchProgress state
+        // Loop through uploaded files sequentially
+        // For each file:
+        //   - updateFileStatus(fileId, 'processing')
+        //   - await convertFile(file, targetFormat)
+        //   - On success: updateFileStatus(fileId, 'complete'), store outputData
+        //   - On error: updateFileStatus(fileId, 'error', errorMessage)
+        //   - updateBatchProgress(completed, total)
+        // Show batch completion message
+        }
+      </signature>
+      <path>web/static/app.js (main application logic)</path>
+    </interface>
+    <interface>
+      <name>Batch Progress HTML Structure</name>
+      <kind>html-template</kind>
+      <signature>
+        &lt;div class="batch-progress" id="batch-progress" hidden&gt;
+        &lt;div class="batch-progress__header"&gt;
+        &lt;h3 class="batch-progress__title" id="batch-progress-title"&gt;Converting 0 of 0...&lt;/h3&gt;
+        &lt;button class="batch-progress__cancel button button--secondary" id="cancel-batch"&gt;Cancel All&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class="batch-progress__bar"&gt;
+        &lt;div class="batch-progress__fill" id="batch-progress-fill" style="width: 0%;"&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;/div&gt;
+      </signature>
+      <path>web/index.html (to be added above file grid)</path>
+    </interface>
+    <interface>
+      <name>File Card Status Section</name>
+      <kind>html-template</kind>
+      <signature>
+        &lt;div class="file-card__status" data-status="queued"&gt;
+        &lt;span class="status-icon"&gt;clock&lt;/span&gt;
+        &lt;span class="status-text"&gt;Queued&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class="file-card__footer"&gt;
+        &lt;button class="file-card__download" data-file-id="{fileId}" hidden&gt;Download {format}&lt;/button&gt;
+        &lt;button class="file-card__remove" data-file-id="{fileId}"&gt;Remove&lt;/button&gt;
+        &lt;/div&gt;
+      </signature>
+      <path>web/static/upload.js (generated by createFileCard method)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Epic 10 focuses on frontend UI/UX with manual testing emphasis. Testing standards: Browser compatibility testing (Chrome, Firefox, Safari, Edge), Responsive design testing at defined breakpoints (320px, 768px, 1024px), Accessibility testing with keyboard navigation, Device testing on real devices (iPhone, Android, iPad), Visual regression testing for progress indicators and status transitions, Performance testing for batch conversion UI responsiveness
+    </standards>
+
+    <locations>
+      Manual testing documented in story completion notes. Browser compatibility: BrowserStack or manual testing. Responsive testing: Chrome DevTools device emulation + real devices. Accessibility testing: Keyboard navigation, screen reader support. Performance testing: Chrome DevTools Performance tab for 100+ file batches
+    </locations>
+
+    <ideas>
+      <test ac="AC-1">
+        <idea>Manual: Upload 10 files, Start conversion, Verify progress text updates (0/10, 1/10, ..., 10/10)</idea>
+        <idea>Visual: Verify progress bar fills from 0% to 100% smoothly</idea>
+        <idea>Visual: Verify completion message: "All 10 files converted successfully"</idea>
+        <idea>Edge Case: All files fail, Verify message: "0 of 10 converted, 10 failed"</idea>
+        <idea>Edge Case: Mixed success/failure, Verify "7 of 10 converted, 3 failed"</idea>
+        <idea>Visual: Verify progress indicator hidden when no conversions in progress</idea>
+      </test>
+      <test ac="AC-2">
+        <idea>Functional: Upload file, Verify initial status "Queued" with clock icon, gray color</idea>
+        <idea>Functional: Start conversion, Verify status changes to "Converting..." with spinner, blue color, light blue background</idea>
+        <idea>Functional: Complete conversion, Verify status changes to "Complete" with checkmark, green color, light green background</idea>
+        <idea>Functional: Conversion error, Verify status changes to "Error: message" with X icon, red color, light red background</idea>
+        <idea>Visual: Verify spinner animation rotates during processing</idea>
+        <idea>Visual: Verify download button appears only in "Complete" state</idea>
+      </test>
+      <test ac="AC-3">
+        <idea>Visual: Verify smooth CSS transitions (0.3s ease) between states</idea>
+        <idea>Visual: Verify background color fades smoothly (no flicker)</idea>
+        <idea>Visual: Verify icon changes instantly (no animation delay)</idea>
+        <idea>Visual: Verify status text updates without flicker</idea>
+        <idea>Visual: Verify no layout shifts during state changes (card height remains constant)</idea>
+      </test>
+      <test ac="AC-4">
+        <idea>Visual: Verify spinner rotates 360 degrees continuously during "processing" state</idea>
+        <idea>Visual: Verify spinner stops when conversion completes</idea>
+        <idea>Visual: Verify progress bar filled portion is blue (#0073E6)</idea>
+        <idea>Visual: Verify progress bar unfilled portion is light gray (#E0E0E0)</idea>
+        <idea>Visual: Verify processing state visually distinct (color change and animation)</idea>
+      </test>
+      <test ac="AC-5">
+        <idea>Functional: Complete conversion, Verify download button appears with label "Download XMP"</idea>
+        <idea>Functional: Click download button, Verify file downloads to browser</idea>
+        <idea>Functional: Verify downloaded filename format: original-name_converted.ext</idea>
+        <idea>Functional: Open downloaded file, Verify valid XML/binary content</idea>
+        <idea>Functional: Click download button again, Verify file downloads again (button persists)</idea>
+        <idea>Visual: Verify download button styled as primary action (blue background, white text)</idea>
+      </test>
+      <test ac="AC-6">
+        <idea>Functional: Upload corrupted .np3 file, Verify error message "Invalid file format"</idea>
+        <idea>Functional: Upload .txt renamed to .xmp, Verify error message "Parsing failed: Invalid XML"</idea>
+        <idea>Functional: WASM conversion error, Verify error message "Conversion failed: reason"</idea>
+        <idea>Visual: Verify error message displayed per file (not global error)</idea>
+        <idea>Visual: Verify error message truncated if greater than 50 characters</idea>
+        <idea>Interaction: Hover over truncated error, Verify full message shown in tooltip</idea>
+        <idea>Edge Case: Error state persists until user removes file or retries</idea>
+      </test>
+      <test ac="AC-7">
+        <idea>Functional: Start batch (10 files), Click "Cancel All" after 3 files</idea>
+        <idea>Interaction: Verify confirmation dialog appears: "Cancel all in-progress conversions?"</idea>
+        <idea>Functional: Confirm cancellation, Verify remaining files stop processing</idea>
+        <idea>Visual: Verify message: "Conversion cancelled (3 of 10 complete)"</idea>
+        <idea>Visual: Verify "Cancel All" button hidden when no conversions in progress</idea>
+        <idea>Edge Case: Cancel before any files complete, Verify "Conversion cancelled (0 of 10 complete)"</idea>
+        <idea>Edge Case: Completed files remain complete after cancellation (downloads available)</idea>
+      </test>
+      <test type="edge-cases">
+        <idea>Performance: Upload 100 files, Start conversion, Verify UI remains responsive during batch (no freezing)</idea>
+        <idea>Performance: Measure progress update frequency, Verify less than 16ms per update for 60fps</idea>
+        <idea>Edge Case: Upload 1 file, Verify singular "Converting 1 of 1..."</idea>
+        <idea>Edge Case: All files fail, Verify "0 of 10 converted, 10 failed"</idea>
+        <idea>Edge Case: Mixed success/failure, Verify "7 of 10 converted, 3 failed"</idea>
+        <idea>Edge Case: 0-byte file conversion fails, Verify clear error message</idea>
+        <idea>Browser Compatibility: Test progress indicators on Chrome, Firefox, Safari, Edge</idea>
+        <idea>Browser Compatibility: Test spinner animation on all browsers</idea>
+        <idea>Accessibility: Verify status icons include text for screen readers</idea>
+        <idea>Accessibility: Verify color is not sole indicator of state (icons + text used)</idea>
+      </test>
+      <test type="integration">
+        <idea>Integration: Upload files (Story 10-2), Convert batch (Story 10-3), Verify seamless flow</idea>
+        <idea>Integration: Verify UploadManager.files Map updated correctly during conversion</idea>
+        <idea>Integration: Verify WASM convertFile() called correctly for each file</idea>
+        <idea>Integration: Verify error messages mapped from WASM errors to user-friendly format</idea>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SL Engine="1100">
+ <E K="ICCProfile" V="kodak-portra-160-v.2-warm-fade-100%.icc"/>
+ <E K="Name" V="Kodak Portra 160 V.2 Warm Fade 100%"/>
+ <E K="StyleSource" V="Styles"/>
+ <E K="UUID" V="{428E4E63-1FCD-4E5A-A606-F33D2ABB0C89}"/>
+ <E K="HighlightRecovery" V="50.0"/>
+ <E K="Midtone" V="0;0;0;0.0500000007450581"/>
+</SL>

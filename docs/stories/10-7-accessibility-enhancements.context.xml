@@ -1,0 +1,267 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>7</storyId>
+    <title>Accessibility Enhancements (ARIA, Keyboard Navigation)</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/10-7-accessibility-enhancements.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>photographer with visual or motor impairments</asA>
+    <iWant>Recipe to be fully accessible via keyboard navigation and screen readers</iWant>
+    <soThat>I can convert presets independently without requiring a mouse or visual interface</soThat>
+    <tasks>
+### Task 1: Implement Skip Link (AC-1, AC-2)
+- Add skip link at top of web/index.html
+- Style skip link (hidden until focused)
+- Add id="main-content" to main element
+- Test: Tab on page load → Skip link appears → Enter skips to main content
+
+### Task 2: Add ARIA Labels to Interactive Elements (AC-2)
+- Upload zone: aria-label for drag-drop area
+- Format dropdown: aria-label per file
+- Convert button: aria-label with file and format
+- Batch convert button: aria-label with count
+- Download button: aria-label with filename
+
+### Task 3: Add ARIA Live Regions for Dynamic Content (AC-2)
+- Create status announcement region (role="status", aria-live="polite")
+- Create error announcement region (role="alert", aria-live="assertive")
+- Add .sr-only CSS utility for screen reader text
+- Update JavaScript to announce file uploads, conversions, errors
+
+### Task 4: Add Semantic HTML and Landmarks (AC-3, AC-4)
+- Update page structure with semantic HTML5 (header, main, section, footer)
+- Add landmark roles (role="banner", role="main", role="contentinfo")
+- Replace non-semantic elements with semantic equivalents
+- Add role="list" to file grid
+
+### Task 5: Implement Focus Management (AC-1, AC-5)
+- Add visible focus indicators (2px solid outline, high contrast)
+- Move focus to first file card after upload
+- Move focus to download button after conversion
+- Trap focus inside modal (if implemented)
+
+### Task 6: Add Keyboard Event Handlers (AC-1)
+- Handle Enter/Space on upload zone
+- Handle Escape to cancel operations
+- Test keyboard navigation through all elements
+
+### Task 7: Add Alternative Text for Visual Content (AC-3)
+- Format badge icons: aria-label
+- Status icons: SVG with title element
+- Screen reader text for file status
+
+### Task 8: Implement Reduced Motion Support (AC-7)
+- Add prefers-reduced-motion media query
+- Disable animations when reduced motion enabled
+- Keep essential feedback visible
+
+### Task 9: Color Contrast Audit (AC-6)
+- Test all text with WebAIM Contrast Checker (≥4.5:1)
+- Test UI components (≥3:1)
+- Fix failing contrast ratios
+- Document contrast ratios in CSS
+
+### Task 10: Manual Accessibility Testing (AC-1, AC-2, AC-3)
+- Test with keyboard only (no mouse)
+- Test with screen reader (NVDA/VoiceOver/ChromeVox)
+- Test with browser extensions (axe DevTools, WAVE, Lighthouse)
+- Document issues found
+
+### Task 11: WCAG Compliance Validation (AC-1 through AC-7)
+- Run WAVE accessibility evaluation (0 errors target)
+- Run axe DevTools comprehensive audit
+- Verify WCAG 2.1 AA compliance manually (11 key success criteria)
+- Document compliance in README or docs</tasks>
+  </story>
+
+  <acceptanceCriteria>
+**AC-1: Complete Keyboard Navigation**
+- All interactive elements accessible via keyboard (Tab, Shift+Tab, Enter, Space, Arrow keys)
+- Logical tab order: Upload button → File cards → Convert button → Download buttons
+- Visible focus indicators on all interactive elements (2px solid outline, high contrast)
+- No keyboard traps
+- Skip link at top of page
+- Escape key closes modals and cancels operations
+- Enter/Space activates buttons and dropdowns
+
+**AC-2: ARIA Labels and Roles**
+- All interactive elements have descriptive ARIA labels
+- ARIA roles assigned appropriately (button, status, alert, region)
+- ARIA live regions for dynamic content (polite for status, assertive for errors)
+
+**AC-3: Screen Reader Support**
+- Meaningful page title
+- Landmark regions (header, main, section, footer)
+- Heading hierarchy (h1 → h2 → h3, no skipped levels)
+- Alternative text for all visual content
+- Screen reader-only text for context
+- Form labels associated with inputs
+
+**AC-4: Semantic HTML Structure**
+- Use semantic HTML5 elements (button, select, input, progress)
+- Proper form structure (form, fieldset, legend)
+- Lists for grouped content (ul for file grid, dl for file details)
+- No empty links or buttons
+
+**AC-5: Focus Management**
+- Focus moves to first file card after upload
+- Focus moves to download button after conversion
+- Focus moves to error message after failed conversion
+- Focus returns to trigger element after modal closes
+- Focus trapped inside modal
+- Autofocus disabled on page load
+
+**AC-6: Color Contrast and Visual Indicators**
+- All text meets WCAG AA contrast ratios (4.5:1 body, 3:1 large text/UI)
+- Focus indicators meet contrast requirements (3:1, 2px minimum)
+- Error/success states use color + icon
+- Format badges use color + text
+- Hover states visible without color
+
+**AC-7: Reduced Motion Support**
+- Respect prefers-reduced-motion preference
+- Disable non-essential animations
+- Keep essential feedback visible
+- Test with OS setting enabled</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-10.md" title="Epic Technical Specification: Enhanced Web UI/UX" section="Overview">
+        Epic 10 redesigns Recipe's web interface with focus on accessibility (responsive design, keyboard navigation). WCAG 2.1 AA compliance targets. Mentions keyboard navigation as key feature for all interactive elements.
+      </doc>
+      <doc path="docs/tech-spec-epic-10.md" title="Epic Technical Specification: Enhanced Web UI/UX" section="Data Models and Contracts">
+        CSS Variables defined for colors, typography, spacing, and breakpoints. Format badge component using BEM naming. File upload data model with status tracking (queued, processing, complete, error).
+      </doc>
+      <doc path="docs/tech-spec-epic-10.md" title="Epic Technical Specification: Enhanced Web UI/UX" section="Non-Functional Requirements">
+        Performance targets: 60fps animations, <2s load on 3G. Security: XSS prevention via textContent. Accessibility: Lighthouse score ≥95 (from Story 10.6). Browser compatibility: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+.
+      </doc>
+      <doc path="docs/stories/10-6-performance-optimization.md" title="Story 10.6: Performance Optimization" section="Dev Notes">
+        Previous story sets Lighthouse Accessibility score ≥95 target. Story 10.7 implements features to meet this target. Reduced motion (10.7) complements performance (10.6). Focus indicators must not impact 60fps performance.
+      </doc>
+      <doc path="docs/stories/2-1-html-drag-drop-ui.md" title="Story 2-1: HTML Drag-Drop UI" section="Technical Approach">
+        Existing web interface foundation: HTML structure, CSS styling, drag-drop logic, keyboard accessibility (Tab, Enter, Space), ARIA labels. Responsive design with 3 breakpoints (desktop ≥1024px, tablet 768-1023px, mobile &lt;768px).
+      </doc>
+      <doc path="docs/PRD-Path-A.md" title="Product Requirements Document (Path A)" section="Success Criteria">
+        Professional Web Interface success criterion: Interface inspires confidence, mobile-responsive, smooth interactions, accessibility basics covered (keyboard navigation, screen reader friendly). Feel matches quality of conversion engine.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="web/index.html" kind="HTML" symbol="DOM structure" lines="1-394" reason="Main HTML page structure - needs semantic enhancements, ARIA labels, skip link, landmark regions">
+        Contains existing page structure with header, main content area, upload zone, file grid, conversion controls, and footer. Needs accessibility enhancements: skip link, semantic HTML5 elements, ARIA labels, landmark roles.
+      </artifact>
+      <artifact path="web/static/style.css" kind="CSS" symbol="Global styles" lines="1-1946" reason="CSS styling for all components - needs focus indicators, reduced motion support, sr-only utility">
+        Contains comprehensive styling for Recipe interface. Needs additions: visible focus indicators (2px outline, high contrast), prefers-reduced-motion media query, .sr-only utility class for screen readers.
+      </artifact>
+      <artifact path="web/static/main.js" kind="JavaScript" symbol="init(), event handlers" lines="1-627" reason="Main application logic - needs ARIA live region updates, focus management, keyboard event handlers">
+        Entry point for web interface. Initializes WASM, drag-drop, event listeners. Needs enhancements: announceStatus() and announceError() functions for ARIA live regions, focus management after upload/conversion, keyboard shortcuts.
+      </artifact>
+      <artifact path="web/static/file-handler.js" kind="JavaScript" symbol="initializeDropZone()" lines="26-38" reason="Drag-drop handling - already has keyboard accessibility (Enter/Space) that serves as reference pattern">
+        Implements drag-drop with keyboard support: Enter/Space keys trigger file picker. Good reference for keyboard interaction patterns to apply to other components.
+      </artifact>
+      <artifact path="web/static/error-handler.js" kind="JavaScript" symbol="showError(), checkBrowserCompatibility()" lines="unknown" reason="Error handling module - needs integration with ARIA live regions for assertive announcements">
+        Handles error display and browser compatibility checks. Should integrate with new ARIA live regions (role="alert", aria-live="assertive") for immediate screen reader announcements.
+      </artifact>
+      <artifact path="web/static/format-selector.js" kind="JavaScript" symbol="displayFormatSelector()" lines="unknown" reason="Format dropdown - needs ARIA labels per file for screen reader context">
+        Creates format selection dropdowns. Needs ARIA enhancements: aria-label="Select target format for {filename}" for each dropdown, proper label associations.
+      </artifact>
+      <artifact path="web/static/converter.js" kind="JavaScript" symbol="convertFile()" lines="unknown" reason="Conversion logic - status updates should trigger ARIA live region announcements">
+        Performs WASM conversions. Status changes (processing, complete, error) should trigger screen reader announcements via ARIA live regions.
+      </artifact>
+    </code>
+    <dependencies>
+      <go>
+        <package name="github.com/spf13/cobra" version="v1.10.1" scope="CLI command structure" />
+        <package name="charm.land/bubbletea/v2" version="v2.0.0-rc.1" scope="TUI framework (not web)" />
+      </go>
+      <javascript>
+        <note>Zero external dependencies - vanilla JavaScript, no npm packages</note>
+        <browser-apis>
+          <api>FileReader API</api>
+          <api>Blob API</api>
+          <api>URL.createObjectURL</api>
+          <api>WebAssembly API</api>
+          <api>CustomEvent API</api>
+          <api>ARIA attributes (aria-label, aria-live, role)</api>
+          <api>Keyboard events (keydown, key property)</api>
+        </browser-apis>
+      </javascript>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architectural">Maintain vanilla JavaScript approach - no frameworks (React, Vue, Svelte). Use native browser APIs and ES6 modules only.</constraint>
+    <constraint type="performance">Focus indicators must not impact 60fps scrolling/animations. Reduced motion support must disable animations without breaking functionality.</constraint>
+    <constraint type="compatibility">Browser support: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+. Accessibility features must work across all supported browsers.</constraint>
+    <constraint type="standards">WCAG 2.1 AA compliance required for all 4 principles (Perceivable, Operable, Understandable, Robust). Target Lighthouse Accessibility score ≥95.</constraint>
+    <constraint type="progressive-enhancement">Interface must work without JavaScript for basic file download (degrade gracefully). Accessibility features enhance existing functionality.</constraint>
+    <constraint type="privacy">Zero analytics, zero tracking. No external dependencies. ARIA live region announcements must not leak data to third parties.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ARIA Live Regions API" kind="DOM manipulation" signature="announceStatus(message: string) and announceError(message: string)" path="web/static/main.js">
+      Functions to update ARIA live regions for screen reader announcements. announceStatus() for polite updates (file uploads, conversions). announceError() for assertive updates (errors).
+    </interface>
+    <interface name="Focus Management API" kind="DOM manipulation" signature="element.focus() and trapFocus(modal: HTMLElement)" path="web/static/main.js">
+      Browser native focus() method to programmatically move focus. trapFocus() function to keep focus within modal dialogs (Tab cycles, Escape closes).
+    </interface>
+    <interface name="Keyboard Event Handlers" kind="event listener" signature="addEventListener('keydown', handler)" path="web/static/file-handler.js, main.js">
+      Event listeners for keyboard interactions: Enter/Space (activate), Escape (cancel), Tab (navigate), Arrow keys (navigate dropdowns). Existing pattern in file-handler.js lines 26-38.
+    </interface>
+    <interface name="CSS Custom Properties (Variables)" kind="CSS variable" signature="var(--color-primary), var(--spacing-md), etc." path="web/static/style.css">
+      CSS variables for colors, typography, spacing defined in :root selector. Used throughout stylesheets for consistent theming. Focus indicators should use primary color variables.
+    </interface>
+    <interface name="BEM CSS Naming Convention" kind="CSS class naming" signature=".block__element--modifier" path="web/static/style.css, components CSS">
+      CSS class naming follows BEM convention: .format-badge (block), .format-badge--np3 (modifier), .file-card__header (element). New accessibility classes should follow this pattern.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+Epic 10 focuses on manual testing for UI/UX enhancements. Story 10.7 accessibility requires comprehensive manual validation with assistive technologies.
+
+Testing standards:
+- Manual keyboard testing: Tab through entire interface, verify logical order, no traps
+- Screen reader testing: NVDA (Windows), VoiceOver (macOS), ChromeVox (Chrome extension)
+- Automated accessibility audits: Lighthouse (≥95 score), axe DevTools (0 Critical/Serious issues), WAVE (0 Errors)
+- Color contrast validation: WebAIM Contrast Checker for all text (≥4.5:1) and UI components (≥3:1)
+- WCAG 2.1 AA manual verification: 11 key success criteria across 4 principles
+- Real device testing: Desktop browsers (Chrome, Firefox, Safari, Edge), mobile browsers (iOS Safari, Android Chrome)
+- Reduced motion testing: Enable OS settings and verify animations disabled
+- Focus indicator testing: Verify 2px outline, 3:1 contrast, visible on all interactive elements
+
+No automated E2E tests for accessibility (manual validation required). JavaScript unit tests not applicable for DOM-dependent accessibility features.
+    </standards>
+    <locations>
+      <location type="manual">Accessibility testing performed manually using browser DevTools, screen readers, and assistive technology testing tools</location>
+      <location type="docs">Test results documented in code review comments within story file (Dev Agent Record section)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1" description="Keyboard Navigation Test: Tab through page from top to bottom without mouse. Verify tab order (Upload → File cards → Convert → Download). Test Enter/Space on all buttons. Test Escape to cancel/close. Verify no keyboard traps.">
+        Expected: All interactive elements reachable via keyboard, logical order, visible focus indicators, no traps. Should complete full workflow (upload, convert, download) using only keyboard.
+      </idea>
+      <idea ac="AC-2, AC-3" description="Screen Reader Test: Use NVDA (Windows) or VoiceOver (macOS) to navigate entire page. Listen for ARIA labels, role announcements, status updates. Upload file and listen for live region announcement. Convert file and listen for success/error announcements.">
+        Expected: Meaningful labels read for all elements. File upload announced as "File uploaded: filename.np3". Conversion progress announced. Error messages read immediately (assertive). Heading hierarchy clear (h1 → h2 → h3).
+      </idea>
+      <idea ac="AC-4" description="Semantic HTML Validation: Run W3C Markup Validator (validator.w3.org). Inspect DOM in DevTools to verify semantic elements (header, main, section, footer, button, select, input). Check for empty buttons, missing labels, non-semantic divs.">
+        Expected: Valid HTML5. All interactive elements use semantic tags (button not div, select not custom dropdown). Proper form structure (form, fieldset, legend). Lists for file grid (ul, li with role="list").
+      </idea>
+      <idea ac="AC-5" description="Focus Management Test: Upload file → verify focus moves to first file card. Convert file → verify focus moves to download button. Open modal (if present) → verify focus trapped (Tab cycles, Escape closes). Close modal → verify focus returns to trigger.">
+        Expected: Focus moves logically after user actions. No unexpected focus changes. Modal focus trap works correctly. Autofocus not used on page load (user controls focus).
+      </idea>
+      <idea ac="AC-6" description="Color Contrast Audit: Use WebAIM Contrast Checker (webaim.org/resources/contrastchecker/) to test all text against backgrounds. Test UI components (buttons, borders, focus indicators). Verify error/success states use color + icon (not color alone). Test hover states without color (underline, scale, border).">
+        Expected: Body text ≥4.5:1, large text ≥3:1, UI components ≥3:1. Focus indicators 3:1 contrast, 2px minimum width. All states use non-color indicators (icons, text, patterns).
+      </idea>
+      <idea ac="AC-7" description="Reduced Motion Test: Enable reduced motion in OS settings (Windows: Ease of Access → Display → Show animations OFF; macOS: Accessibility → Display → Reduce motion ON). Load Recipe page and verify animations disabled. Test hover, upload, conversion - essential feedback should remain visible.">
+        Expected: All animations disabled (duration: 0.01ms). Spinner replaced with static icon. Hover scale replaced with border highlight. Progress transitions instant. Status changes still visible without animation.
+      </idea>
+      <idea ac="AC-1 through AC-7" description="Automated Accessibility Audit: Run Lighthouse audit in Chrome DevTools (Accessibility category). Run axe DevTools extension (analyze entire page). Run WAVE evaluation (wave.webaim.org). Fix all Critical and Serious issues. Document Moderate/Minor issues.">
+        Expected: Lighthouse score ≥95. axe DevTools: 0 Critical, 0 Serious issues. WAVE: 0 Errors, minimize Warnings. All ARIA attributes used correctly. No duplicate IDs, missing labels, or contrast failures.
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

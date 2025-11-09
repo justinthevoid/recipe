@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SL Engine="1100">
+ <E K="ICCProfile" V="fuji-natura-1600-100%.icc"/>
+ <E K="Name" V="Fuji Natura 1600 100%"/>
+ <E K="StyleSource" V="Styles"/>
+ <E K="UUID" V="{6460C97F-42E0-4EFA-971F-D6BC70FC00B8}"/>
+ <E K="HighlightRecovery" V="50.0"/>
+ <E K="Midtone" V="0;0;0;0.0500000007450581"/>
+</SL>
