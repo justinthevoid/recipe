@@ -118,7 +118,7 @@ development_status:
 
   # Epic 9: DCP Camera Profile Support (Path A FR-2)
   epic-9: contexted  # Path A: DNG Camera Profile (DCP) support - Tech spec: docs/tech-spec-epic-9.md
-  9-1-dcp-parser: review  # Parse TIFF-based DCP files and extract tone curves - Story created: docs/stories/9-1-dcp-parser.md (2025-11-08) - Context: docs/stories/9-1-dcp-parser.context.xml (2025-11-09) - Implementation complete: 2025-11-10 - Documentation finalized, all tests passing (63.3% coverage)
+  9-1-dcp-parser: in-progress  # Parse TIFF-based DCP files and extract tone curves - Story created: docs/stories/9-1-dcp-parser.md (2025-11-08) - Context: docs/stories/9-1-dcp-parser.context.xml (2025-11-09) - Implementation complete: 2025-11-10 - Code review: CHANGES REQUESTED (2025-11-10) - Implementation EXCELLENT (95/100), 36 real DCP test files verified, 2 blockers: uncommitted code, outdated README
   9-2-dcp-generator: ready-for-dev  # Generate DCP files with tone curves from UniversalRecipe - Story created: docs/stories/9-2-dcp-generator.md (2025-11-08) - Context: docs/stories/9-2-dcp-generator.context.xml (2025-11-09)
   9-3-dcp-parameter-mapping: ready-for-dev  # Document DCP parameter mapping and conversion formulas - Story created: docs/stories/9-3-dcp-parameter-mapping.md (2025-11-08) - Context: docs/stories/9-3-dcp-parameter-mapping.context.xml (2025-11-09)
   9-4-dcp-compatibility-validation: ready-for-dev  # Validate DCP compatibility with Adobe Camera Raw/Lightroom - Story created: docs/stories/9-4-dcp-compatibility-validation.md (2025-11-08) - Context: docs/stories/9-4-dcp-compatibility-validation.context.xml (2025-11-09)
