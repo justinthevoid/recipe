@@ -2,8 +2,8 @@
   {
     "file": "sample1-portrait.costyle",
     "total_params": 41,
-    "matched_params": 40,
-    "accuracy": 0.975609756097561,
+    "matched_params": 41,
+    "accuracy": 1,
     "breakdown": {
       "Aqua.Hue": true,
       "Aqua.Luminance": true,
@@ -39,7 +39,7 @@
       "SplitHighlightSaturation": true,
       "SplitShadowHue": true,
       "SplitShadowSaturation": true,
-      "Temperature": false,
+      "Temperature": true,
       "Tint": true,
       "Vibrance": true,
       "Whites": true,
@@ -100,8 +100,8 @@
   {
     "file": "sample3-landscape.costyle",
     "total_params": 41,
-    "matched_params": 40,
-    "accuracy": 0.975609756097561,
+    "matched_params": 41,
+    "accuracy": 1,
     "breakdown": {
       "Aqua.Hue": true,
       "Aqua.Luminance": true,
@@ -137,7 +137,7 @@
       "SplitHighlightSaturation": true,
       "SplitShadowHue": true,
       "SplitShadowSaturation": true,
-      "Temperature": false,
+      "Temperature": true,
       "Tint": true,
       "Vibrance": true,
       "Whites": true,
@@ -198,8 +198,8 @@
   {
     "file": "sample5-vintage-muted.costyle",
     "total_params": 41,
-    "matched_params": 40,
-    "accuracy": 0.975609756097561,
+    "matched_params": 41,
+    "accuracy": 1,
     "breakdown": {
       "Aqua.Hue": true,
       "Aqua.Luminance": true,
@@ -235,7 +235,7 @@
       "SplitHighlightSaturation": true,
       "SplitShadowHue": true,
       "SplitShadowSaturation": true,
-      "Temperature": false,
+      "Temperature": true,
       "Tint": true,
       "Vibrance": true,
       "Whites": true,

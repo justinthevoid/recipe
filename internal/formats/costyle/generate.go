@@ -216,18 +216,18 @@ func buildCostyleDocument(recipe *models.UniversalRecipe) *CaptureOneStyle {
 
 // kelvinToC1Temperature converts Kelvin temperature to Capture One -100/+100 scale.
 // Reference temperature: 5500K = neutral (0)
-// Approximate mapping: 3000K-9000K → -100/+100
-// Formula: (kelvin - 5500) / 60 = C1 temperature
+// Mapping: 2000K-10000K → -100/+100
+// Formula: (kelvin - 5500) / 35 = C1 temperature (inverse of parse formula)
 //
 // Example:
 //   - 5500K → 0 (neutral)
-//   - 6100K → +10 (warmer)
-//   - 4900K → -10 (cooler)
-//   - 9100K → +60 (very warm)
-//   - 1900K → -60 (very cool)
+//   - 5675K → +5 (warmer)
+//   - 5325K → -5 (cooler)
+//   - 10000K → +100 (very warm)
+//   - 2000K → -100 (very cool)
 func kelvinToC1Temperature(kelvin float64) int {
 	const referenceK = 5500.0
-	const scaleRange = 60.0 // Per 100 units (6000K range / 100)
+	const scaleRange = 35.0 // Scale factor to match parse.go (K = 5500 + temp*35)
 
 	delta := kelvin - referenceK
 	c1Value := delta / scaleRange

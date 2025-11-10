@@ -1,6 +1,6 @@
 // format-selector.js - Target format selection
 // Epic 2, Story 2-5: Target Format Selection
-// Allows user to choose output format (NP3, XMP, lrtemplate) with smart defaults
+// Allows user to choose output format (NP3, XMP, lrtemplate, Costyle, Costylepack) with smart defaults
 
 let sourceFormat = null;
 let targetFormat = null;
@@ -30,15 +30,31 @@ const FORMATS = {
         description: 'Legacy Lightroom preset format. For Lightroom Classic 7.3 and earlier.',
         badgeClass: 'badge-teal',
     },
+    costyle: {
+        name: 'Capture One Style',
+        extension: '.costyle',
+        software: 'Capture One Pro',
+        description: 'Capture One style format. Import as adjustments or styles.',
+        badgeClass: 'badge-orange',
+    },
+    costylepack: {
+        name: 'Capture One Style Bundle',
+        extension: '.costylepack',
+        software: 'Capture One Pro',
+        description: 'ZIP bundle of Capture One styles. Import multiple styles at once.',
+        badgeClass: 'badge-orange',
+    },
 };
 
 /**
  * Smart default target format based on source format
  */
 const SMART_DEFAULTS = {
-    np3: 'xmp',       // Nikon users want Lightroom CC
-    xmp: 'np3',       // Lightroom users want Nikon
-    lrtemplate: 'xmp', // Lightroom Classic users want Lightroom CC
+    np3: 'xmp',           // Nikon users want Lightroom CC
+    xmp: 'np3',           // Lightroom users want Nikon
+    lrtemplate: 'xmp',    // Lightroom Classic users want Lightroom CC
+    costyle: 'xmp',       // Capture One users want Lightroom CC
+    costylepack: 'xmp',   // Capture One bundle users want Lightroom CC
 };
 
 /**

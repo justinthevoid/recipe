@@ -64,15 +64,16 @@ func Parse(data []byte) (*models.UniversalRecipe, error) {
 	recipe.Saturation = clampInt(desc.Saturation, -100, 100)
 
 	// Temperature: -100 to +100 in Capture One (needs conversion to Kelvin for UniversalRecipe)
-	// Capture One uses relative temperature scale, convert to Kelvin offset
+	// Capture One uses relative temperature scale, convert to absolute Kelvin
 	// Assuming 0 = 5500K (daylight), -100 = ~2000K, +100 = ~10000K
-	// For now, store as relative value in Metadata and map directly to UniversalRecipe.Temperature
+	// UniversalRecipe.Temperature expects absolute Kelvin values in range [2000, 50000]
 	if desc.Temperature != 0 {
 		temp := clampInt(desc.Temperature, -100, 100)
-		// Convert Capture One temperature (-100..+100) to Kelvin offset
-		// 0 → 0K offset, -100 → -3500K, +100 → +4500K (approximate mapping)
-		kelvinOffset := int(float64(temp) * 35.0)
-		recipe.Temperature = &kelvinOffset
+		// Convert Capture One temperature (-100..+100) to absolute Kelvin
+		// 0 → 5500K (baseline), -100 → 2000K, +100 → 10000K (approximate mapping)
+		// Formula: K = 5500 + (temp * 35)
+		kelvin := 5500 + int(float64(temp)*35.0)
+		recipe.Temperature = &kelvin
 		recipe.Metadata["costyle_temperature_relative"] = temp
 	}
 

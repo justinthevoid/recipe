@@ -115,7 +115,7 @@ async function handleFile(file) {
 
     // Validate file extension (Story 2-1)
     if (!isValidPresetFile(file.name)) {
-        showError('Please upload a preset file (.np3, .xmp, or .lrtemplate)');
+        showError('Please upload a preset file (.np3, .xmp, .lrtemplate, .costyle, or .costylepack)');
         updateDropZoneState('error');
         return;
     }
@@ -287,7 +287,7 @@ function dispatchFileLoadedEvent() {
  * @returns {boolean} True if valid preset file
  */
 function isValidPresetFile(fileName) {
-    const validExtensions = ['.np3', '.xmp', '.lrtemplate'];
+    const validExtensions = ['.np3', '.xmp', '.lrtemplate', '.costyle', '.costylepack'];
     const lowerName = fileName.toLowerCase();
     return validExtensions.some(ext => lowerName.endsWith(ext));
 }

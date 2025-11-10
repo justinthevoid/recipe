@@ -164,7 +164,7 @@ function hideDetectionLoading() {
 
 /**
  * Display format badge in file info section
- * @param {string} format - Detected format ("np3" | "xmp" | "lrtemplate")
+ * @param {string} format - Detected format ("np3" | "xmp" | "lrtemplate" | "costyle" | "costylepack")
  */
 function displayFormatBadge(format) {
     const fileInfoEl = document.getElementById('fileInfo');

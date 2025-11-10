@@ -38,6 +38,7 @@ For complete legal details including reverse engineering disclosure, warranty li
 - **NP3** - Nikon Picture Control binary format
 - **XMP** - Adobe Lightroom sidecar XML
 - **lrtemplate** - Adobe Lightroom Lua preset
+- **Costyle/Costylepack** - Capture One preset XML format and bundles
 
 ## Format Compatibility
 
