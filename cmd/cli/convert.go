@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/justin/recipe/internal/converter"
+	"github.com/justin/recipe/internal/formats/costyle"
 	"github.com/justin/recipe/internal/formats/lrtemplate"
 	"github.com/justin/recipe/internal/formats/np3"
 	"github.com/justin/recipe/internal/formats/xmp"
@@ -19,7 +20,7 @@ import (
 var convertCmd = &cobra.Command{
 	Use:   "convert [input]",
 	Short: "Convert a preset file between formats",
-	Long: `Convert photo presets between NP3, XMP, and lrtemplate formats.
+	Long: `Convert photo presets between NP3, XMP, lrtemplate, Costyle, and Costylepack formats.
 
 The CLI auto-detects the source format from the file extension.
 You must specify the target format with --to.
@@ -27,7 +28,9 @@ You must specify the target format with --to.
 Examples:
   recipe convert portrait.xmp --to np3
   recipe convert portrait.np3 --to xmp --output custom.xmp
-  recipe convert preset.lrtemplate --to np3 --overwrite`,
+  recipe convert preset.lrtemplate --to np3 --overwrite
+  recipe convert preset.costyle --to xmp
+  recipe convert portrait.xmp --to costylepack --output bundle.costylepack`,
 	Args: cobra.ExactArgs(1),
 	RunE: runConvert,
 }
@@ -227,7 +230,7 @@ func init() {
 	rootCmd.AddCommand(convertCmd)
 
 	// Required flags
-	convertCmd.Flags().StringP("to", "t", "", "Target format (required): np3, xmp, or lrtemplate")
+	convertCmd.Flags().StringP("to", "t", "", "Target format (required): np3, xmp, lrtemplate, costyle, or costylepack")
 	convertCmd.MarkFlagRequired("to")
 
 	// Optional flags
@@ -358,6 +361,18 @@ func parseForLogging(input []byte, format string) (*models.UniversalRecipe, erro
 		return xmp.Parse(input)
 	case converter.FormatLRTemplate:
 		return lrtemplate.Parse(input)
+	case converter.FormatCostyle:
+		return costyle.Parse(input)
+	case converter.FormatCostylepack:
+		// For costylepack, unpack and parse first recipe only
+		recipes, err := costyle.Unpack(input)
+		if err != nil {
+			return nil, err
+		}
+		if len(recipes) == 0 {
+			return nil, fmt.Errorf("empty costylepack bundle")
+		}
+		return recipes[0], nil
 	default:
 		return nil, fmt.Errorf("unknown format: %s", format)
 	}

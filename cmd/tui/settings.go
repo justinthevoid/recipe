@@ -81,6 +81,8 @@ func renderSettingsEditor(m model) string {
 		{"np3", "NP3 (Nikon NX Studio)"},
 		{"xmp", "XMP (Adobe Lightroom)"},
 		{"lrtemplate", "lrtemplate (Lightroom Template)"},
+		{"costyle", "Costyle (Capture One)"},
+		{"costylepack", "Costylepack (Capture One Bundle)"},
 	}
 
 	for _, format := range formats {

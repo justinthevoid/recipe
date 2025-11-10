@@ -5,8 +5,15 @@
     <title>DNG Camera Profile (DCP) Generator</title>
     <status>drafted</status>
     <generatedAt>2025-11-09</generatedAt>
+    <updatedAt>2025-11-10</updatedAt>
     <generator>BMAD Story Context Workflow</generator>
     <sourceStoryPath>docs/stories/9-2-dcp-generator.md</sourceStoryPath>
+    <formatDiscovery>
+      CRITICAL FORMAT PIVOT: Real Adobe DCP files use BINARY TIFF tags (50700-52600), NOT XML in tag
+      50740. Story 9-1 implementation discovered this. Generation must write binary float32 arrays,
+      SRational values, and ASCII strings directly to DNG tags. Tag 52552 (ProfileName) is OPTIONAL.
+      See docs/stories/9-1-dcp-parser-FORMAT-PIVOT.md for complete details.
+    </formatDiscovery>
   </metadata>
 
   <story>
@@ -17,19 +24,21 @@
       camera profiles and use them in Lightroom, Camera Raw, and with DNG files</soThat>
     <tasks>
       ### Task 1: Implement Tone Curve Generation (AC-3)
-      - Implement universalToToneCurve() function with exposure/contrast/highlights/shadows mapping
+      - Implement universalToToneCurve() function generating 0.0-1.0 normalized float curve points
       - Ensure monotonic curve (output[i] >= output[i-1])
       - Test with various parameter combinations
 
-      ### Task 2: Generate Camera Profile XML (AC-2, AC-4)
-      - Implement generateProfile() function with Adobe Camera Raw namespace
-      - Implement identityMatrix() helper (3x3 identity matrix)
-      - Validate XML output (well-formed, proper namespace)
+      ### Task 2: Generate Binary Tag Data (AC-2, AC-4)
+      - Implement generateBinaryToneCurve() to convert ToneCurvePoint to binary float32 array
+      - Implement generateColorMatrix() returning 9 SRational values (identity matrix)
+      - Implement srationalArrayToBytes() for binary SRational conversion
+      - Validate binary data lengths (tone curve: N*8 bytes, matrix: 72 bytes)
 
-      ### Task 3: Create TIFF File with Embedded XML (AC-1, AC-2)
-      - Implement createTIFF() function using github.com/google/tiff
-      - Embed camera profile XML in tag 50740
-      - Verify TIFF magic bytes and IFD structure
+      ### Task 3: Create DNG File with Binary Tags (AC-1, AC-2)
+      - Implement createDNG() function writing DNG magic bytes ("IIRC"/"MMCR")
+      - Implement buildIFD() to create minimal IFD with standard TIFF tags
+      - Write binary tags: 50708, 50721-50722, 50730, 50940, 52552 (optional)
+      - Verify DNG magic bytes and IFD structure with binary tags
 
       ### Task 4: Implement Generate() Function (AC-1 to AC-4)
       - Implement Generate(recipe *universal.Recipe) ([]byte, error)
@@ -37,7 +46,7 @@
       - Validate recipe parameters before generation
 
       ### Task 5: Write Unit Tests (AC-6)
-      - Write 8 comprehensive unit tests covering all generation scenarios
+      - Write 8 comprehensive unit tests covering binary format generation
       - Verify ≥85% test coverage for dcp/generate.go, dcp/tiff.go, dcp/profile.go
       - All tests pass in CI
 
@@ -48,49 +57,55 @@
 
       ### Task 7: Documentation (AC-1 to AC-5)
       - Add function comments for Generate()
-      - Update docs/parameter-mapping.md with DCP generation mappings
+      - Update docs/parameter-mapping.md with DCP binary generation mappings
       - Add README notes in testdata/dcp/
     </tasks>
   </story>
 
   <acceptanceCriteria>
-    **AC-1: Generate Valid TIFF Structure**
-    - Create TIFF file with proper header (II or MM byte order marker)
-    - Generate Image File Directory (IFD) with required tags
+    **AC-1: Generate Valid DNG/TIFF Structure**
+    - Create TIFF/DNG file with proper header (II or MM byte order marker)
+    - Use DNG version magic bytes ("IIRC" for little-endian or "MMCR" for big-endian)
+    - Generate Image File Directory (IFD) with required binary tags
     - Include standard TIFF tags (ImageWidth, ImageLength, SamplesPerPixel, etc.)
-    - Write TIFF file using github.com/google/tiff library
-    - Validate TIFF structure (well-formed, valid byte order)
-    - Generated TIFF files open without errors in TIFF readers
+    - Write TIFF/DNG file using github.com/google/tiff library or manual binary writing
+    - Validate DNG structure (well-formed, valid byte order, correct version bytes)
+    - Generated DCP files open without errors in TIFF/DNG readers
 
-    **AC-2: Embed Camera Profile XML in Tag 50740**
-    - Generate Adobe Camera Profile XML from UniversalRecipe
-    - Embed XML data in TIFF tag 50740 (CameraProfile)
-    - Include required XML elements (ProfileName, ToneCurve, ColorMatrix)
-    - Use Adobe Camera Raw namespace (http://ns.adobe.com/camera-raw-settings/1.0/)
-    - Format XML with proper RDF structure (rdf:Seq, rdf:li elements)
-    - XML is human-readable (formatted with indentation)
+    **AC-2: Generate Binary Profile Data Tags**
+    - Write tag 50708 (UniqueCameraModel) as ASCII string
+    - Write tag 50940 (ProfileToneCurve) as binary float32 array (input/output pairs)
+    - Write tags 50721-50722 (ColorMatrix1/2) as 9 SRational values each
+    - Write tag 50730 (BaselineExposureOffset) as SRational
+    - Write tag 52552 (ProfileName) as ASCII string (OPTIONAL - only if non-empty)
+    - Use correct binary data types (Float32, SRational, ASCII)
+    - All tag data follows DNG 1.0-1.6 binary format
 
-    **AC-3: Map UniversalRecipe to DCP Tone Curve**
-    - Generate 5-point tone curve from UniversalRecipe adjustments
+    **AC-3: Map UniversalRecipe to Binary Tone Curve**
+    - Generate tone curve as array of float32 (input, output) pairs normalized to 0.0-1.0
     - Apply exposure, contrast, highlights, shadows transformations
-    - Clamp all curve points to valid 0-255 range
+    - Clamp all curve points to valid 0.0-1.0 range
     - Ensure monotonic curve (output[i] >= output[i-1])
+    - Write as binary float32 pairs (8 bytes per point: 4 bytes input + 4 bytes output)
 
-    **AC-4: Generate Identity Color Matrices**
-    - Create ColorMatrix1 with identity values (3x3 diagonal matrix)
+    **AC-4: Generate Binary Color Matrices**
+    - Create ColorMatrix1 as 9 SRational values (identity matrix)
     - Create ColorMatrix2 with same identity values
-    - Format matrices as RDF lists
-    - Include ProfileCalibrationSignature = "com.adobe"
+    - Write as binary SRational (8 bytes each: 4 bytes numerator + 4 bytes denominator)
+    - Identity matrix diagonal values = SRational{1, 1}, off-diagonal = SRational{0, 1}
 
     **AC-5: Validate Generated DCP**
-    - Validate TIFF structure, XML structure, and tone curve points
+    - Validate DNG structure (magic bytes "IIRC"/"MMCR", IFD, required tags exist)
+    - Validate binary tag data (correct lengths, valid SRational denominators)
+    - Validate tone curve points (0.0-1.0 range, monotonic, float32 format)
     - Generated DCP loads in Adobe Camera Raw without errors
     - Generated DCP loads in Lightroom Classic without errors
     - Tone adjustments render correctly (visual spot-check)
 
     **AC-6: Unit Test Coverage**
     - Unit tests for Generate() function with various inputs
-    - Test edge cases and TIFF/XML structure correctness
+    - Test edge cases and DNG/TIFF structure correctness
+    - Test binary tag generation (float32 arrays, SRational values)
     - Test coverage ≥85% for dcp/generate.go, dcp/tiff.go, dcp/profile.go
     - All tests pass in CI
   </acceptanceCriteria>
@@ -98,38 +113,43 @@
   <artifacts>
     <docs>
       <doc>
+        <path>docs/stories/9-1-dcp-parser-FORMAT-PIVOT.md</path>
+        <title>Binary DNG Format Discovery</title>
+        <section>Critical Format Discovery</section>
+        <snippet>Real Adobe DCP files use binary TIFF/DNG tags (50700-52600), NOT XML in tag 50740.
+          Tag 50940 stores tone curve as float32 pairs (0.0-1.0). Tags 50721-50722 store color
+          matrices as 9 SRational values. Tag 52552 (ProfileName) is OPTIONAL. DNG uses "IIRC" or
+          "MMCR" magic bytes instead of standard TIFF version 42.</snippet>
+      </doc>
+      <doc>
         <path>docs/tech-spec-epic-9.md</path>
         <title>Epic Technical Specification: DCP Camera Profile Support</title>
         <section>Generate DCP Files (AC-2)</section>
-        <snippet>Generate TIFF-based DCP file structure per Adobe DNG Specification 1.6. Embed XML
-          camera profile data in TIFF tag 50740. Map UniversalRecipe color parameters to DCP tone
-          curve equivalents. Generate required matrices (identity matrices for non-calibration use).</snippet>
+        <snippet>Generate TIFF-based DCP file structure per Adobe DNG Specification 1.6. Write binary
+          profile data in DNG tags (50700-52600 range). Map UniversalRecipe color parameters to DCP
+          tone curve equivalents as binary float32 pairs. Generate required matrices as binary
+          SRational arrays (identity matrices for non-calibration use). [REQUIRES UPDATE FOR BINARY
+          FORMAT]</snippet>
       </doc>
       <doc>
         <path>docs/tech-spec-epic-9.md</path>
-        <title>Tone Curve Generation Formulas</title>
+        <title>Binary Tone Curve Generation Formulas</title>
         <section>Data Models and Contracts</section>
-        <snippet>5-point tone curve generation: Start with linear curve (0,0 → 64,64 → 128,128 →
-          192,192 → 255,255). Apply exposure: Vertical shift of midpoint (128 → 128+exposure*64).
-          Apply contrast: Steepen/flatten slope around midpoint. Apply highlights: Adjust top-end
-          points (192-255 range). Apply shadows: Adjust bottom-end points (0-64 range).</snippet>
-      </doc>
-      <doc>
-        <path>docs/tech-spec-epic-9.md</path>
-        <title>TIFF Writing Pattern with github.com/google/tiff</title>
-        <section>Implementation Patterns</section>
-        <snippet>Create TIFF with tiff.New(), set standard tags (ImageWidth=1, ImageLength=1,
-          SamplesPerPixel=3), embed camera profile XML in custom tag 50740, encode to buffer with
-          tiff.Encode(). Minimal TIFF IFD for DCP profile container.</snippet>
+        <snippet>5-point tone curve generation with 0.0-1.0 normalized values: Start with linear curve
+          {0.0, 0.0} → {0.25, 0.25} → {0.5, 0.5} → {0.75, 0.75} → {1.0, 1.0}. Apply exposure:
+          Vertical shift of midpoint (0.5 → 0.5+exposure*0.25). Apply contrast: Steepen/flatten slope
+          around midpoint. Apply highlights: Adjust top-end points (0.75-1.0 range). Apply shadows:
+          Adjust bottom-end points (0.0-0.25 range). Convert to binary float32 pairs (8 bytes per
+          point). [REQUIRES UPDATE FOR BINARY FORMAT]</snippet>
       </doc>
       <doc>
         <path>docs/PRD-Path-A.md</path>
         <title>DCP Camera Profile Support (Epic 2)</title>
         <section>FR-2.2: Generate DCP Files</section>
-        <snippet>Generate TIFF-based DCP file structure per Adobe spec. Map UniversalRecipe
-          parameters to DCP equivalents. Generate identity color matrices (no camera calibration).
-          Create tone curves from exposure/contrast/highlights/shadows. Generated DCPs must load in
-          Adobe Camera Raw and Lightroom.</snippet>
+        <snippet>Generate TIFF-based DCP file structure per Adobe spec. Map UniversalRecipe parameters
+          to binary DCP tags. Generate identity color matrices as binary SRational arrays (no camera
+          calibration). Create tone curves from exposure/contrast/highlights/shadows as binary float32
+          pairs. Generated DCPs must load in Adobe Camera Raw and Lightroom.</snippet>
       </doc>
       <doc>
         <path>docs/architecture.md</path>
@@ -139,130 +159,140 @@
           JavaScript for web interface. Hub-and-spoke architecture with UniversalRecipe intermediate
           representation. Zero external dependencies for core library.</snippet>
       </doc>
-      <doc>
-        <path>docs/parameter-mapping.md</path>
-        <title>Tone Curve Mappings</title>
-        <section>Tone Curves</section>
-        <snippet>XMP and lrtemplate support custom tone curves with multiple control points
-          (ToneCurvePV2012). NP3 uses fixed lookup table with limited curve support. Point curves
-          stored as arrays of {Input, Output} pairs (0-255 range).</snippet>
-      </doc>
     </docs>
     <code>
+      <artifact>
+        <path>internal/formats/dcp/parse.go</path>
+        <kind>parser</kind>
+        <symbol>Parse</symbol>
+        <lines>42-92</lines>
+        <reason>Binary DCP parser implemented in story 9-1. Shows reverse operation: extracting binary
+          tags (50708, 50721-50722, 50730, 50940, 52552), converting float32 arrays to ToneCurvePoint,
+          parsing SRational arrays to Matrix. Direct reference for generation (inverse operations).</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/dcp/tiff.go</path>
+        <kind>parser</kind>
+        <symbol>extractToneCurve</symbol>
+        <lines>107-144</lines>
+        <reason>Binary tone curve extraction from tag 50940. Shows how float32 pairs are stored (8 bytes
+          per point), byte order conversion, normalization (0.0-1.0). Reference for generating binary
+          tone curve data in reverse.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/dcp/tiff.go</path>
+        <kind>parser</kind>
+        <symbol>extractColorMatrix</symbol>
+        <lines>151-184</lines>
+        <reason>Binary color matrix extraction from tags 50721-50722. Shows SRational array format (9 ×
+          8-byte values), numerator/denominator conversion. Reference for generating binary matrix data.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/dcp/profile.go</path>
+        <kind>parser</kind>
+        <symbol>analyzeToneCurve</symbol>
+        <lines>23-52</lines>
+        <reason>Tone curve analysis extracting exposure/contrast/highlights/shadows from curve shape.
+          Shows inverse operation of generation - how tone adjustments map to curve points (0.0-1.0
+          range). Reference for understanding generation formulas.</reason>
+      </artifact>
+      <artifact>
+        <path>internal/formats/dcp/types.go</path>
+        <kind>model</kind>
+        <symbol>ToneCurvePoint, SRational, Matrix</symbol>
+        <lines>1-50</lines>
+        <reason>Binary format structs: ToneCurvePoint with float64 Input/Output (0.0-1.0), SRational
+          with int32 Numerator/Denominator, Matrix as [3][3]float64 array. DNG tag constants
+          (TagProfileToneCurve=50940, TagColorMatrix1/2=50721/50722, TagProfileName=52552).</reason>
+      </artifact>
       <artifact>
         <path>internal/models/recipe.go</path>
         <kind>model</kind>
         <symbol>UniversalRecipe</symbol>
         <lines>63-154</lines>
-        <reason>Core data structure with Exposure, Contrast, Highlights, Shadows, Whites, Blacks
-          fields that map to DCP tone curves. Reference for all tone adjustment parameters.</reason>
-      </artifact>
-      <artifact>
-        <path>internal/models/recipe.go</path>
-        <kind>model</kind>
-        <symbol>ToneCurvePoint</symbol>
-        <lines>10-14</lines>
-        <reason>Point curve structure with Input/Output (0-255) that matches DCP tone curve point
-          format. Used for PointCurve field in UniversalRecipe.</reason>
-      </artifact>
-      <artifact>
-        <path>internal/formats/xmp/parse.go</path>
-        <kind>parser</kind>
-        <symbol>Parse</symbol>
-        <lines>260-290</lines>
-        <reason>Example parser showing extraction of tone adjustments (exposure, contrast,
-          highlights, shadows, whites, blacks) from XML format. Pattern to follow for DCP XML
-          parsing.</reason>
+        <reason>Core data structure with Exposure, Contrast, Highlights, Shadows, Whites, Blacks fields
+          that map to DCP tone curves. Reference for all tone adjustment parameters.</reason>
       </artifact>
       <artifact>
         <path>internal/formats/np3/generate.go</path>
         <kind>generator</kind>
         <symbol>convertToNP3Parameters</symbol>
         <lines>177-210</lines>
-        <reason>Example generator showing conversion from UniversalRecipe to format-specific
-          parameters, including tone curve point conversion. Pattern to follow for DCP generation.</reason>
-      </artifact>
-      <artifact>
-        <path>internal/formats/np3/generate.go</path>
-        <kind>generator</kind>
-        <symbol>writeToneCurve</symbol>
-        <lines>812-830</lines>
-        <reason>Example of writing tone curve control points to binary format. Shows pattern for
-          handling curve point count and coordinate pairs.</reason>
-      </artifact>
-      <artifact>
-        <path>internal/formats/costyle/generate.go</path>
-        <kind>generator</kind>
-        <symbol>Generate</symbol>
-        <lines>1-50</lines>
-        <reason>Recently completed XML generation example (Story 8-1). Shows xml.MarshalIndent()
-          pattern, namespace handling, and TIFF-like structure. Direct reference for DCP XML
-          generation.</reason>
-      </artifact>
-      <artifact>
-        <path>internal/lut/generator.go</path>
-        <kind>utility</kind>
-        <symbol>applyToneCurve</symbol>
-        <lines>115-140</lines>
-        <reason>Shows tone curve application logic - how contrast/highlights/shadows/whites/blacks
-          affect luminance curve. Reference for understanding tone curve mathematics.</reason>
+        <reason>Example generator showing conversion from UniversalRecipe to format-specific parameters,
+          including tone curve point conversion. Pattern to follow for DCP binary generation.</reason>
       </artifact>
       <artifact>
         <path>scripts/create_custom_dcp.py</path>
         <kind>script</kind>
         <symbol>DCPBuilder</symbol>
         <lines>42-80</lines>
-        <reason>Python reference implementation showing TIFF tag constants (TAG_COLOR_MATRIX1=50721,
-          TAG_PROFILE_NAME=50936) and DCP structure. Useful for understanding Adobe DCP format.</reason>
+        <reason>Python reference implementation showing TIFF tag constants and DCP structure. Note: This
+          script may use XML format (tag 50740) which is INCORRECT for real Adobe DCPs. Use as
+          reference for tag IDs only, NOT for format.</reason>
       </artifact>
     </code>
     <dependencies>
       <go_stdlib>
-        <package>encoding/xml</package>
-        <purpose>Marshal/unmarshal Adobe Camera Profile XML structure</purpose>
+        <package>encoding/binary</package>
+        <purpose>Binary encoding for float32 arrays and SRational values</purpose>
       </go_stdlib>
       <go_stdlib>
         <package>bytes</package>
-        <purpose>Buffer for TIFF encoding operations</purpose>
+        <purpose>Buffer for DNG/TIFF binary writing operations</purpose>
       </go_stdlib>
       <go_stdlib>
         <package>fmt</package>
         <purpose>Error formatting and string operations</purpose>
       </go_stdlib>
+      <go_stdlib>
+        <package>unsafe</package>
+        <purpose>Pointer conversion for float32 to uint32 bits (if using manual binary writing)</purpose>
+      </go_stdlib>
       <external>
         <package>github.com/google/tiff</package>
         <version>latest</version>
-        <purpose>TIFF read/write library for DCP container format. Required because Go stdlib
-          image/tiff is decoder-only and doesn't support custom tags.</purpose>
+        <purpose>TIFF read/write library for DCP container format. May be used for reading existing DCPs
+          to understand format, but manual binary writing may be needed for custom DNG tags. Required
+          because Go stdlib image/tiff is decoder-only and doesn't support custom tags.</purpose>
         <status>NOT YET ADDED - must add to go.mod</status>
       </external>
       <internal>
         <package>github.com/justin/recipe/internal/models</package>
         <purpose>UniversalRecipe struct with tone adjustment fields</purpose>
       </internal>
+      <internal>
+        <package>github.com/justin/recipe/internal/formats/dcp</package>
+        <purpose>Types from story 9-1: ToneCurvePoint, SRational, Matrix, DNG tag constants</purpose>
+      </internal>
     </dependencies>
   </artifacts>
 
   <constraints>
-    <constraint>DCP files must follow Adobe DNG Specification 1.6 for compatibility with Camera Raw
-      and Lightroom</constraint>
-    <constraint>TIFF tag 50740 (CameraProfile) must contain valid XML with Adobe Camera Raw
-      namespace (http://ns.adobe.com/camera-raw-settings/1.0/)</constraint>
-    <constraint>Tone curve must be 5-point piecewise linear curve (0, 64, 128, 192, 255 input
-      points)</constraint>
-    <constraint>All tone curve output values must be clamped to 0-255 range and maintain monotonic
+    <constraint>DCP files must follow Adobe DNG Specification 1.6 binary format for compatibility with
+      Camera Raw and Lightroom</constraint>
+    <constraint>DNG magic bytes must be "IIRC" (0x49494352) for little-endian or "MMCR" (0x4D4D4352)
+      for big-endian (NOT standard TIFF version 42)</constraint>
+    <constraint>Tag 50940 (ProfileToneCurve) must contain binary float32 array as (input, output) pairs,
+      normalized to 0.0-1.0 range (NOT 0-255 integers)</constraint>
+    <constraint>Tags 50721-50722 (ColorMatrix1/2) must contain 9 SRational values each (72 bytes total
+      per matrix)</constraint>
+    <constraint>Tag 52552 (ProfileName) is OPTIONAL - only write if non-empty string</constraint>
+    <constraint>All tone curve output values must be clamped to 0.0-1.0 range and maintain monotonic
       property (output[i] >= output[i-1])</constraint>
-    <constraint>Color matrices must be 3x3 identity matrices (diagonal values=1.0, off-diagonal=0.0)
-      since Recipe doesn't perform camera calibration</constraint>
-    <constraint>XML must be human-readable (formatted with indentation via xml.MarshalIndent)</constraint>
-    <constraint>Must use github.com/google/tiff library (not stdlib image/tiff which is decode-only)</constraint>
+    <constraint>Color matrices must be 3x3 identity matrices as SRational{1,1} for diagonal,
+      SRational{0,1} for off-diagonal (Recipe doesn't perform camera calibration)</constraint>
+    <constraint>Binary data must use little-endian byte order (matching "IIRC" magic bytes)</constraint>
+    <constraint>Must use encoding/binary package for safe binary conversions (not manual pointer
+      casting)</constraint>
     <constraint>Test coverage target: ≥85% for generate.go, tiff.go, profile.go</constraint>
-    <constraint>Performance target: DCP generation &lt;200ms (slower than other formats due to TIFF
-      overhead)</constraint>
+    <constraint>Performance target: DCP generation &lt;200ms (slower than other formats due to
+      TIFF/DNG overhead)</constraint>
     <constraint>Hub-and-spoke pattern: Generate() function takes UniversalRecipe as input, returns
       []byte DCP file</constraint>
-    <constraint>Manual validation required: Generated DCP must load in Adobe Camera Raw and
-      Lightroom Classic without errors</constraint>
+    <constraint>Manual validation required: Generated DCP must load in Adobe Camera Raw and Lightroom
+      Classic without errors</constraint>
+    <constraint>Round-trip validation: Generate → Parse (story 9-1) → Compare should preserve 95%+
+      accuracy</constraint>
   </constraints>
 
   <interfaces>
@@ -271,89 +301,113 @@
       <kind>function</kind>
       <signature>func Generate(recipe *models.UniversalRecipe) ([]byte, error)</signature>
       <path>internal/formats/dcp/generate.go</path>
-      <description>Main entry point for DCP generation. Takes UniversalRecipe and returns TIFF-based
-        DCP file bytes. Orchestrates universalToToneCurve() → generateProfile() → createTIFF()
-        pipeline.</description>
+      <description>Main entry point for DCP generation. Takes UniversalRecipe and returns DNG file with
+        binary tags as []byte. Orchestrates universalToToneCurve() → generateBinaryToneCurve() →
+        createDNG() pipeline.</description>
     </interface>
     <interface>
       <name>universalToToneCurve</name>
       <kind>function</kind>
       <signature>func universalToToneCurve(recipe *models.UniversalRecipe) []ToneCurvePoint</signature>
       <path>internal/formats/dcp/profile.go</path>
-      <description>Converts UniversalRecipe tone adjustments (Exposure, Contrast, Highlights,
-        Shadows) to 5-point DCP tone curve. Returns array of {Input, Output} points clamped to
-        0-255.</description>
+      <description>Converts UniversalRecipe tone adjustments (Exposure, Contrast, Highlights, Shadows)
+        to 5-point DCP tone curve. Returns array of ToneCurvePoint with Input/Output as float64 values
+        normalized to 0.0-1.0 range.</description>
     </interface>
     <interface>
-      <name>generateProfile</name>
+      <name>generateBinaryToneCurve</name>
       <kind>function</kind>
-      <signature>func generateProfile(recipe *models.UniversalRecipe) ([]byte, error)</signature>
+      <signature>func generateBinaryToneCurve(points []ToneCurvePoint) []byte</signature>
       <path>internal/formats/dcp/profile.go</path>
-      <description>Generates Adobe Camera Profile XML from UniversalRecipe. Includes tone curve,
-        identity color matrices (ColorMatrix1, ColorMatrix2), and profile name. Returns formatted
-        XML with namespace declaration.</description>
+      <description>Converts ToneCurvePoint array to binary float32 array for tag 50940. Each point
+        becomes 8 bytes (4-byte float32 input + 4-byte float32 output). Uses encoding/binary with
+        LittleEndian.</description>
     </interface>
     <interface>
-      <name>createTIFF</name>
+      <name>generateColorMatrix</name>
       <kind>function</kind>
-      <signature>func createTIFF(xmlData []byte) ([]byte, error)</signature>
+      <signature>func generateColorMatrix() []SRational</signature>
+      <path>internal/formats/dcp/profile.go</path>
+      <description>Returns 9 SRational values representing 3x3 identity matrix for
+        ColorMatrix1/ColorMatrix2. Diagonal = SRational{1, 1}, off-diagonal = SRational{0, 1}. Used
+        because Recipe doesn't perform full camera calibration.</description>
+    </interface>
+    <interface>
+      <name>srationalArrayToBytes</name>
+      <kind>function</kind>
+      <signature>func srationalArrayToBytes(srs []SRational) []byte</signature>
+      <path>internal/formats/dcp/profile.go</path>
+      <description>Converts SRational array to binary format for tags 50721-50722. Each SRational becomes
+        8 bytes (4-byte int32 numerator + 4-byte int32 denominator). Uses encoding/binary with
+        LittleEndian.</description>
+    </interface>
+    <interface>
+      <name>createDNG</name>
+      <kind>function</kind>
+      <signature>func createDNG(toneCurve, colorMatrix1, colorMatrix2 []byte, profileName string) ([]byte, error)</signature>
       <path>internal/formats/dcp/tiff.go</path>
-      <description>Creates minimal TIFF file structure with embedded camera profile XML in tag
-        50740. Uses github.com/google/tiff library. Sets standard TIFF tags (ImageWidth=1,
-        ImageLength=1, SamplesPerPixel=3).</description>
+      <description>Creates DNG file structure with binary tags. Writes DNG magic bytes ("IIRC" or
+        "MMCR"), IFD offset, and IFD with binary tags (50708, 50721-50722, 50730, 50940, 52552 if
+        non-empty). May use github.com/google/tiff or manual binary writing.</description>
     </interface>
     <interface>
-      <name>identityMatrix</name>
+      <name>buildIFD</name>
       <kind>function</kind>
-      <signature>func identityMatrix() *Matrix</signature>
-      <path>internal/formats/dcp/profile.go</path>
-      <description>Returns 3x3 identity matrix for ColorMatrix1/ColorMatrix2. Diagonal values = 1.0,
-        off-diagonal = 0.0. Used because Recipe doesn't perform full camera calibration.</description>
+      <signature>func buildIFD() *IFD</signature>
+      <path>internal/formats/dcp/tiff.go</path>
+      <description>Creates minimal TIFF IFD (Image File Directory) with standard tags (ImageWidth=1,
+        ImageLength=1, SamplesPerPixel=3, BitsPerSample=[8,8,8], PhotometricInterpretation=RGB). Used
+        as container for DCP profile tags.</description>
     </interface>
   </interfaces>
 
   <tests>
-    <standards>Testing follows Recipe's established patterns: table-driven tests with real sample
-      files, round-trip validation, ≥85% coverage target. Uses Go standard testing package with
-      subtests for granular failure reporting. Benchmark tests validate &lt;200ms generation
-      performance. Manual validation in Adobe Camera Raw and Lightroom Classic required for AC-5
-      (visual spot-check that tone adjustments render correctly).</standards>
+    <standards>Testing follows Recipe's established patterns: table-driven tests with real sample files,
+      round-trip validation, ≥85% coverage target. Uses Go standard testing package with subtests for
+      granular failure reporting. Benchmark tests validate &lt;200ms generation performance. Manual
+      validation in Adobe Camera Raw and Lightroom Classic required for AC-5 (visual spot-check that
+      tone adjustments render correctly). Binary format validation: verify float32 arrays (8 bytes per
+      point), SRational values (8 bytes each), DNG magic bytes ("IIRC"/"MMCR"), tag data lengths.</standards>
     <locations>
       <location>internal/formats/dcp/generate_test.go</location>
       <location>internal/converter/converter_test.go (extend with DCP cases)</location>
-      <location>testdata/dcp/ (sample DCP files and validation results)</location>
+      <location>testdata/dcp/ (36 real Adobe DCP files for round-trip testing, validation results)</location>
     </locations>
     <ideas>
       <test id="AC-1"
-        description="TestGenerate_ValidRecipe - Generate DCP from populated UniversalRecipe with exposure +0.5, contrast +0.3, highlights -0.2. Validate TIFF magic bytes (II or MM), check IFD structure, verify tag 50740 exists."></test>
+        description="TestGenerate_ValidRecipe - Generate DCP from populated UniversalRecipe with exposure +0.5, contrast +0.3, highlights -0.2. Validate DNG magic bytes (IIRC or MMCR), check IFD structure, verify binary tags 50940, 50721-50722 exist with correct lengths."></test>
       <test id="AC-1"
-        description="TestTIFFStructure - Validate generated TIFF has correct header, IFD with required tags (ImageWidth, ImageLength, SamplesPerPixel, tag 50740). Use github.com/google/tiff to read back and verify."></test>
+        description="TestDNGStructure - Validate generated DNG has DNG magic bytes (not TIFF version 42), IFD with required tags (ImageWidth, ImageLength, SamplesPerPixel, binary profile tags). Use github.com/google/tiff to read back and verify (may need DNG version conversion)."></test>
       <test id="AC-2"
-        description="TestGenerateProfile_XML - Generate camera profile XML from UniversalRecipe. Validate namespace (http://ns.adobe.com/camera-raw-settings/1.0/), check required elements (ProfileName, ToneCurve, ColorMatrix). Parse with xml.Unmarshal to verify well-formed."></test>
+        description="TestGenerateBinaryToneCurve - Convert ToneCurvePoint array to binary float32. Verify length (N points × 8 bytes), byte order (little-endian), float32 values correct (0.0-1.0 range)."></test>
       <test id="AC-2"
-        description="TestXMLFormatting - Verify generated XML is human-readable (indented, not minified). Check xml.Header present, proper RDF structure (rdf:Seq, rdf:li elements)."></test>
+        description="TestGenerateColorMatrix - Verify generateColorMatrix() returns 9 SRational values: diagonal SRational{1, 1}, off-diagonal SRational{0, 1}. Convert to bytes and verify 72-byte length."></test>
+      <test id="AC-2"
+        description="TestBinaryTagData - Write binary tags to DNG, read back with parser from story 9-1. Verify tag 50940 (float32 array), tags 50721-50722 (SRational arrays), tag 52552 (ASCII string if present) are correctly formatted."></test>
       <test id="AC-3"
-        description="TestUniversalToToneCurve - Test tone curve generation with various parameter combinations: (1) Neutral (all zeros) - expect linear curve. (2) Exposure +1.0 - expect midpoint shifted upward. (3) Contrast +0.5 - expect steeper slope. (4) Highlights -0.3, Shadows +0.2 - expect top/bottom points adjusted. Verify all outputs 0-255 and monotonic."></test>
+        description="TestUniversalToToneCurve - Test tone curve generation with 0.0-1.0 normalized values: (1) Neutral (all zeros) - expect linear curve {0.0,0.0}, {0.25,0.25}, {0.5,0.5}, {0.75,0.75}, {1.0,1.0}. (2) Exposure +1.0 - expect midpoint shifted upward. (3) Contrast +0.5 - expect steeper slope. (4) Highlights -0.3, Shadows +0.2 - expect top/bottom points adjusted. Verify all outputs 0.0-1.0 and monotonic."></test>
       <test id="AC-3"
-        description="TestToneCurveClamp - Test extreme values (exposure +5.0, contrast +2.0) to ensure clamping to 0-255 range. Test negative extremes (exposure -5.0, contrast -2.0)."></test>
+        description="TestToneCurveClamp - Test extreme values (exposure +5.0, contrast +2.0) to ensure clamping to 0.0-1.0 range. Test negative extremes (exposure -5.0, contrast -2.0)."></test>
       <test id="AC-3"
-        description="TestToneCurveMonotonic - Verify output[i] >= output[i-1] for all curve points after applying all adjustments. Test with various combinations that might violate monotonicity."></test>
+        description="TestToneCurveMonotonic - Verify output[i] >= output[i-1] for all curve points (0.0-1.0 range) after applying all adjustments. Test with various combinations that might violate monotonicity."></test>
       <test id="AC-4"
-        description="TestIdentityMatrix - Verify identityMatrix() returns 3x3 matrix with [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]. Check ColorMatrix1 and ColorMatrix2 both use identity."></test>
+        description="TestSRationalConversion - Test srationalArrayToBytes() with identity matrix. Verify binary format: [1,0,0,0, 1,0,0,0] for SRational{1,1}, [0,0,0,0, 1,0,0,0] for SRational{0,1}. Total 72 bytes for 9 values."></test>
       <test id="AC-5"
-        description="TestGenerate_EmptyRecipe - Generate from UniversalRecipe with all zero values (neutral preset). Verify linear tone curve generated, valid TIFF structure."></test>
+        description="TestGenerate_EmptyRecipe - Generate from UniversalRecipe with all zero values (neutral preset). Verify linear tone curve {0.0,0.0}...{1.0,1.0} generated, valid DNG structure."></test>
       <test id="AC-5"
-        description="TestGenerate_ExtremeValues - Test with extreme parameters: exposure +2.0, contrast +1.0, highlights +100, shadows -100. Verify valid DCP output, no panics."></test>
+        description="TestGenerate_ExtremeValues - Test with extreme parameters: exposure +2.0, contrast +1.0, highlights +1.0, shadows -1.0. Verify valid DCP output with clamped values (0.0-1.0), no panics."></test>
       <test id="AC-5"
-        description="TestRoundTrip_DCP (requires story 9-1 Parse) - Generate DCP → Parse back → Compare. Verify 95%+ tone curve accuracy preserved (allow ±1 due to quantization)."></test>
+        description="TestRoundTrip_DCP - Generate DCP → Parse with story 9-1 parser → Compare. Verify tone curve accuracy preserved (95%+ match, allow ±0.01 due to float32 precision). Verify metadata (profile_name) preserved."></test>
+      <test id="AC-5"
+        description="TestOptionalProfileName - Generate DCP with empty profile_name (should omit tag 52552). Generate with non-empty profile_name (should include tag 52552). Verify both load in parser."></test>
       <test id="AC-6"
-        description="TestCoverage - Run 'go test -cover ./internal/formats/dcp/' and verify ≥85% coverage for generate.go, tiff.go, profile.go files."></test>
+        description="TestCoverage - Run 'go test -cover ./internal/formats/dcp/' and verify ≥85% coverage for generate.go, tiff.go (generation functions), profile.go (binary conversion functions)."></test>
       <test id="AC-6"
-        description="BenchmarkGenerate - Benchmark DCP generation with typical UniversalRecipe. Target: &lt;200ms (accept slower than other formats due to TIFF overhead)."></test>
+        description="BenchmarkGenerate - Benchmark DCP generation with typical UniversalRecipe. Target: &lt;200ms (accept slower than other formats due to DNG/TIFF overhead with binary tag writing)."></test>
       <test id="Manual-AC-5"
-        description="Manual Test - Adobe Camera Raw: Generate 3 test DCPs (neutral, portrait +exp/+contrast, landscape +sat/-highlights). Open in Camera Raw, verify no import errors, tone adjustments visible in histogram."></test>
+        description="Manual Test - Adobe Camera Raw: Generate 3 test DCPs with binary format (neutral, portrait +exp/+contrast, landscape +sat/-highlights). Open in Camera Raw, verify no import errors, tone adjustments visible in histogram."></test>
       <test id="Manual-AC-5"
-        description="Manual Test - Lightroom Classic: Import same 3 test DCPs into Lightroom. Apply to test RAW image. Verify tone curve adjustments render correctly (visual spot-check before/after). Document results in testdata/dcp/validation-report.md."></test>
+        description="Manual Test - Lightroom Classic: Import same 3 binary format DCPs into Lightroom. Apply to test RAW image. Verify tone curve adjustments render correctly (visual spot-check before/after). Document results in testdata/dcp/validation-report.md with screenshots and version info."></test>
     </ideas>
   </tests>
 </story-context>

@@ -57,8 +57,10 @@ func TestGenerate_ValidRecipe(t *testing.T) {
 		t.Errorf("Saturation mismatch: got %d, want 20", desc.Saturation)
 	}
 	// Temperature: 6100K → +10 in C1
-	if desc.Temperature != 10 {
-		t.Errorf("Temperature mismatch: got %d, want 10 (from 6100K)", desc.Temperature)
+	// Temperature: 6100K → (6100 - 5500) / 35 = 17.14 ≈ 17
+	expectedTemp := 17
+	if desc.Temperature != expectedTemp {
+		t.Errorf("Temperature mismatch: got %d, want %d (from 6100K)", desc.Temperature, expectedTemp)
 	}
 	// Tint: 10 in UR (-150/+150) → 7 in C1 (-100/+100) (10 * 100/150 ≈ 6.67 → 7)
 	expectedTint := 7 // int(round(10 * (100.0/150.0))) = int(round(6.67)) = 7
@@ -296,15 +298,15 @@ func TestKelvinToC1Temperature(t *testing.T) {
 		kelvin float64
 		want   int
 	}{
-		{5500, 0},    // Neutral
-		{6100, 10},   // Warmer
-		{4900, -10},  // Cooler
-		{9100, 60},   // Very warm
-		{1900, -60},  // Very cool
-		{11500, 100}, // Extreme warm (clamped)
-		{-500, -100}, // Extreme cool (clamped)
-		{5560, 1},    // +60K → +1
-		{5440, -1},   // -60K → -1
+		{5500, 0},     // Neutral (5500 - 5500) / 35 = 0
+		{6100, 17},    // Warmer: (6100 - 5500) / 35 = 17.14 ≈ 17
+		{4900, -17},   // Cooler: (4900 - 5500) / 35 = -17.14 ≈ -17
+		{9100, 100},   // Very warm: (9100 - 5500) / 35 = 102.86 → clamped to 100
+		{1900, -100},  // Very cool: (1900 - 5500) / 35 = -102.86 → clamped to -100
+		{11500, 100},  // Extreme warm (clamped)
+		{-500, -100},  // Extreme cool (clamped)
+		{5535, 1},     // +35K → +1
+		{5465, -1},    // -35K → -1
 	}
 
 	for _, tt := range tests {
@@ -498,18 +500,17 @@ func TestGenerate_RoundTrip(t *testing.T) {
 		t.Errorf("Round-trip Saturation mismatch: got %d, want %d", parsed.Saturation, original.Saturation)
 	}
 
-	// Temperature: Allow ±60K tolerance due to conversion rounding
-	// Original: 6100K → +10 C1 → ~6100K (should be close)
+	// Temperature: Allow ±35K tolerance due to conversion rounding
+	// Original: 6100K → (6100-5500)/35 = 17.14 ≈ 17 C1 → 5500 + 17*35 = 6095K
 	if parsed.Temperature == nil {
 		t.Error("Round-trip Temperature is nil, expected value")
 	} else {
-		// Parsed temperature is stored as offset from 5500K
-		// Expected: +10 C1 units * 35K/unit = +350K offset
-		expectedOffset := 350 // (6100 - 5500) / 60 * 35 ≈ 350
-		tolerance := 60
-		diff := *parsed.Temperature - expectedOffset
+		// Expected: 17 C1 units * 35K/unit = 595K → 5500 + 595 = 6095K
+		expectedKelvin := 6095
+		tolerance := 35 // One scale unit
+		diff := *parsed.Temperature - expectedKelvin
 		if diff < -tolerance || diff > tolerance {
-			t.Errorf("Round-trip Temperature offset mismatch: got %d, want %d (±%d)", *parsed.Temperature, expectedOffset, tolerance)
+			t.Errorf("Round-trip Temperature mismatch: got %d, want %d (±%d)", *parsed.Temperature, expectedKelvin, tolerance)
 		}
 	}
 

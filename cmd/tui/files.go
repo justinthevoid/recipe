@@ -30,7 +30,7 @@ func loadFilesCmd(dir string) tea.Cmd {
 
 			// Filter: only directories and preset files
 			ext := filepath.Ext(entry.Name())
-			isPreset := ext == ".np3" || ext == ".xmp" || ext == ".lrtemplate"
+			isPreset := ext == ".np3" || ext == ".xmp" || ext == ".lrtemplate" || ext == ".costyle" || ext == ".costylepack"
 
 			if entry.IsDir() || isPreset {
 				files = append(files, FileInfo{
@@ -62,6 +62,10 @@ func detectFormat(name string, isDir bool) string {
 		return "xmp"
 	case ".lrtemplate":
 		return "lrtemplate"
+	case ".costyle":
+		return "costyle"
+	case ".costylepack":
+		return "costylepack"
 	default:
 		return ""
 	}

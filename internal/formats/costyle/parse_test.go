@@ -127,12 +127,12 @@ func TestParse_ValidFile(t *testing.T) {
 		t.Errorf("Tint = %d, want -5 (scaled from C1 -3)", recipe.Tint)
 	}
 
-	// Verify temperature converted to Kelvin offset
+	// Verify temperature converted to absolute Kelvin
 	if recipe.Temperature == nil {
 		t.Error("Temperature is nil, want non-nil")
 	} else {
-		// Temperature 5 should map to ~175K offset (5 * 35)
-		expectedTemp := 175
+		// Temperature 5 should map to 5675K (5500 + 5*35)
+		expectedTemp := 5675
 		if *recipe.Temperature != expectedTemp {
 			t.Errorf("Temperature = %d, want %d", *recipe.Temperature, expectedTemp)
 		}

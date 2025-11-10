@@ -4,6 +4,7 @@ legacy/
 .bak
 .txt
 .html
+.venv
 
 # Test coverage reports
 coverage.out

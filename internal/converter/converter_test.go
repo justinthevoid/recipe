@@ -23,7 +23,7 @@ func findFilesRecursive(dir, ext string) ([]string, error) {
 	return files, err
 }
 
-// TestConvert_AllPaths tests all 6 conversion paths with sample files
+// TestConvert_AllPaths tests all conversion paths with sample files
 func TestConvert_AllPaths(t *testing.T) {
 	tests := []struct {
 		name string
@@ -38,6 +38,10 @@ func TestConvert_AllPaths(t *testing.T) {
 		{"XMP→LRTemplate", FormatXMP, FormatLRTemplate, "../../examples/xmp", ".xmp"},
 		{"LRTemplate→NP3", FormatLRTemplate, FormatNP3, "../../examples/lrtemplate", ".lrtemplate"},
 		{"LRTemplate→XMP", FormatLRTemplate, FormatXMP, "../../examples/lrtemplate", ".lrtemplate"},
+		{"Costyle→XMP", FormatCostyle, FormatXMP, "../../internal/formats/costyle/testdata/costyle", ".costyle"},
+		{"Costyle→NP3", FormatCostyle, FormatNP3, "../../internal/formats/costyle/testdata/costyle", ".costyle"},
+		{"XMP→Costyle", FormatXMP, FormatCostyle, "../../examples/xmp", ".xmp"},
+		{"NP3→Costyle", FormatNP3, FormatCostyle, "../../examples/np3", ".np3"},
 	}
 
 	for _, tt := range tests {
@@ -274,6 +278,36 @@ func TestDetectFormat_LRTemplate(t *testing.T) {
 	}
 	if format != FormatLRTemplate {
 		t.Errorf("Expected %q, got %q", FormatLRTemplate, format)
+	}
+}
+
+// TestDetectFormat_Costyle validates costyle detection by SL Engine tag
+func TestDetectFormat_Costyle(t *testing.T) {
+	costyleData := []byte(`<?xml version="1.0"?>
+<SL Engine="1300">
+	<E K="Name" V="Test Preset" />
+</SL>`)
+
+	format, err := DetectFormat(costyleData)
+	if err != nil {
+		t.Fatalf("Detection failed: %v", err)
+	}
+	if format != FormatCostyle {
+		t.Errorf("Expected %q, got %q", FormatCostyle, format)
+	}
+}
+
+// TestDetectFormat_Costylepack validates costylepack detection by ZIP magic bytes
+func TestDetectFormat_Costylepack(t *testing.T) {
+	// ZIP magic bytes: PK\x03\x04
+	costylepackData := []byte{0x50, 0x4B, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00}
+
+	format, err := DetectFormat(costylepackData)
+	if err != nil {
+		t.Fatalf("Detection failed: %v", err)
+	}
+	if format != FormatCostylepack {
+		t.Errorf("Expected %q, got %q", FormatCostylepack, format)
 	}
 }
 

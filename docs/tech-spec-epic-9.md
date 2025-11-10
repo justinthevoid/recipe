@@ -1,28 +1,40 @@
 # Epic Technical Specification: DCP Camera Profile Support
 
-Date: 2025-11-08
+Date: 2025-11-08 (Updated: 2025-11-10 for Binary Format)
 Author: Justin
 Epic ID: epic-9
 Status: Draft
 
 ---
 
+## ⚠️ CRITICAL FORMAT DISCOVERY
+
+**Original Assumption (from initial spec):**
+DCP files contain Adobe Camera Profile XML embedded in TIFF tag 50740.
+
+**Reality Discovered During Story 9-1 Implementation:**
+Real Adobe DCP files use **binary TIFF/DNG tags** in the 50700-52600 range, NOT XML in tag 50740.
+
+This specification has been updated to reflect the binary format. See `docs/stories/9-1-dcp-parser-FORMAT-PIVOT.md` for complete discovery details.
+
+---
+
 ## Overview
 
-Epic 9 adds DCP (DNG Camera Profile) format support to Recipe, enabling photographers to convert presets to/from Adobe's camera profile format used in Lightroom, Camera Raw, and DNG files. DCPs are TIFF-based files containing XML camera profile data, primarily used for camera calibration and color science customization.
+Epic 9 adds DCP (DNG Camera Profile) format support to Recipe, enabling photographers to convert presets to/from Adobe's camera profile format used in Lightroom, Camera Raw, and DNG files. DCPs are DNG-format files containing **binary camera profile data** stored in TIFF tags 50700-52600, primarily used for camera calibration and color science customization.
 
-This implementation extends Recipe's hub-and-spoke architecture to handle the TIFF container format (using github.com/google/tiff library) and XML camera profile data (using encoding/xml). The focus is on tone curve adjustments (exposure, contrast, highlights, shadows) which map well to UniversalRecipe, rather than full camera calibration (color matrices, dual illuminant profiles) which are beyond Recipe's scope.
+This implementation extends Recipe's hub-and-spoke architecture to handle the DNG format (using github.com/google/tiff library) and binary profile data (using encoding/binary). The focus is on tone curve adjustments (exposure, contrast, highlights, shadows) which map well to UniversalRecipe, rather than full camera calibration (color matrices, dual illuminant profiles) which are beyond Recipe's scope.
 
 ## Objectives and Scope
 
 **In Scope:**
-- Parse DCP files (TIFF container + embedded XML camera profile)
+- Parse DCP files (DNG format with binary TIFF tags 50700-52600)
 - Generate DCP files from UniversalRecipe tone curve adjustments
 - Support tone curve mapping (exposure, contrast, highlights, shadows, blacks, whites)
-- Identity color matrices for non-calibration use cases
+- Identity color matrices for non-calibration use cases (binary SRational arrays)
 - Round-trip conversion testing with Adobe DCP samples
 - Integration across all Recipe interfaces (CLI, TUI, Web)
-- Parameter mapping documentation for DCP-specific adjustments
+- Parameter mapping documentation for DCP-specific adjustments (binary format)
 
 **Out of Scope (Path A):**
 - Full camera calibration (ForwardMatrix, ColorMatrix, CalibrationIlluminant)
@@ -36,12 +48,12 @@ This implementation extends Recipe's hub-and-spoke architecture to handle the TI
 
 **Components:**
 - **New Package**: `internal/formats/dcp/` (following exact pattern of np3, xmp, lrtemplate, costyle)
-  - `parse.go`: Orchestrates TIFF reading → XML extraction → UniversalRecipe
-  - `generate.go`: Orchestrates UniversalRecipe → XML generation → TIFF embedding
-  - `types.go`: Go structs matching DCP XML schema (tone curves, matrices)
-  - `tiff.go`: Low-level TIFF tag operations using `github.com/google/tiff`
-  - `profile.go`: Adobe camera profile XML parsing/generation
-  - `testdata/`: Real DCP samples from Adobe
+  - `parse.go`: Orchestrates DNG reading → binary tag extraction → UniversalRecipe
+  - `generate.go`: Orchestrates UniversalRecipe → binary tag generation → DNG writing
+  - `types.go`: Go structs for binary DCP data (tone curves as float32 arrays, matrices as SRationals)
+  - `tiff.go`: Low-level TIFF/DNG tag operations using `github.com/google/tiff`, DNG version conversion
+  - `profile.go`: Binary tone curve analysis and generation algorithms
+  - `testdata/`: Real DCP samples from Adobe (36 files tested)
 
 **Integration Points:**
 - Extends `internal/converter/converter.go` to recognize .dcp format
@@ -49,11 +61,13 @@ This implementation extends Recipe's hub-and-spoke architecture to handle the TI
 - Updates `docs/parameter-mapping.md` with DCP tone curve mappings
 - Leverages existing format detection logic (extension + TIFF magic bytes)
 
-**New Dependency:**
-- `github.com/google/tiff` - Complete TIFF library for reading/writing TIFF tags
-  - Rationale: Go stdlib `image/tiff` is decoder-only, doesn't support custom tags
+**New Dependencies:**
+- `github.com/google/tiff` - Complete TIFF/DNG library for reading/writing TIFF tags
+  - Rationale: Go stdlib `image/tiff` is decoder-only, doesn't support custom tags or DNG format
   - Google-maintained, stable, widely used
   - Approved in architecture decision (Decision 4)
+- `encoding/binary` (stdlib) - Binary data conversion for float32 arrays and SRational values
+- `unsafe` (stdlib) - DNG version byte conversion (IIRC/MMCR → version 42 for tiff library)
 
 **Constraints:**
 - Must maintain <200ms DCP generation performance (slower than other formats due to TIFF overhead)
@@ -67,57 +81,56 @@ This implementation extends Recipe's hub-and-spoke architecture to handle the TI
 
 | Module | Responsibility | Inputs | Outputs | Owner |
 | ------ | -------------- | ------ | ------- | ----- |
-| `dcp/parse.go` | Parse DCP TIFF → UniversalRecipe | .dcp file bytes | `*universal.Recipe`, error | Dev (Epic 9) |
-| `dcp/generate.go` | Generate DCP TIFF ← UniversalRecipe | `*universal.Recipe` | .dcp file bytes, error | Dev (Epic 9) |
-| `dcp/tiff.go` | TIFF tag read/write helpers | TIFF file, tag ID | Tag value / error | Dev (Epic 9) |
-| `dcp/profile.go` | Adobe XML camera profile parsing | XML bytes | `Profile` struct / error | Dev (Epic 9) |
-| `dcp/types.go` | DCP-specific types (matrices, curves) | - | Go struct definitions | Dev (Epic 9) |
+| `dcp/parse.go` | Parse DCP DNG → UniversalRecipe | .dcp file bytes | `*models.UniversalRecipe`, error | Dev (Epic 9) |
+| `dcp/generate.go` | Generate DCP DNG ← UniversalRecipe | `*models.UniversalRecipe` | .dcp file bytes, error | Dev (Epic 9) |
+| `dcp/tiff.go` | DNG tag read/write helpers, magic byte conversion | DNG file, tag ID | Binary tag value / error | Dev (Epic 9) |
+| `dcp/profile.go` | Binary tone curve analysis/generation | ToneCurvePoint array | Exposure/Contrast/etc / error | Dev (Epic 9) |
+| `dcp/types.go` | DCP-specific binary types (SRational, curves) | - | Go struct definitions | Dev (Epic 9) |
 | `converter/converter.go` | Format detection & routing (EXISTING) | File bytes, target format | Converted bytes, error | Dev (Epic 9 extension) |
 
 ### Data Models and Contracts
 
-**DCP File Structure (TIFF container):**
+**DCP File Structure (DNG format):**
 
 ```
 DCP File (.dcp)
-├── TIFF Header (Little/Big Endian marker)
+├── DNG Header (Magic bytes: "IIRC" or "MMCR" instead of TIFF version 42)
 ├── Image File Directory (IFD)
 │   ├── Standard TIFF tags (ImageWidth, ImageLength, etc.)
-│   ├── Tag 50740: CameraProfile (XML data embedded)
-│   │   └── Adobe Camera Profile XML (profile data)
-│   └── Other DNG tags (optional)
+│   ├── Tag 50708: UniqueCameraModel (ASCII, e.g., "Nikon Z f")
+│   ├── Tag 50721: ColorMatrix1 (SRational[9] - binary array)
+│   ├── Tag 50722: ColorMatrix2 (SRational[9] - binary array)
+│   ├── Tag 50730: BaselineExposureOffset (SRational)
+│   ├── Tag 50940: ProfileToneCurve (Float32 array of input/output pairs)
+│   └── Tag 52552: ProfileName (ASCII, OPTIONAL - may be missing)
 ```
 
-**Adobe Camera Profile XML Structure (Embedded in Tag 50740):**
+**Binary Data Formats:**
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<crs:CameraProfile xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/">
-  <crs:ProfileName>Recipe Converted Profile</crs:ProfileName>
+**Tone Curve (Tag 50940):**
+- Format: Array of float32 pairs (input, output)
+- Normalization: 0.0-1.0 range (NOT 0-255 integers)
+- Byte structure: Each point = 8 bytes (4-byte float32 input + 4-byte float32 output)
+- Example linear curve:
+  ```
+  {0.0, 0.0}, {0.25, 0.25}, {0.5, 0.5}, {0.75, 0.75}, {1.0, 1.0}
+  = 40 bytes total (5 points × 8 bytes per point)
+  ```
 
-  <!-- Tone Curve (Primary Focus for Recipe) -->
-  <crs:ToneCurve>
-    <rdf:Seq>
-      <rdf:li>0, 0</rdf:li>      <!-- Input, Output (0-255 range) -->
-      <rdf:li>64, 70</rdf:li>    <!-- Lifted shadows example -->
-      <rdf:li>128, 128</rdf:li>  <!-- Midpoint -->
-      <rdf:li>192, 190</rdf:li>  <!-- Crushed highlights example -->
-      <rdf:li>255, 255</rdf:li>
-    </rdf:Seq>
-  </crs:ToneCurve>
+**Color Matrices (Tags 50721-50722):**
+- Format: Array of 9 SRational values (row-major order)
+- SRational: 8 bytes per value (4-byte int32 numerator + 4-byte int32 denominator)
+- Identity matrix example:
+  ```
+  Diagonal: SRational{Numerator: 1, Denominator: 1}
+  Off-diagonal: SRational{Numerator: 0, Denominator: 1}
+  Total: 72 bytes (9 SRationals × 8 bytes each)
+  ```
 
-  <!-- Color Matrices (Identity for non-calibration) -->
-  <crs:ColorMatrix1>
-    <rdf:Seq>
-      <rdf:li>1.0 0.0 0.0</rdf:li>
-      <rdf:li>0.0 1.0 0.0</rdf:li>
-      <rdf:li>0.0 0.0 1.0</rdf:li>
-    </rdf:Seq>
-  </crs:ColorMatrix1>
-
-  <!-- Optional: Hue/Saturation/Value tables (skip for MVP) -->
-</crs:CameraProfile>
-```
+**ProfileName (Tag 52552):**
+- Format: ASCII string, null-terminated
+- **OPTIONAL** - not all DCP files have this tag (empty string if missing)
+- Example: "Camera Standard\0" = 17 bytes
 
 **Go Struct Mapping:**
 
@@ -125,69 +138,70 @@ DCP File (.dcp)
 // types.go
 package dcp
 
-import "encoding/xml"
+// DNG tag constants (binary format)
+const (
+    TagUniqueCameraModel      = 50708  // ASCII camera model
+    TagColorMatrix1           = 50721  // SRational[9] color calibration matrix (illuminant 1)
+    TagColorMatrix2           = 50722  // SRational[9] color calibration matrix (illuminant 2)
+    TagBaselineExposureOffset = 50730  // SRational exposure compensation
+    TagProfileToneCurve       = 50940  // Float32 array of (input, output) pairs
+    TagProfileName            = 52552  // ASCII profile name (OPTIONAL)
+)
 
-// CameraProfile represents Adobe DNG Camera Profile XML
-type CameraProfile struct {
-    XMLName      xml.Name   `xml:"CameraProfile"`
-    Xmlns        string     `xml:"xmlns,attr"`
-    ProfileName  string     `xml:"ProfileName"`
-    ToneCurve    *ToneCurve `xml:"ToneCurve,omitempty"`
-    ColorMatrix1 *Matrix    `xml:"ColorMatrix1,omitempty"`
-    ColorMatrix2 *Matrix    `xml:"ColorMatrix2,omitempty"`
-}
-
-// ToneCurve represents a DCP tone curve (piecewise linear)
-type ToneCurve struct {
-    Points []ToneCurvePoint `xml:"Seq>li"`
-}
-
-// ToneCurvePoint is a single (input, output) point on the tone curve
+// ToneCurvePoint represents a single point on the binary tone curve
+// Stored as 8 bytes: 4-byte float32 input + 4-byte float32 output
 type ToneCurvePoint struct {
-    Input  int // 0-255
-    Output int // 0-255
+    Input  float64  // 0.0-1.0 normalized (parsed from float32)
+    Output float64  // 0.0-1.0 normalized (parsed from float32)
+}
+
+// SRational represents a signed rational number (numerator/denominator)
+// Stored as 8 bytes: 4-byte int32 numerator + 4-byte int32 denominator
+type SRational struct {
+    Numerator   int32
+    Denominator int32
+}
+
+// ToFloat64 converts SRational to float64
+func (sr SRational) ToFloat64() float64 {
+    if sr.Denominator == 0 {
+        return 0.0
+    }
+    return float64(sr.Numerator) / float64(sr.Denominator)
 }
 
 // Matrix represents a 3x3 color transformation matrix
+// Stored as binary array of 9 SRational values (72 bytes total)
 type Matrix struct {
-    Rows []MatrixRow `xml:"Seq>li"`
+    Rows [3][3]float64  // Parsed from SRational binary data
 }
 
-// MatrixRow is one row of the matrix (3 values)
-type MatrixRow struct {
-    Values [3]float64
-}
-
-// UnmarshalXML custom unmarshaler for ToneCurvePoint "0, 0" format
-func (p *ToneCurvePoint) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-    var s string
-    if err := d.DecodeElement(&s, &start); err != nil {
-        return err
-    }
-    // Parse "input, output" format
-    _, err := fmt.Sscanf(s, "%d, %d", &p.Input, &p.Output)
-    return err
-}
-
-// MarshalXML custom marshaler for ToneCurvePoint "0, 0" format
-func (p ToneCurvePoint) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-    s := fmt.Sprintf("%d, %d", p.Input, p.Output)
-    return e.EncodeElement(s, start)
+// DCP profile metadata extracted from binary tags
+type Profile struct {
+    ProfileName           string           // Tag 52552 (optional, empty if missing)
+    ToneCurve             []ToneCurvePoint // Tag 50940 (binary float32 array)
+    ColorMatrix1          *Matrix          // Tag 50721 (9 SRationals)
+    ColorMatrix2          *Matrix          // Tag 50722 (9 SRationals)
+    BaselineExposureOffset float64         // Tag 50730 (SRational)
+    UniqueCameraModel     string           // Tag 50708 (ASCII)
 }
 ```
 
-**UniversalRecipe Mapping (Tone Curve Focus):**
+**UniversalRecipe Mapping (Binary Tone Curve Focus):**
 
-Recipe maps tone curve adjustments to DCP:
-- **UniversalRecipe → DCP Tone Curve**:
-  - `universal.Exposure` → Vertical shift of entire tone curve
-  - `universal.Contrast` → Steeper/shallower slope around midpoint
-  - `universal.Highlights` → Adjust top-end curve points (192-255 range)
-  - `universal.Shadows` → Adjust bottom-end curve points (0-64 range)
-  - `universal.Blacks` → Clamp black point (input 0)
-  - `universal.Whites` → Clamp white point (input 255)
+Recipe maps tone curve adjustments to binary DCP format:
+- **UniversalRecipe → DCP Binary Tone Curve (Tag 50940)**:
+  - `universal.Exposure` → Vertical shift of entire tone curve (0.0-1.0 normalized)
+  - `universal.Contrast` → Steeper/shallower slope around midpoint (0.5 in normalized space)
+  - `universal.Highlights` → Adjust top-end curve points (0.75-1.0 range in normalized space)
+  - `universal.Shadows` → Adjust bottom-end curve points (0.0-0.25 range in normalized space)
+  - `universal.Blacks` → Clamp black point (input 0.0)
+  - `universal.Whites` → Clamp white point (input 1.0)
 
-- **Color Matrices**: Use identity matrices (1.0 on diagonal, 0.0 elsewhere) - Recipe doesn't perform camera calibration
+- **Color Matrices (Tags 50721-50722)**: Use identity matrices as binary SRational arrays:
+  - Diagonal: `SRational{Numerator: 1, Denominator: 1}` (represents 1.0)
+  - Off-diagonal: `SRational{Numerator: 0, Denominator: 1}` (represents 0.0)
+  - Recipe doesn't perform camera calibration
 
 - **Unsupported DCP Features** (documented in parameter-mapping.md):
   - Dual illuminant profiles (D65 + Tungsten)
@@ -206,31 +220,35 @@ package dcp
 import (
     "fmt"
     "github.com/google/tiff"
-    "github.com/justin/recipe/internal/universal"
+    "github.com/justin/recipe/internal/models"
 )
 
 // Parse parses a DCP file into UniversalRecipe
-// Extracts tone curve from embedded Adobe Camera Profile XML
-func Parse(data []byte) (*universal.Recipe, error) {
-    // Read TIFF structure
-    tf, err := readTIFF(data)
+// Extracts binary tone curve and color matrices from DNG tags
+func Parse(data []byte) (*models.UniversalRecipe, error) {
+    // Read DNG/TIFF structure (convert DNG magic bytes "IIRC"/"MMCR" to version 42)
+    tf, err := readDNG(data)
     if err != nil {
-        return nil, fmt.Errorf("failed to read TIFF structure: %w", err)
+        return nil, fmt.Errorf("failed to read DNG structure: %w", err)
     }
 
-    // Extract CameraProfile tag (50740)
-    profileXML, err := extractCameraProfileTag(tf)
-    if err != nil {
-        return nil, fmt.Errorf("failed to extract camera profile: %w", err)
+    // Extract binary profile data from DNG tags
+    profileName := extractProfileName(tf)        // Tag 52552 (optional)
+    toneCurve := extractToneCurve(tf)            // Tag 50940 (binary float32 array)
+    colorMatrix1 := extractColorMatrix(tf, 50721) // Tag 50721 (9 SRationals)
+    colorMatrix2 := extractColorMatrix(tf, 50722) // Tag 50722 (9 SRationals)
+    baselineExposure := extractBaselineExposure(tf) // Tag 50730 (SRational)
+
+    // Create profile from binary data
+    profile := &Profile{
+        ProfileName:            profileName,
+        ToneCurve:              toneCurve,
+        ColorMatrix1:           colorMatrix1,
+        ColorMatrix2:           colorMatrix2,
+        BaselineExposureOffset: baselineExposure,
     }
 
-    // Parse XML camera profile
-    profile, err := parseProfile(profileXML)
-    if err != nil {
-        return nil, fmt.Errorf("failed to parse camera profile XML: %w", err)
-    }
-
-    // Convert DCP tone curve → UniversalRecipe
+    // Convert DCP binary tone curve → UniversalRecipe
     return profileToUniversal(profile), nil
 }
 ```
@@ -244,28 +262,35 @@ package dcp
 import (
     "fmt"
     "github.com/google/tiff"
-    "github.com/justin/recipe/internal/universal"
+    "github.com/justin/recipe/internal/models"
 )
 
 // Generate creates a DCP file from UniversalRecipe
-// Embeds tone curve as Adobe Camera Profile XML in TIFF tag 50740
-func Generate(recipe *universal.Recipe) ([]byte, error) {
-    // Convert UniversalRecipe → DCP tone curve
-    profile := universalToProfile(recipe)
+// Generates binary DNG tags with tone curve and color matrices
+func Generate(recipe *models.UniversalRecipe) ([]byte, error) {
+    // Convert UniversalRecipe → DCP binary tone curve
+    toneCurve := universalToToneCurve(recipe)
 
-    // Generate XML camera profile
-    profileXML, err := generateProfile(profile)
+    // Generate identity color matrices (SRational arrays)
+    colorMatrix1 := generateIdentityMatrix()
+    colorMatrix2 := generateIdentityMatrix()
+
+    // Generate baseline exposure offset
+    baselineExposure := SRational{Numerator: 0, Denominator: 1} // Zero offset
+
+    // Convert to binary format
+    toneCurveBinary := toneCurveToBytes(toneCurve)           // Float32 array
+    colorMatrix1Binary := srationalArrayToBytes(colorMatrix1) // 9 SRationals
+    colorMatrix2Binary := srationalArrayToBytes(colorMatrix2) // 9 SRationals
+    baselineExposureBinary := srationalToBytes(baselineExposure)
+
+    // Create DNG file with binary tags
+    dngData, err := createDNG(toneCurveBinary, colorMatrix1Binary, colorMatrix2Binary, baselineExposureBinary)
     if err != nil {
-        return nil, fmt.Errorf("failed to generate camera profile XML: %w", err)
+        return nil, fmt.Errorf("failed to create DNG: %w", err)
     }
 
-    // Create TIFF with embedded profile
-    tiffData, err := createTIFF(profileXML)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create TIFF: %w", err)
-    }
-
-    return tiffData, nil
+    return dngData, nil
 }
 ```
 
@@ -277,118 +302,164 @@ package dcp
 
 import (
     "bytes"
+    "encoding/binary"
+    "fmt"
     "github.com/google/tiff"
+    "unsafe"
 )
 
 const (
-    // DNG/DCP TIFF tags
-    TagCameraProfile = 50740 // Adobe Camera Profile XML
+    // DNG tag constants (binary format)
+    TagUniqueCameraModel      = 50708
+    TagColorMatrix1           = 50721
+    TagColorMatrix2           = 50722
+    TagBaselineExposureOffset = 50730
+    TagProfileToneCurve       = 50940
+    TagProfileName            = 52552
 )
 
-// readTIFF reads TIFF structure from bytes
-func readTIFF(data []byte) (*tiff.TIFF, error) {
-    r := bytes.NewReader(data)
+// readDNG reads DNG structure from bytes, converting magic bytes to TIFF version 42
+func readDNG(data []byte) (*tiff.TIFF, error) {
+    // Convert DNG magic bytes "IIRC"/"MMCR" → standard TIFF version 42
+    // This is required because github.com/google/tiff expects TIFF version 42
+    convertedData := convertDNGMagicBytes(data)
+
+    r := bytes.NewReader(convertedData)
     return tiff.Parse(r, nil, nil)
 }
 
-// extractCameraProfileTag extracts XML from tag 50740
-func extractCameraProfileTag(tf *tiff.TIFF) ([]byte, error) {
-    // Navigate IFD to find tag 50740
-    ifd := tf.IFDs()[0] // First IFD
-    entry := ifd.GetField(TagCameraProfile)
-    if entry == nil {
-        return nil, fmt.Errorf("camera profile tag not found (tag 50740)")
+// convertDNGMagicBytes converts DNG magic bytes to TIFF version 42
+func convertDNGMagicBytes(data []byte) []byte {
+    if len(data) < 4 {
+        return data
     }
 
-    // Extract byte data
-    data, ok := entry.Value().([]byte)
-    if !ok {
-        return nil, fmt.Errorf("camera profile tag has invalid type")
+    // Check for DNG magic bytes
+    if (data[0] == 'I' && data[1] == 'I' && data[2] == 'R' && data[3] == 'C') || // Little-endian "IIRC"
+       (data[0] == 'M' && data[1] == 'M' && data[2] == 'C' && data[3] == 'R') {  // Big-endian "MMCR"
+
+        // Make a copy and replace version bytes
+        converted := make([]byte, len(data))
+        copy(converted, data)
+        converted[2] = 0x2A  // TIFF version 42
+        converted[3] = 0x00
+        return converted
     }
 
-    return data, nil
+    return data
 }
 
-// createTIFF creates TIFF file with embedded camera profile XML
-func createTIFF(profileXML []byte) ([]byte, error) {
+// extractToneCurve extracts binary tone curve from tag 50940
+func extractToneCurve(tf *tiff.TIFF) []ToneCurvePoint {
+    ifd := tf.IFDs()[0]
+    entry := ifd.GetField(TagProfileToneCurve)
+    if entry == nil {
+        return nil // Missing tone curve
+    }
+
+    // Read binary float32 array
+    data := entry.Value().([]byte)
+    points := make([]ToneCurvePoint, len(data)/8) // 8 bytes per point
+
+    buf := bytes.NewReader(data)
+    for i := range points {
+        var input, output float32
+        binary.Read(buf, binary.LittleEndian, &input)
+        binary.Read(buf, binary.LittleEndian, &output)
+        points[i] = ToneCurvePoint{
+            Input:  float64(input),
+            Output: float64(output),
+        }
+    }
+
+    return points
+}
+
+// extractColorMatrix extracts 9 SRational values from color matrix tag
+func extractColorMatrix(tf *tiff.TIFF, tagID uint16) *Matrix {
+    ifd := tf.IFDs()[0]
+    entry := ifd.GetField(tagID)
+    if entry == nil {
+        return nil
+    }
+
+    data := entry.Value().([]byte)
+    if len(data) != 72 { // 9 SRationals × 8 bytes
+        return nil
+    }
+
+    matrix := &Matrix{}
+    buf := bytes.NewReader(data)
+    for row := 0; row < 3; row++ {
+        for col := 0; col < 3; col++ {
+            var sr SRational
+            binary.Read(buf, binary.LittleEndian, &sr.Numerator)
+            binary.Read(buf, binary.LittleEndian, &sr.Denominator)
+            matrix.Rows[row][col] = sr.ToFloat64()
+        }
+    }
+
+    return matrix
+}
+
+// createDNG creates DNG file with binary profile tags
+func createDNG(toneCurve, colorMatrix1, colorMatrix2, baselineExposure []byte) ([]byte, error) {
     tf := tiff.New()
 
-    // Create IFD with required TIFF tags
+    // Create IFD with DNG tags
     ifd := tiff.NewIFD(tf)
     ifd.SetField(tiff.NewField(tiff.ImageWidth, tiff.UInt32(1), tiff.NewUInt32(1)))
     ifd.SetField(tiff.NewField(tiff.ImageLength, tiff.UInt32(1), tiff.NewUInt32(1)))
 
-    // Embed camera profile XML in tag 50740
-    ifd.SetField(tiff.NewField(TagCameraProfile, tiff.Byte, profileXML))
+    // Embed binary profile tags
+    ifd.SetField(tiff.NewField(TagProfileToneCurve, tiff.Byte, toneCurve))
+    ifd.SetField(tiff.NewField(TagColorMatrix1, tiff.Byte, colorMatrix1))
+    ifd.SetField(tiff.NewField(TagColorMatrix2, tiff.Byte, colorMatrix2))
+    ifd.SetField(tiff.NewField(TagBaselineExposureOffset, tiff.Byte, baselineExposure))
 
     tf.SetIFD(ifd)
 
-    // Write TIFF to bytes
+    // Write to bytes
     var buf bytes.Buffer
     if err := tf.Write(&buf); err != nil {
-        return nil, fmt.Errorf("failed to write TIFF: %w", err)
+        return nil, fmt.Errorf("failed to write DNG: %w", err)
     }
 
-    return buf.Bytes(), nil
+    // Convert TIFF version 42 back to DNG magic bytes
+    dngData := buf.Bytes()
+    if len(dngData) >= 4 {
+        dngData[2] = 'R'  // "IIRC" or "MMCR"
+        dngData[3] = 'C'
+    }
+
+    return dngData, nil
 }
 ```
 
-**dcp/profile.go XML Parsing:**
+**dcp/profile.go Binary Tone Curve Analysis:**
 
 ```go
 // profile.go
 package dcp
 
 import (
-    "encoding/xml"
-    "fmt"
+    "bytes"
+    "encoding/binary"
+    "github.com/justin/recipe/internal/models"
 )
 
-// parseProfile parses Adobe Camera Profile XML
-func parseProfile(data []byte) (*CameraProfile, error) {
-    var profile CameraProfile
-    if err := xml.Unmarshal(data, &profile); err != nil {
-        return nil, fmt.Errorf("failed to parse camera profile XML: %w", err)
-    }
+// profileToUniversal converts DCP binary tone curve → UniversalRecipe
+func profileToUniversal(profile *Profile) *models.UniversalRecipe {
+    recipe := &models.UniversalRecipe{}
 
-    return &profile, nil
-}
+    if len(profile.ToneCurve) > 0 {
+        // Analyze binary tone curve (0.0-1.0 normalized) to extract parameters
+        exposure, contrast, highlights, shadows := analyzeToneCurve(profile.ToneCurve)
 
-// generateProfile generates Adobe Camera Profile XML
-func generateProfile(profile *CameraProfile) ([]byte, error) {
-    // Set namespace
-    profile.Xmlns = "http://ns.adobe.com/camera-raw-settings/1.0/"
-
-    data, err := xml.MarshalIndent(profile, "", "  ")
-    if err != nil {
-        return nil, fmt.Errorf("failed to generate camera profile XML: %w", err)
-    }
-
-    // Prepend XML declaration
-    return append([]byte(xml.Header), data...), nil
-}
-
-// profileToUniversal converts DCP tone curve → UniversalRecipe
-func profileToUniversal(profile *CameraProfile) *universal.Recipe {
-    recipe := &universal.Recipe{}
-
-    if profile.ToneCurve != nil {
-        // Analyze tone curve shape to extract exposure, contrast, highlights, shadows
-        curve := profile.ToneCurve
-
-        // Midpoint shift → Exposure (compare point at input=128)
-        midpoint := findPointOutput(curve, 128)
-        recipe.Exposure = float64(midpoint-128) / 128.0 * 2.0 // Scale to -2.0..+2.0
-
-        // Slope → Contrast (compare endpoints vs midpoint)
-        slope := calculateSlope(curve)
-        recipe.Contrast = (slope - 1.0) // Deviation from linear (1.0 = neutral)
-
-        // Top-end points → Highlights (average output at 192-255)
-        recipe.Highlights = calculateHighlights(curve)
-
-        // Bottom-end points → Shadows (average output at 0-64)
-        recipe.Shadows = calculateShadows(curve)
+        recipe.Exposure = exposure
+        recipe.Contrast = contrast
+        recipe.Highlights = highlights
+        recipe.Shadows = shadows
     }
 
     // Color matrices ignored (identity assumed)
@@ -396,62 +467,98 @@ func profileToUniversal(profile *CameraProfile) *universal.Recipe {
     return recipe
 }
 
-// universalToProfile converts UniversalRecipe → DCP tone curve
-func universalToProfile(recipe *universal.Recipe) *CameraProfile {
-    profile := &CameraProfile{
-        ProfileName: "Recipe Converted Profile",
+// analyzeToneCurve extracts exposure/contrast/highlights/shadows from 0.0-1.0 normalized curve
+func analyzeToneCurve(points []ToneCurvePoint) (exposure, contrast, highlights, shadows float64) {
+    if len(points) == 0 {
+        return 0, 0, 0, 0
     }
 
-    // Build tone curve from UniversalRecipe adjustments
-    curve := &ToneCurve{
-        Points: buildToneCurve(recipe.Exposure, recipe.Contrast, recipe.Highlights, recipe.Shadows),
-    }
-    profile.ToneCurve = curve
+    // Midpoint shift → Exposure (compare point at input=0.5)
+    midpoint := findPoint(points, 0.5)
+    exposureShift := (midpoint.Output - 0.5) / 0.25  // Normalize to ±2.0 range
+    exposure = clampFloat64(exposureShift, -2.0, 2.0)
 
-    // Identity color matrix (no camera calibration)
-    profile.ColorMatrix1 = identityMatrix()
+    // Slope → Contrast (top quarter slope - bottom quarter slope)
+    topSlope := (findPoint(points, 0.75).Output - findPoint(points, 0.5).Output) / 0.25
+    bottomSlope := (findPoint(points, 0.5).Output - findPoint(points, 0.25).Output) / 0.25
+    contrast = clampFloat64(topSlope - bottomSlope, -1.0, 1.0)
 
-    return profile
+    // Top-end deviation → Highlights
+    topPoint := findPoint(points, 1.0)
+    highlights = clampFloat64((topPoint.Output - 1.0) * 4.0, -1.0, 1.0)
+
+    // Bottom-end deviation → Shadows
+    bottomPoint := findPoint(points, 0.0)
+    shadows = clampFloat64(bottomPoint.Output * 4.0, -1.0, 1.0)
+
+    return exposure, contrast, highlights, shadows
 }
 
-// buildToneCurve creates piecewise linear tone curve from adjustments
-func buildToneCurve(exposure, contrast, highlights, shadows float64) []ToneCurvePoint {
-    // Base curve: 5 points (0, 64, 128, 192, 255)
+// universalToToneCurve converts UniversalRecipe → binary DCP tone curve (0.0-1.0 normalized)
+func universalToToneCurve(recipe *models.UniversalRecipe) []ToneCurvePoint {
+    // Base curve: 5 points in 0.0-1.0 range
     points := []ToneCurvePoint{
-        {Input: 0, Output: 0},
-        {Input: 64, Output: 64},
-        {Input: 128, Output: 128},
-        {Input: 192, Output: 192},
-        {Input: 255, Output: 255},
+        {Input: 0.0, Output: 0.0},
+        {Input: 0.25, Output: 0.25},
+        {Input: 0.5, Output: 0.5},
+        {Input: 0.75, Output: 0.75},
+        {Input: 1.0, Output: 1.0},
     }
 
-    // Apply exposure (vertical shift)
-    shift := int(exposure * 64) // -2.0..+2.0 → -128..+128
-    for i := range points {
-        points[i].Output = clamp(points[i].Output+shift, 0, 255)
-    }
+    // Apply exposure (vertical shift of midpoint)
+    exposureShift := recipe.Exposure * 0.25  // ±2.0 → ±0.5
+    points[2].Output = clampFloat64(0.5+exposureShift, 0.0, 1.0)
 
-    // Apply contrast (steepen/flatten slope around midpoint)
-    contrastFactor := 1.0 + contrast
+    // Apply contrast (steepen/flatten slope)
+    contrastFactor := 1.0 + recipe.Contrast
     for i := range points {
-        delta := float64(points[i].Output - 128)
-        points[i].Output = clamp(128+int(delta*contrastFactor), 0, 255)
+        delta := points[i].Output - 0.5
+        points[i].Output = clampFloat64(0.5+delta*contrastFactor, 0.0, 1.0)
     }
 
     // Apply highlights (adjust top-end curve)
-    highlightShift := int(highlights * 32)
-    points[3].Output = clamp(points[3].Output+highlightShift, 0, 255) // 192 point
-    points[4].Output = clamp(points[4].Output+highlightShift, 0, 255) // 255 point
+    highlightShift := recipe.Highlights * 0.125
+    points[3].Output = clampFloat64(points[3].Output+highlightShift, 0.0, 1.0) // 0.75 point
+    points[4].Output = clampFloat64(points[4].Output+highlightShift, 0.0, 1.0) // 1.0 point
 
     // Apply shadows (adjust bottom-end curve)
-    shadowShift := int(shadows * 32)
-    points[0].Output = clamp(points[0].Output+shadowShift, 0, 255) // 0 point
-    points[1].Output = clamp(points[1].Output+shadowShift, 0, 255) // 64 point
+    shadowShift := recipe.Shadows * 0.125
+    points[0].Output = clampFloat64(points[0].Output+shadowShift, 0.0, 1.0) // 0.0 point
+    points[1].Output = clampFloat64(points[1].Output+shadowShift, 0.0, 1.0) // 0.25 point
 
     return points
 }
 
-func clamp(value, min, max int) int {
+// toneCurveToBytes converts ToneCurvePoint array to binary float32 format
+func toneCurveToBytes(points []ToneCurvePoint) []byte {
+    buf := new(bytes.Buffer)
+    for _, pt := range points {
+        binary.Write(buf, binary.LittleEndian, float32(pt.Input))
+        binary.Write(buf, binary.LittleEndian, float32(pt.Output))
+    }
+    return buf.Bytes()
+}
+
+// generateIdentityMatrix creates 9 SRational values for identity matrix
+func generateIdentityMatrix() []SRational {
+    return []SRational{
+        {Numerator: 1, Denominator: 1}, {Numerator: 0, Denominator: 1}, {Numerator: 0, Denominator: 1},
+        {Numerator: 0, Denominator: 1}, {Numerator: 1, Denominator: 1}, {Numerator: 0, Denominator: 1},
+        {Numerator: 0, Denominator: 1}, {Numerator: 0, Denominator: 1}, {Numerator: 1, Denominator: 1},
+    }
+}
+
+// srationalArrayToBytes converts SRational array to binary format
+func srationalArrayToBytes(srs []SRational) []byte {
+    buf := new(bytes.Buffer)
+    for _, sr := range srs {
+        binary.Write(buf, binary.LittleEndian, sr.Numerator)
+        binary.Write(buf, binary.LittleEndian, sr.Denominator)
+    }
+    return buf.Bytes()
+}
+
+func clampFloat64(value, min, max float64) float64 {
     if value < min {
         return min
     }
@@ -460,16 +567,6 @@ func clamp(value, min, max int) int {
     }
     return value
 }
-
-func identityMatrix() *Matrix {
-    return &Matrix{
-        Rows: []MatrixRow{
-            {Values: [3]float64{1.0, 0.0, 0.0}},
-            {Values: [3]float64{0.0, 1.0, 0.0}},
-            {Values: [3]float64{0.0, 0.0, 1.0}},
-        },
-    }
-}
 ```
 
 ### Workflows and Sequencing
@@ -477,37 +574,43 @@ func identityMatrix() *Matrix {
 **Parse Workflow (.dcp → UniversalRecipe):**
 
 1. User uploads .dcp file via CLI/TUI/Web
-2. `converter.detectFormat(data)` identifies file as DCP (TIFF magic bytes + .dcp extension)
+2. `converter.detectFormat(data)` identifies file as DCP (DNG magic bytes "IIRC"/"MMCR" + .dcp extension)
 3. `dcp.Parse(data)` called:
-   a. `readTIFF(data)` parses TIFF structure using github.com/google/tiff
-   b. `extractCameraProfileTag()` extracts XML from TIFF tag 50740
-   c. `parseProfile(xml)` unmarshals Adobe Camera Profile XML
-   d. `profileToUniversal()` analyzes tone curve shape:
-      - Extract exposure from midpoint shift
-      - Extract contrast from curve slope
-      - Extract highlights from top-end curve points (192-255)
-      - Extract shadows from bottom-end curve points (0-64)
-4. Return `*universal.Recipe` to converter
+   a. `readDNG(data)` converts DNG magic bytes → TIFF version 42, parses using github.com/google/tiff
+   b. `extractToneCurve(tf)` extracts binary float32 array from tag 50940
+   c. `extractColorMatrix(tf, 50721)` extracts 9 SRational values from tag 50721
+   d. `extractColorMatrix(tf, 50722)` extracts 9 SRational values from tag 50722
+   e. `extractProfileName(tf)` extracts ASCII string from tag 52552 (optional, empty if missing)
+   f. `analyzeToneCurve(points)` extracts parameters from 0.0-1.0 normalized curve:
+      - Extract exposure from midpoint shift (input=0.5)
+      - Extract contrast from curve slope (top quarter vs bottom quarter)
+      - Extract highlights from top-end curve point (input=1.0)
+      - Extract shadows from bottom-end curve point (input=0.0)
+4. Return `*models.UniversalRecipe` to converter
 5. Converter routes to target format generator
 
 **Generate Workflow (UniversalRecipe → .dcp):**
 
 1. Converter calls `dcp.Generate(recipe)`
-2. `universalToProfile()` builds DCP tone curve:
-   a. Start with linear 5-point curve (0, 64, 128, 192, 255)
-   b. Apply exposure adjustment (vertical shift)
-   c. Apply contrast adjustment (steepen/flatten slope)
-   d. Apply highlights adjustment (modify 192-255 points)
-   e. Apply shadows adjustment (modify 0-64 points)
-   f. Clamp all output values to 0-255 range
-   g. Create identity color matrix (no calibration)
-3. `generateProfile()` marshals CameraProfile to XML
-4. `createTIFF()` creates TIFF file:
+2. `universalToToneCurve(recipe)` builds binary DCP tone curve:
+   a. Start with linear 5-point curve (0.0-1.0 normalized: 0.0, 0.25, 0.5, 0.75, 1.0)
+   b. Apply exposure adjustment (vertical shift of midpoint at 0.5)
+   c. Apply contrast adjustment (steepen/flatten slope around 0.5)
+   d. Apply highlights adjustment (modify 0.75 and 1.0 points)
+   e. Apply shadows adjustment (modify 0.0 and 0.25 points)
+   f. Clamp all output values to 0.0-1.0 range
+3. `toneCurveToBytes(points)` converts to binary float32 array (8 bytes per point)
+4. `generateIdentityMatrix()` creates 9 SRational values for identity matrix
+5. `srationalArrayToBytes(matrix)` converts to binary format (72 bytes total)
+6. `createDNG()` creates DNG file:
    a. Initialize TIFF structure with minimal IFD
-   b. Embed camera profile XML in tag 50740
-   c. Write TIFF to bytes
-5. Return TIFF bytes to converter
-6. Converter returns to user (download/write file)
+   b. Embed binary tone curve in tag 50940
+   c. Embed binary color matrices in tags 50721, 50722
+   d. Embed baseline exposure offset in tag 50730
+   e. Write TIFF to bytes with version 42
+   f. Convert TIFF version 42 back to DNG magic bytes "IIRC"
+7. Return DNG bytes to converter
+8. Converter returns to user (download/write file)
 
 ## Non-Functional Requirements
 
@@ -532,21 +635,22 @@ func identityMatrix() *Matrix {
 ### Security
 
 **Threats & Mitigations:**
-- **TIFF Bomb**: Limit TIFF file size to <10MB, validate IFD structure before parsing
-- **XML Bomb**: encoding/xml resistant by default (no entity expansion)
-- **Malformed TIFF**: github.com/google/tiff handles gracefully, returns errors (no panics)
-- **Invalid Camera Profile XML**: Validate against Adobe namespace, reject unknown tags
-- **File Upload**: Web UI validates .dcp extension, server validates TIFF magic bytes (II or MM)
+- **TIFF Bomb**: Limit DNG file size to <10MB, validate IFD structure before parsing
+- **Binary Data Corruption**: Validate binary array lengths (tone curve: multiple of 8 bytes, matrices: exactly 72 bytes)
+- **Malformed DNG**: github.com/google/tiff handles gracefully, returns errors (no panics)
+- **Invalid Binary Tags**: Validate tag 50940 contains valid float32 pairs, tags 50721-50722 contain 9 SRationals
+- **File Upload**: Web UI validates .dcp extension, server validates DNG magic bytes (IIRC or MMCR)
 
 **Privacy:**
 - All processing client-side (WASM) or local (CLI/TUI)
-- DCP files may contain camera model metadata - preserve but don't expose unnecessarily
+- DCP files may contain camera model metadata (tag 50708) - preserve but don't expose unnecessarily
 - Zero external API calls
 
 **Input Validation:**
-- Verify TIFF magic bytes (II for little-endian, MM for big-endian)
-- Check tag 50740 exists and contains valid XML
-- Validate tone curve points within 0-255 range
+- Verify DNG magic bytes (IIRC for little-endian, MMCR for big-endian)
+- Check tag 50940 exists and contains valid float32 array (length % 8 == 0)
+- Validate tone curve points within 0.0-1.0 range
+- Validate SRational denominators are non-zero
 - Reject files >10MB
 
 ### Reliability/Availability
@@ -562,19 +666,20 @@ func identityMatrix() *Matrix {
 - Document known version differences in testdata README
 
 **Failure Modes:**
-- Invalid TIFF structure: Return error, don't crash
-- Missing tag 50740: Return error ("not a valid DCP file")
-- Malformed XML: Return clear parsing error
-- Out-of-range tone curve values: Clamp to 0-255
+- Invalid DNG structure: Return error, don't crash
+- Missing tag 50940: Return error ("not a valid DCP file") or use linear curve (0, 0) → (1, 1)
+- Malformed binary data: Return clear parsing error with byte offset
+- Out-of-range tone curve values: Clamp to 0.0-1.0
+- Zero denominator in SRational: Treat as 0.0 or return error
 
 ### Observability
 
 **Logging:**
 - Use Go's `log/slog` structured logging
-- Log level DEBUG: TIFF tag reading, XML parsing steps, tone curve calculations
+- Log level DEBUG: DNG tag reading, binary data extraction, tone curve calculations
 - Log level INFO: DCP conversion success/failure
-- Log level WARN: Skipped unsupported DCP features (color matrices, HSV tables)
-- Log level ERROR: TIFF parsing failures, XML errors
+- Log level WARN: Skipped unsupported DCP features (non-identity color matrices, missing ProfileName)
+- Log level ERROR: DNG parsing failures, binary data corruption errors
 
 **Metrics:**
 - Count DCP conversions by source/target format pair
@@ -595,15 +700,17 @@ require github.com/google/tiff latest
 ```
 
 Rationale:
-- Go stdlib `image/tiff` is decoder-only, doesn't support writing or custom tags
-- `github.com/google/tiff` provides complete TIFF read/write capabilities
+- Go stdlib `image/tiff` is decoder-only, doesn't support writing or custom DNG tags
+- `github.com/google/tiff` provides complete TIFF/DNG read/write capabilities
 - Google-maintained, stable, widely used in imaging applications
-- Necessary for embedding camera profile XML in TIFF tag 50740
+- Necessary for reading/writing binary DNG tags 50700-52600
+- Handles DNG magic bytes with custom conversion (IIRC/MMCR → version 42)
 
 Standard Library Usage:
-- `encoding/xml`: Adobe Camera Profile XML parsing/generation
+- `encoding/binary`: Binary data conversion for float32 arrays and SRational values
+- `unsafe`: DNG magic byte conversion (IIRC/MMCR ↔ version 42)
 - `fmt`: Error wrapping
-- `bytes`, `io`: Stream handling for TIFF operations
+- `bytes`, `io`: Stream handling for binary DNG operations
 
 **External Integrations:**
 - **Adobe Camera Raw / Lightroom** (validation): Generated DCP files must load in Adobe software (manual testing)
@@ -617,22 +724,25 @@ Standard Library Usage:
 ## Acceptance Criteria (Authoritative)
 
 **AC-1: Parse DCP Files**
-- ✅ Read TIFF-based DCP file structure using github.com/google/tiff
-- ✅ Extract XML camera profile data from TIFF tag 50740
-- ✅ Parse color matrices (identity matrices recognized, full calibration optional)
-- ✅ Parse tone curve adjustments (piecewise linear curve points)
-- ✅ Parse hue/saturation/value tables if present (skip for MVP, log warning)
-- ✅ Handle DCP v1.x format variations (v1.0-v1.6 supported)
-- ✅ Validate DCP structure and report parsing errors with clear messages
+- ✅ Read DNG-based DCP file structure using github.com/google/tiff
+- ✅ Convert DNG magic bytes (IIRC/MMCR) to TIFF version 42 for library compatibility
+- ✅ Extract binary tone curve from tag 50940 (float32 array, 0.0-1.0 normalized)
+- ✅ Extract binary color matrices from tags 50721-50722 (9 SRational values each)
+- ✅ Parse optional ProfileName from tag 52552 (ASCII, may be missing)
+- ✅ Handle identity matrices (diagonal SRational{1,1}, off-diagonal SRational{0,1})
+- ✅ Handle DNG v1.x format variations (v1.0-v1.6 supported)
+- ✅ Validate DNG structure and report parsing errors with clear messages
 - ✅ Support both embedded (in DNG) and standalone DCP files (standalone priority for MVP)
 
 **AC-2: Generate DCP Files**
-- ✅ Generate TIFF-based DCP file structure per Adobe DNG Specification 1.6
-- ✅ Embed XML camera profile data in TIFF tag 50740
-- ✅ Map UniversalRecipe color parameters to DCP tone curve equivalents
-- ✅ Generate required matrices (identity matrices for non-calibration use)
-- ✅ Create tone curves from exposure/contrast/highlights/shadows adjustments
-- ✅ Validate generated DCP against Adobe spec (well-formed TIFF + valid XML)
+- ✅ Generate DNG-based DCP file structure per Adobe DNG Specification 1.6
+- ✅ Generate binary tone curve in tag 50940 (float32 array, 0.0-1.0 normalized)
+- ✅ Generate binary color matrices in tags 50721-50722 (9 SRational values each, identity matrices)
+- ✅ Generate baseline exposure offset in tag 50730 (SRational{0,1})
+- ✅ Map UniversalRecipe parameters to binary DCP tone curve (0.0-1.0 range)
+- ✅ Create tone curves from exposure/contrast/highlights/shadows adjustments (5-point curve)
+- ✅ Convert TIFF version 42 back to DNG magic bytes (IIRC) before returning
+- ✅ Validate generated DCP against Adobe spec (well-formed DNG + valid binary tags)
 - ✅ Generated DCPs load in Adobe Camera Raw and Lightroom without errors
 - ✅ Document mapping limitations and best practices (parameter-mapping.md)
 
@@ -797,15 +907,18 @@ Standard Library Usage:
 ---
 
 **Next Steps:**
-1. Acquire 3-5 DCP sample files from Adobe for test fixtures
-2. Add `github.com/google/tiff` dependency to go.mod
-3. Set up `internal/formats/dcp/` package structure
-4. Implement `tiff.go` TIFF tag operations
-5. Implement `profile.go` Adobe Camera Profile XML parsing
-6. Implement `parse.go` orchestrating TIFF → XML → UniversalRecipe
-7. Implement `generate.go` orchestrating UniversalRecipe → XML → TIFF
-8. Write unit tests achieving ≥85% coverage
-9. Integrate with converter and add format detection
-10. Update documentation (parameter-mapping.md, README.md)
-11. Manual validation in Adobe Camera Raw / Lightroom trial
+1. ✅ Acquire 36 DCP sample files from Adobe for test fixtures (DONE - story 9-1)
+2. ✅ Add `github.com/google/tiff` dependency to go.mod (DONE - story 9-1)
+3. ✅ Set up `internal/formats/dcp/` package structure (DONE - story 9-1)
+4. ✅ Implement `tiff.go` DNG tag operations with magic byte conversion (DONE - story 9-1)
+5. ✅ Implement `profile.go` binary tone curve analysis algorithms (DONE - story 9-1)
+6. ✅ Implement `parse.go` orchestrating DNG → binary tags → UniversalRecipe (DONE - story 9-1)
+7. ⏳ Implement `generate.go` orchestrating UniversalRecipe → binary tags → DNG (story 9-2)
+8. ⏳ Write unit tests achieving ≥85% coverage (story 9-2)
+9. ⏳ Integrate with converter and add format detection (story 9-3)
+10. ⏳ Update documentation (parameter-mapping.md, README.md) (story 9-3)
+11. ⏳ Manual validation in Adobe Camera Raw / Lightroom trial (story 9-4)
 12. Mark epic-9 as "contexted" in sprint-status.yaml
+
+**Critical Discovery from Story 9-1:**
+Real Adobe DCP files use **binary DNG tags** (50700-52600), NOT XML in tag 50740. All documentation updated to reflect this binary format. See `docs/stories/9-1-dcp-parser-FORMAT-PIVOT.md` for complete details.

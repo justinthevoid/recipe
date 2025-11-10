@@ -12,6 +12,8 @@ var (
 	styleNP3    = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))   // Blue
 	styleXMP    = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))  // Orange
 	styleLRT    = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))   // Green
+	styleCOS    = lipgloss.NewStyle().Foreground(lipgloss.Color("135"))  // Purple (Capture One brand color)
+	styleCOSP   = lipgloss.NewStyle().Foreground(lipgloss.Color("135"))  // Purple (Capture One bundle)
 	styleDir    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))  // Gray
 	styleCursor = lipgloss.NewStyle().Reverse(true)                      // Reverse colors
 	styleBorder = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))  // Gray border
@@ -37,7 +39,7 @@ func renderFileList(m model) string {
 	if len(m.files) == 0 {
 		b.WriteString("\n")
 		b.WriteString("  No preset files found in this directory.\n")
-		b.WriteString("  (Showing only .np3, .xmp, and .lrtemplate files)\n")
+		b.WriteString("  (Showing only .np3, .xmp, .lrtemplate, .costyle, and .costylepack files)\n")
 		b.WriteString("\n")
 	} else {
 		// Calculate visible range for scrolling
@@ -148,6 +150,10 @@ func formatBadge(format string) string {
 		return styleXMP.Render("XMP")
 	case "lrtemplate":
 		return styleLRT.Render("LRT")
+	case "costyle":
+		return styleCOS.Render("COS")
+	case "costylepack":
+		return styleCOSP.Render("CPK")
 	case "dir":
 		return styleDir.Render("DIR")
 	default:

@@ -204,6 +204,10 @@ func changeExtension(filename, targetFormat string) string {
 		return nameWithoutExt + ".xmp"
 	case "lrtemplate":
 		return nameWithoutExt + ".lrtemplate"
+	case "costyle":
+		return nameWithoutExt + ".costyle"
+	case "costylepack":
+		return nameWithoutExt + ".costylepack"
 	default:
 		return filename
 	}
@@ -222,6 +226,12 @@ func estimateOutputSize(file ValidationFile, targetFormat string) int64 {
 	case "lrtemplate":
 		// lrtemplate is Lua, similar size to XMP
 		return int64(float64(file.Size) * 1.05)
+	case "costyle":
+		// Costyle is XML, similar to XMP
+		return int64(float64(file.Size) * 1.1)
+	case "costylepack":
+		// Costylepack is ZIP, compressed
+		return int64(float64(file.Size) * 0.8)
 	default:
 		return file.Size
 	}
@@ -294,6 +304,10 @@ func renderValidationScreen(m model) string {
 		targetName = "XMP (Adobe Lightroom)"
 	} else if m.targetFormat == "lrtemplate" {
 		targetName = "lrtemplate (Lightroom Template)"
+	} else if m.targetFormat == "costyle" {
+		targetName = "Costyle (Capture One)"
+	} else if m.targetFormat == "costylepack" {
+		targetName = "Costylepack (Capture One Bundle)"
 	}
 	b.WriteString(fmt.Sprintf("║   Target format:     %-50s║\n", targetName))
 	b.WriteString(fmt.Sprintf("║   Output directory:  %-50s║\n", truncateString(m.outputDir, 50)))
