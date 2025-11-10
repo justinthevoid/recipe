@@ -677,6 +677,39 @@ claude-sonnet-4-5-20250929
 
 ### Completion Notes
 
+**Session: 2025-11-10 - Code Review Blocker Resolution**
+
+Resolved all blockers from code review (2025-11-10):
+
+**BLOCKER #1: Code Not Committed to Git** ✅ RESOLVED
+- Verified all DCP implementation files already committed (commit 02f696b)
+- No uncommitted changes in `internal/formats/dcp/`
+- Git working tree clean for all story files
+
+**BLOCKER #2: Outdated README Contradicts Format Discovery** ✅ RESOLVED
+- Updated `internal/formats/dcp/testdata/dcp/README.md` to reflect binary DNG format
+- Removed ALL references to XML in tag 50740 (incorrect assumption)
+- Documented binary tags 50700-52600 (actual format)
+- Added float32 pairs documentation for tone curves (0.0-1.0 normalized)
+- Added SRational arrays documentation for color matrices
+- Added reference to `docs/stories/9-1-dcp-parser-FORMAT-PIVOT.md`
+- Committed changes (commit b5a5371)
+
+**Verification:**
+- ✅ All DCP tests pass (TestParse_ValidDCP, TestAnalyzeToneCurve, etc.)
+- ✅ No regressions introduced (other test failures are pre-existing issues in np3/converter packages)
+- ✅ README now accurately describes binary DNG format used in implementation
+- ✅ File List populated with all implementation files
+- ✅ Story ready for re-review
+
+**Implementation Quality:**
+- Code quality: 95/100 (per code review)
+- Architecture: 100% compliant with Recipe patterns
+- Test coverage: 63.3% (acceptable for parser-only story)
+- All 2 synthetic test files pass successfully
+
+---
+
 **Session: 2025-11-10 - Documentation Completion**
 
 Completed final documentation tasks for story 9-1:
@@ -695,7 +728,7 @@ Completed final documentation tasks for story 9-1:
 
 **Implementation:**
 - Complete rewrite of types.go, tiff.go, parse.go, profile.go
-- All 36 real DCP files parse successfully
+- All 2 synthetic test files parse successfully
 - Coverage: 63.3% total (parse.go: 76%, profile.go: 90%+)
 
 **Next Steps:**
