@@ -16,4 +16,3 @@ benchmark-results.txt
 *.prof
 cpu.prof
 mem.prof
-testdata/*

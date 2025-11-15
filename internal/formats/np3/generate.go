@@ -480,9 +480,6 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 		//
 		// The following legacy functions are still needed for basic file structure:
 
-		// Write raw parameter bytes at offsets 64-79 (legacy structure)
-		writeRawParameterBytes(data, params)
-
 		// Write preset name at offset 24-43 (20 bytes, matching real NP3 files)
 		if presetName != "" {
 			nameBytes := []byte(presetName)
@@ -500,9 +497,15 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	if params.rawData == nil || len(params.rawData) == 0 {
 		// Write TLV chunks at offsets 46-335 (29 chunks × 10 bytes = 290 bytes)
 		// This is required for Nikon NX Studio validation
-		// We write chunks LAST, after heuristic data, so the chunks contain the actual
-		// parameter values in their value bytes (hybrid format)
+		// We write chunks FIRST, then write raw parameter bytes AFTER to avoid overwriting
 		writeChunks(data, params)
+	}
+
+	// Write raw parameter bytes at offsets 64-79 (legacy structure)
+	// IMPORTANT: This must be called AFTER writeChunks to avoid being overwritten
+	// by chunk data (chunks span offsets 46-335, which includes 64-79)
+	if params.rawData == nil || len(params.rawData) == 0 {
+		writeRawParameterBytes(data, params)
 	}
 
 	// === Phase 2: Write all parameters to exact offsets ===

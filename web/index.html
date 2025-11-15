@@ -3,21 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🍳 Recipe - Photo Preset Converter</title>
-    <link rel="stylesheet" href="static/style.css">
+    <title>Recipe - Convert Photo Presets</title>
+
+    <!-- Story 10-6: Critical CSS inlined for fast FCP (<14 KB TCP threshold) -->
+    <style>
+        /* Critical CSS: Above-the-fold only (6.8 KB < 14 KB target) */
+        :root{--color-np3:#FFC107;--color-xmp:#0073E6;--color-lrtemplate:#D81B60;--color-costyle:#9C27B0;--color-dcp:#4CAF50;--font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--font-weight-normal:400;--font-weight-bold:600;--line-height-body:1.6;--line-height-heading:1.2}*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth;font-size:16px;line-height:1.5}body{font-family:var(--font-family);font-size:16px;font-weight:var(--font-weight-normal);line-height:var(--line-height-body);color:#2d3748;background:#f7fafc;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}img,svg{max-width:100%;height:auto}.hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:2rem 1rem;text-align:center}.hero__container{max-width:1200px;margin:0 auto}.hero__title{font-size:28px;font-weight:var(--font-weight-bold);line-height:var(--line-height-heading);margin:0 0 1rem 0}.hero__subtitle{font-size:16px;line-height:var(--line-height-body);max-width:700px;margin:0 auto 1.5rem auto;opacity:.95}.hero__cta{display:block;width:100%;padding:1rem 2rem;font-size:18px;text-decoration:none;border-radius:8px;transition:all .2s ease}@media (min-width:768px){.hero{padding:3rem 2rem}.hero__title{font-size:36px}.hero__subtitle{font-size:18px}.hero__cta{display:inline-block;width:auto}}@media (min-width:1024px){.hero{padding:4rem 2rem}.hero__title{font-size:48px}.hero__subtitle{font-size:20px}}.button{min-height:44px;padding:.75rem 1.5rem;font-size:16px;font-weight:var(--font-weight-bold);cursor:pointer;border:none;border-radius:8px;transition:all .2s ease}.button--primary{background:white;color:#667eea}.button--primary:hover{background:#f7fafc;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.2)}.button--primary:active{transform:translateY(0)}.button--secondary{background:#e2e8f0;color:#2d3748}.button--secondary:hover{background:#cbd5e0;transform:translateY(-1px)}.formats{background:#ffffff;padding:2rem 1rem;text-align:center}.formats__container{max-width:1200px;margin:0 auto}.formats__title{font-size:1.5rem;font-weight:var(--font-weight-bold);color:#2d3748;margin:0 0 1.5rem 0}.formats__badges{display:flex;flex-direction:column;gap:1rem;max-width:400px;margin:0 auto}.badge{display:block;width:100%;padding:1rem;border-radius:6px;font-weight:var(--font-weight-bold);font-size:18px;color:white;text-align:center;transition:all .2s ease}@media (min-width:768px){.formats{padding:3rem 2rem}.formats__title{font-size:2rem}.formats__badges{display:grid;grid-template-columns:repeat(2,1fr);max-width:600px}.badge{font-size:16px}}@media (min-width:1024px){.formats__badges{display:flex;flex-direction:row;justify-content:center;max-width:none;gap:1.5rem}.badge{width:auto;padding:.75rem 1.5rem;font-size:16px}}.badge--np3{background-color:var(--color-np3);color:#212121}.badge--xmp{background-color:var(--color-xmp)}.badge--lrtemplate{background-color:var(--color-lrtemplate)}.badge--costyle{background-color:var(--color-costyle)}.badge--dcp{background-color:var(--color-dcp);color:#212121}.badge:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 2px 8px rgba(0,0,0,.15)}.upload{padding:2rem 1rem;background:#f7fafc}.upload__container{max-width:1200px;margin:0 auto}.upload__dropzone{min-height:200px;border:2px dashed #cbd5e0;border-radius:8px;background:#ffffff;padding:2rem 1rem;text-align:center;cursor:pointer;transition:all .3s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}.upload__icon{width:48px;height:48px;color:#718096;opacity:.7;transition:all .3s ease}.upload__dropzone h3{font-size:18px;font-weight:var(--font-weight-bold);color:#2d3748;margin:0}.upload__dropzone p{font-size:14px;color:#718096;margin:0}@media (min-width:768px){.upload{padding:3rem 2rem}.upload__dropzone{min-height:250px;padding:3rem 2rem;gap:1.5rem}.upload__icon{width:56px;height:56px}.upload__dropzone h3{font-size:20px}.upload__dropzone p{font-size:16px}}@media (min-width:1024px){.upload__dropzone{min-height:300px;padding:4rem 2rem;gap:2rem}.upload__icon{width:64px;height:64px}.upload__dropzone h3{font-size:24px}}#browse-button{width:100%;min-height:48px}@media (min-width:768px){#browse-button{width:auto}}
+    </style>
+
+    <!-- Story 10-6: Load non-critical CSS asynchronously -->
+    <link rel="preload" href="static/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="static/style.css"></noscript>
 </head>
 <body>
-    <!-- Hero Section -->
-    <header>
-        <h1>🍳 Recipe</h1>
-        <p class="tagline">Universal Photo Preset Converter</p>
-        <p class="formats">Convert photo presets between Nikon NP3, Lightroom XMP, and lrtemplate formats</p>
+    <!-- Story 10-7: Skip link for keyboard navigation (AC-1) -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
-        <!-- Privacy Badge (Story 2-9, AC-1) -->
-        <a href="#privacy" id="privacyBadge" class="privacy-badge">
-            🔒 100% Privacy - Your files never leave your device
-        </a>
+    <!-- ARIA live regions for screen reader announcements (Story 10-7, AC-2) -->
+    <div id="status-announcements" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="error-announcements" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Hero Section (Story 10-1) -->
+    <header class="hero" id="hero" role="banner">
+        <div class="hero__container">
+            <h1 class="hero__title">Convert Photo Presets. Instantly. Privately.</h1>
+            <p class="hero__subtitle">
+                Transform your photo editing presets between Nikon, Adobe, Lightroom, Capture One, and DNG Camera Profiles.<br>
+                All processing happens in your browser—your files never leave your device.
+            </p>
+            <a href="#upload" class="hero__cta button button--primary">Get Started</a>
+        </div>
     </header>
+
+    <!-- Format Badges Section (Story 10-1, AC-2) -->
+    <section class="formats" id="formats-badges" aria-labelledby="formats-title">
+        <div class="formats__container">
+            <h2 class="formats__title" id="formats-title">Supported Formats</h2>
+            <div class="formats__badges">
+                <span class="badge badge--np3" role="img" aria-label="NP3 format - Nikon Picture Control">NP3</span>
+                <span class="badge badge--xmp" role="img" aria-label="XMP format - Adobe Camera Raw">XMP</span>
+                <span class="badge badge--lrtemplate" role="img" aria-label="lrtemplate format - Lightroom Template">lrtemplate</span>
+                <span class="badge badge--costyle" role="img" aria-label="costyle format - Capture One Style">.costyle</span>
+                <span class="badge badge--dcp" role="img" aria-label="DCP format - DNG Camera Profile">DCP</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Batch Upload Section (Story 10-2) -->
+    <main id="main-content" role="main">
+    <section class="upload" id="upload" aria-labelledby="upload-title">
+        <h2 id="upload-title" class="sr-only">Upload Your Presets</h2>
+        <div class="upload__container">
+            <!-- Drop Zone (AC-1, AC-2) - Story 10-7: Added keyboard accessibility -->
+            <div class="upload__dropzone" id="dropzone" role="button" tabindex="0" aria-label="Drag and drop files or click to browse for preset files">
+                <svg class="upload__icon" width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Upload icon">
+                    <path d="M7 18C4.79086 18 3 16.2091 3 14C3 11.7909 4.79086 10 7 10C7.33526 10 7.66155 10.0355 7.97674 10.1023C8.69206 7.17135 11.1575 5 14.1 5C17.6451 5 20.52 7.87485 20.52 11.42C20.52 11.5863 20.5137 11.7509 20.5013 11.9136C21.8682 12.5693 22.8 13.9598 22.8 15.6C22.8 17.9196 20.9196 19.8 18.6 19.8H12M12 13V21M12 13L9 16M12 13L15 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h3>Drag & drop preset files here</h3>
+                <p>or click to browse</p>
+                <button class="button button--secondary" id="browse-button" aria-label="Browse for preset files">Browse Files</button>
+            </div>
+
+            <!-- Hidden File Input (AC-2) -->
+            <input type="file" id="file-input" multiple accept=".np3,.xmp,.lrtemplate,.costyle,.dcp" hidden aria-label="Select preset files to upload">
+
+            <!-- Error Display (AC-3) -->
+            <div class="upload__error" id="upload-error" role="alert" hidden></div>
+
+            <!-- Batch Conversion Controls (Story 10-3) -->
+            <div class="batch-controls" id="batch-controls" hidden>
+                <label for="target-format" class="batch-controls__label">Convert all files to:</label>
+                <select id="target-format" class="batch-controls__select" aria-label="Select target format for batch conversion">
+                    <option value="">-- Select Format --</option>
+                    <option value="np3">NP3 (Nikon)</option>
+                    <option value="xmp">XMP (Lightroom CC)</option>
+                    <option value="lrtemplate">lrtemplate (Lightroom Classic)</option>
+                    <option value="costyle">Capture One Style</option>
+                    <option value="dcp">DNG Camera Profile</option>
+                </select>
+                <button id="convert-all-button" class="button button--primary batch-controls__button" disabled aria-label="Convert all uploaded files to selected format">Convert All</button>
+            </div>
+
+            <!-- Batch Progress Indicator (Story 10-3, AC-1) -->
+            <div class="batch-progress" id="batch-progress" hidden role="status" aria-live="polite">
+                <div class="batch-progress__header">
+                    <h3 class="batch-progress__title" id="batch-progress-title">Converting 0 of 0...</h3>
+                    <button class="batch-progress__cancel button button--secondary" id="cancel-batch" aria-label="Cancel all conversions">Cancel All</button>
+                </div>
+                <div class="batch-progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Batch conversion progress">
+                    <div class="batch-progress__fill" id="batch-progress-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- File Cards Grid (AC-4, AC-5, AC-6, AC-7) -->
+            <ul class="upload__files" id="file-grid" role="list" aria-label="Uploaded files"></ul>
+        </div>
+    </section>
+    </main>
 
     <!-- Landing Page Content (Story 7-1) -->
     <div class="landing-content">
@@ -273,8 +355,8 @@
         Loading converter...
     </div>
 
-    <!-- Main Drop Zone -->
-    <main>
+    <!-- Legacy Drop Zone (TODO: Remove after migration to Story 10-2 batch upload) -->
+    <div id="legacy-upload" hidden>
         <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload preset file">
             <input type="file" id="fileInput" accept=".np3,.xmp,.lrtemplate" hidden aria-label="Choose preset file">
             <div class="drop-zone-content">
@@ -317,10 +399,10 @@
 
         <!-- Download Error (Story 2-7) -->
         <div id="downloadError" class="error-message" style="display: none;" role="alert"></div>
-    </main>
+    </div>
 
     <!-- Footer -->
-    <footer>
+    <footer role="contentinfo">
         <div class="footer-links">
             <p>
                 Recipe v<span id="version">Loading...</span> |
@@ -386,8 +468,8 @@
         </p>
     </footer>
 
-    <!-- Load WASM and initialize -->
-    <script src="static/wasm_exec.js"></script>
-    <script src="static/main.js" type="module"></script>
+    <!-- Story 10-6: Load JavaScript with defer to avoid render-blocking -->
+    <script src="static/wasm_exec.js" defer></script>
+    <script src="static/main.js" type="module" defer></script>
 </body>
 </html>

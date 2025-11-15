@@ -75,9 +75,27 @@ profile-mem:
 	@echo "Memory profile generated: mem.prof"
 	@echo "View with: go tool pprof -http=:8080 mem.prof"
 
+# Build web interface (Story 10-6: Performance Optimization)
+web:
+	@echo "Building optimized web interface..."
+	@$(MAKE) wasm
+	@echo "Minifying JavaScript..."
+	@npm run build:js 2>/dev/null || echo "Warning: npm build failed, install deps with 'npm install'"
+	@echo "Web build complete!"
+	@echo "  - WASM: web/recipe.wasm (stripped + optimized)"
+	@echo "  - JS:   web/static/bundle.min.js (minified)"
+	@echo "  - CSS:  web/static/critical.css (inlined in index.html)"
+
+# Build web interface for development (no minification)
+web-dev:
+	@echo "Building web interface for development..."
+	@$(MAKE) wasm-dev
+	@echo "Development build complete (no minification)"
+
 # Clean build artifacts
 clean:
 	rm -f recipe recipe.exe recipe-tui recipe-tui.exe
 	rm -f coverage.out coverage.html
 	rm -f benchmarks.txt *.prof
 	rm -rf bin/
+	rm -f web/static/bundle.min.js web/static/bundle.min.js.map

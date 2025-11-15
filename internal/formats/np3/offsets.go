@@ -247,10 +247,13 @@ func DecodeScaled4(b byte) float64 {
 }
 
 // EncodeScaled4 encodes a fractional value to a scaled byte parameter.
-// Formula: (value * 4.0) + 0x80
+// Formula: round(value * 4.0) + 0x80
+// Uses rounding instead of truncation to minimize precision loss during round-trip conversions.
 // Clamps to 0-255 range for safety.
 func EncodeScaled4(value float64) byte {
-	result := int(value*ScaleFactor4) + BiasValue
+	// Round before converting to int to avoid truncation errors
+	// Example: 0.2 * 4 = 0.8 → round(0.8) = 1 (not int(0.8) = 0)
+	result := int(value*ScaleFactor4+0.5) + BiasValue
 	if result < 0 {
 		return 0
 	}
@@ -272,8 +275,9 @@ func DecodeHue12(b1, b2 byte) int {
 
 // EncodeHue12 encodes a hue value (0-360) to 2 bytes.
 // Returns: (high byte, low byte)
-// Formula: high byte = 0x80 + (hue >> 8), low byte = hue & 0xFF
-// This matches the reference implementation's encoding.
+// Formula: high byte = (hue >> 8), low byte = hue & 0xFF
+// The high byte only uses the lower 4 bits (0-1 for 0-360 range).
+// This matches the DecodeHue12 logic which masks with 0x0F.
 func EncodeHue12(hue int) (byte, byte) {
 	// Clamp to 0-360 range
 	if hue < 0 {
@@ -282,8 +286,8 @@ func EncodeHue12(hue int) (byte, byte) {
 	if hue > 360 {
 		hue = 360
 	}
-	// Split into 12 bits with 0x80 bias on high byte
-	b1 := byte(0x80 + (hue >> 8))
+	// Split into 12 bits (no bias on high byte)
+	b1 := byte(hue >> 8)
 	b2 := byte(hue & 0xFF)
 	return b1, b2
 }

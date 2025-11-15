@@ -13,8 +13,8 @@ import (
 func TestParse(t *testing.T) {
 	// Discover all .np3/.NP3 sample files
 	patterns := []string{
-		"../../../examples/np3/**/*.np3",
-		"../../../examples/np3/**/*.NP3",
+		"../../../testdata/np3/*.np3",
+		"../../../testdata/np3/*.NP3",
 	}
 
 	var testFiles []string
@@ -27,7 +27,7 @@ func TestParse(t *testing.T) {
 	}
 
 	if len(testFiles) == 0 {
-		t.Fatal("No NP3 test files found - expected files in examples/np3/")
+		t.Fatal("No NP3 test files found - expected files in testdata/np3/")
 	}
 
 	t.Logf("Found %d NP3 sample files", len(testFiles))
@@ -506,8 +506,8 @@ func TestGenerateNilRecipe(t *testing.T) {
 func TestRoundTrip(t *testing.T) {
 	// Discover all .np3/.NP3 sample files
 	patterns := []string{
-		"../../../examples/np3/**/*.np3",
-		"../../../examples/np3/**/*.NP3",
+		"../../../testdata/np3/*.np3",
+		"../../../testdata/np3/*.NP3",
 	}
 
 	var testFiles []string
@@ -520,7 +520,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 
 	if len(testFiles) == 0 {
-		t.Fatal("No NP3 test files found - expected files in examples/np3/")
+		t.Fatal("No NP3 test files found - expected files in testdata/np3/")
 	}
 
 	t.Logf("Testing round-trip on %d NP3 sample files", len(testFiles))

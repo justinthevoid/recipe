@@ -1,0 +1,31 @@
+{
+  "name": "recipe-web",
+  "version": "2.0.0",
+  "description": "Recipe Photo Preset Converter - Web Interface Build Scripts",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:js && npm run build:css",
+    "build:js": "npm run minify:js",
+    "build:css": "echo 'CSS minification: Already optimized (critical CSS inlined)'",
+    "minify:js": "terser web/static/main.js web/static/upload.js web/static/batch-converter.js web/static/converter.js web/static/downloader.js web/static/error-handler.js web/static/file-handler.js web/static/format-detector.js web/static/format-selector.js web/static/parameter-display.js web/static/privacy-messaging.js web/static/responsive.js web/static/wasm-loader.js --compress --mangle --output web/static/bundle.min.js --source-map",
+    "watch": "npm run minify:js -- --watch",
+    "clean": "rm -f web/static/bundle.min.js web/static/bundle.min.js.map"
+  },
+  "devDependencies": {
+    "terser": "^5.36.0"
+  },
+  "keywords": [
+    "photo",
+    "preset",
+    "converter",
+    "nikon",
+    "adobe",
+    "lightroom"
+  ],
+  "author": "Justin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justin/recipe"
+  }
+}
