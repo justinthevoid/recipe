@@ -4,16 +4,33 @@ package dcp
 //
 // Reference: Adobe DNG SDK 1.6 specification
 const (
-	TagProfileName            = 52552 // ASCII string
-	TagColorMatrix1           = 50721 // SRational array (9 values)
-	TagColorMatrix2           = 50722 // SRational array (9 values)
-	TagProfileToneCurve       = 50940 // Float array
-	TagProfileHueSatMapDims   = 50937 // Long array (3 values: hue, sat, val divisions)
-	TagProfileHueSatMapData1  = 50938 // Float array
-	TagProfileHueSatMapData2  = 50939 // Float array
-	TagProfileLookTableDims   = 50981 // Long array (3 values: dimensions)
-	TagProfileLookTableData   = 50982 // Float array
-	TagBaselineExposureOffset = 50730 // SRational
+	TagColorMatrix1                = 50721 // SRational array (9 values)
+	TagColorMatrix2                = 50722 // SRational array (9 values)
+	TagCalibrationIlluminant1      = 50778 // Short (illuminant code)
+	TagCalibrationIlluminant2      = 50779 // Short (illuminant code)
+	TagProfileCalibrationSignature = 50932 // ASCII string (0xc6f4) - "com.adobe"
+	TagProfileName                 = 50936 // ASCII string (0xc6f8) - profile display name
+	TagProfileHueSatMapDims        = 50937 // Long array (3 values: hue, sat, val divisions)
+	TagProfileHueSatMapData1       = 50938 // Float array
+	TagProfileHueSatMapData2       = 50939 // Float array
+	TagProfileToneCurve            = 50940 // Float array
+	TagProfileEmbedPolicy          = 50941 // Long (0=allow copying, 3=no restrictions)
+	TagProfileCopyright            = 50942 // ASCII string
+	TagForwardMatrix1              = 50964 // SRational array (9 values)
+	TagForwardMatrix2              = 50965 // SRational array (9 values)
+	TagProfileLookTableDims        = 50981 // Long array (3 values: dimensions)
+	TagProfileLookTableData        = 50982 // Float array
+	TagProfileHueSatMapEncoding    = 51108 // Long (1=linear, 2=sRGB) - UNUSED in basic profiles
+	TagProfileLookTableEncoding    = 51108 // Long (0xc7a4) - 1=sRGB (same as HueSat encoding)
+	TagBaselineExposureOffset      = 51109 // SRational (0xc7a5)
+	TagDefaultBlackRender          = 51110 // Long (0xc7a6) - 0=auto, 1=none
+	TagProfileGroupName            = 52552 // ASCII string (0xcd48) - profile group name (optional)
+)
+
+// DNG illuminant codes (from DNG SDK)
+const (
+	IlluminantStandardLightA = 17 // Tungsten/Incandescent 2856K
+	IlluminantD65            = 21 // Daylight 6504K
 )
 
 // CameraProfile represents a binary DNG Camera Profile.

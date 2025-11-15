@@ -9,7 +9,7 @@ import (
 // TestDebugOriginalFiles examines raw bytes in original NP3 files
 func TestDebugOriginalFiles(t *testing.T) {
 	// Load one sample file
-	samplePath := filepath.Join("..", "..", "..", "examples", "np3", "Denis Zeqiri", "Classic Chrome.np3")
+	samplePath := filepath.Join("..", "..", "..", "testdata", "np3", "Classic Chrome.np3")
 	data, err := os.ReadFile(samplePath)
 	if err != nil {
 		t.Fatalf("Read sample failed: %v", err)

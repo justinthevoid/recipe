@@ -1,7 +1,31 @@
 /* ========================================
    Recipe - Web Interface Styling
    Epic 2, Story 2-1: HTML Drag-Drop UI
+   Epic 10, Story 10-1: Landing Page Redesign
    ======================================== */
+
+/* ========================================
+   CSS Variables (Story 10-1, AC-6)
+   ======================================== */
+:root {
+    /* Format Badge Colors (Story 10-1, AC-2) */
+    --color-np3: #FFC107;        /* Nikon yellow */
+    --color-xmp: #0073E6;        /* Adobe blue */
+    --color-lrtemplate: #D81B60; /* Magenta */
+    --color-costyle: #9C27B0;    /* Capture One purple */
+    --color-dcp: #4CAF50;        /* DCP green */
+
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-size-base: 16px;
+    --font-size-small: 14px;
+    --font-size-large: 20px;
+    --font-size-hero: 48px;
+    --font-weight-normal: 400;
+    --font-weight-bold: 600;
+    --line-height-body: 1.6;
+    --line-height-heading: 1.2;
+}
 
 /* ========================================
    Global Reset & Typography
@@ -12,26 +36,166 @@
     padding: 0;
 }
 
+html {
+    scroll-behavior: smooth; /* Story 10-1, AC-3 */
+    font-size: 16px; /* AC-6: Minimum readable size */
+    line-height: 1.5; /* AC-6: WCAG AA compliance */
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-    line-height: 1.6;
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-body);
     color: #2d3748;
     background: #f7fafc;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow-x: hidden; /* AC-5: Prevent horizontal scrolling */
+}
+
+img, svg {
+    max-width: 100%; /* AC-5: Scale images to container */
+    height: auto;
+}
+
+p {
+    max-width: 65ch; /* AC-6: Optimal readability */
+    margin: 0 0 1rem 0;
 }
 
 /* ========================================
-   Header / Hero Section
+   Hero Section (Story 10-1, AC-1, Story 10-5, AC-1/AC-2/AC-3)
+   Mobile-First Responsive Design
    ======================================== */
-header {
-    text-align: center;
-    padding: 3rem 1.5rem 2rem;
+
+/* Mobile: <768px (AC-1) */
+.hero {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
+    padding: 2rem 1rem; /* AC-1: Reduced padding on mobile */
+    text-align: center;
 }
 
+.hero__container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.hero__title {
+    font-size: 28px; /* AC-1: Mobile size (down from 48px desktop) */
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-heading);
+    margin: 0 0 1rem 0;
+}
+
+.hero__subtitle {
+    font-size: 16px; /* AC-1: Minimum readable size */
+    line-height: var(--line-height-body);
+    max-width: 700px;
+    margin: 0 auto 1.5rem auto;
+    opacity: 0.95;
+}
+
+.hero__cta {
+    display: block; /* AC-1: Full-width on mobile */
+    width: 100%; /* AC-1: Full-width button */
+    padding: 1rem 2rem;
+    font-size: 18px;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+/* Tablet: 768px-1023px (AC-2) */
+@media (min-width: 768px) {
+    .hero {
+        padding: 3rem 2rem; /* AC-2: Increased padding */
+    }
+
+    .hero__title {
+        font-size: 36px; /* AC-2: Tablet size */
+    }
+
+    .hero__subtitle {
+        font-size: 18px; /* AC-2: Tablet size */
+    }
+
+    .hero__cta {
+        display: inline-block; /* AC-2: Auto-width on tablet+ */
+        width: auto;
+    }
+}
+
+/* Desktop: 1024px+ (AC-3) */
+@media (min-width: 1024px) {
+    .hero {
+        padding: 4rem 2rem; /* AC-3: Full padding */
+    }
+
+    .hero__title {
+        font-size: 48px; /* AC-3: Desktop size */
+    }
+
+    .hero__subtitle {
+        font-size: 20px; /* AC-3: Desktop size */
+    }
+}
+
+/* Button Styles (Story 10-1, Story 10-5, AC-4)
+   Touch-Friendly Tap Targets */
+
+/* Mobile-first: Touch-friendly buttons */
+.button {
+    min-height: 44px; /* AC-4: iOS guideline minimum */
+    padding: 0.75rem 1.5rem;
+    font-size: 16px;
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.button--primary {
+    background: white;
+    color: #667eea;
+}
+
+.button--primary:hover {
+    background: #f7fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.button--primary:active {
+    transform: translateY(0);
+}
+
+.button--secondary {
+    background: #e2e8f0;
+    color: #2d3748;
+}
+
+.button--secondary:hover {
+    background: #cbd5e0;
+    transform: translateY(-1px);
+}
+
+/* Browse Button (Story 10-5, AC-1) */
+#browse-button {
+    width: 100%; /* AC-1: Full-width on mobile */
+    min-height: 48px; /* AC-4: Touch-friendly */
+}
+
+@media (min-width: 768px) {
+    #browse-button {
+        width: auto; /* Auto-width on tablet+ */
+    }
+}
+
+/* Legacy header styles (to be removed) */
 header h1 {
     font-size: 3rem;
     margin-bottom: 0.5rem;
@@ -43,13 +207,6 @@ header h1 {
     margin-bottom: 0.5rem;
     font-weight: 400;
     opacity: 0.95;
-}
-
-.formats {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    opacity: 0.9;
-    font-weight: 300;
 }
 
 /* Story 2-9: Privacy Badge (AC-1) */
@@ -77,6 +234,891 @@ header h1 {
 
 .privacy-badge:active {
     transform: translateY(0);
+}
+
+/* ========================================
+   Format Badges Section (Story 10-1, AC-2, Story 10-5, AC-1/AC-2/AC-3)
+   Mobile-First Responsive Design
+   ======================================== */
+
+/* Mobile: <768px (AC-1) */
+.formats {
+    background: #ffffff;
+    padding: 2rem 1rem; /* Reduced padding on mobile */
+    text-align: center;
+}
+
+.formats__container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.formats__title {
+    font-size: 1.5rem; /* Smaller on mobile */
+    font-weight: var(--font-weight-bold);
+    color: #2d3748;
+    margin: 0 0 1.5rem 0;
+}
+
+/* Mobile: Stacked badges (1 column, AC-1) */
+.formats__badges {
+    display: flex;
+    flex-direction: column; /* AC-1: Stack vertically */
+    gap: 1rem;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Badge Component Styles */
+.badge {
+    display: block; /* AC-1: Full width on mobile */
+    width: 100%;
+    padding: 1rem; /* AC-1: Larger padding for touch */
+    border-radius: 6px;
+    font-weight: var(--font-weight-bold);
+    font-size: 18px; /* AC-1: Larger on mobile */
+    color: white;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+/* Tablet: 768px-1023px (AC-2) */
+@media (min-width: 768px) {
+    .formats {
+        padding: 3rem 2rem;
+    }
+
+    .formats__title {
+        font-size: 2rem;
+    }
+
+    /* AC-2: 2-column grid (2×3 layout) */
+    .formats__badges {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 columns */
+        max-width: 600px;
+    }
+
+    .badge {
+        font-size: 16px; /* Smaller on tablet */
+    }
+}
+
+/* Desktop: 1024px+ (AC-3) */
+@media (min-width: 1024px) {
+    /* AC-3: Horizontal row */
+    .formats__badges {
+        display: flex;
+        flex-direction: row; /* Horizontal */
+        justify-content: center;
+        max-width: none;
+        gap: 1.5rem;
+    }
+
+    .badge {
+        width: auto;
+        padding: 0.75rem 1.5rem;
+        font-size: 16px;
+    }
+}
+
+.badge--np3 {
+    background-color: var(--color-np3);
+    color: #212121; /* Dark text for yellow background (WCAG AA) */
+}
+
+.badge--xmp {
+    background-color: var(--color-xmp);
+}
+
+.badge--lrtemplate {
+    background-color: var(--color-lrtemplate);
+}
+
+.badge--costyle {
+    background-color: var(--color-costyle);
+}
+
+.badge--dcp {
+    background-color: var(--color-dcp);
+    color: #212121; /* Dark text for green background (WCAG AA) */
+}
+
+.badge:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================
+   Batch Upload Section (Story 10-2)
+   ======================================== */
+
+/* Upload Section Container (Story 10-5, Mobile-First) */
+
+/* Mobile: <768px */
+.upload {
+    background: #f7fafc;
+    padding: 2rem 1rem; /* Reduced padding on mobile */
+}
+
+.upload__container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Tablet: 768px+ */
+@media (min-width: 768px) {
+    .upload {
+        padding: 3rem 2rem;
+    }
+}
+
+/* Desktop: 1024px+ */
+@media (min-width: 1024px) {
+    .upload {
+        padding: 4rem 2rem;
+    }
+}
+
+/* Drop Zone (AC-1, AC-2, Story 10-5, AC-1/AC-2/AC-3)
+   Mobile-First Responsive Design */
+
+/* Mobile: <768px (AC-1) */
+.upload__dropzone {
+    min-height: 200px; /* AC-1: Reduced for mobile */
+    border: 2px dashed #cbd5e0;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 2rem 1rem; /* AC-1: Reduced padding, full-width */
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.upload__icon {
+    width: 48px; /* AC-1: Smaller on mobile */
+    height: 48px;
+    color: #718096;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.upload__dropzone h3 {
+    font-size: 18px; /* AC-1: Smaller on mobile */
+    font-weight: var(--font-weight-bold);
+    color: #2d3748;
+    margin: 0;
+}
+
+.upload__dropzone p {
+    font-size: 14px; /* AC-1/AC-6: Small text minimum */
+    color: #718096;
+    margin: 0;
+}
+
+/* Tablet: 768px-1023px (AC-2) */
+@media (min-width: 768px) {
+    .upload__dropzone {
+        min-height: 250px;
+        padding: 3rem 2rem;
+        gap: 1.5rem;
+    }
+
+    .upload__icon {
+        width: 56px;
+        height: 56px;
+    }
+
+    .upload__dropzone h3 {
+        font-size: 20px;
+    }
+
+    .upload__dropzone p {
+        font-size: 16px;
+    }
+}
+
+/* Desktop: 1024px+ (AC-3) */
+@media (min-width: 1024px) {
+    .upload__dropzone {
+        min-height: 300px;
+        border-width: 3px;
+        border-radius: 12px;
+        padding: 4rem 2rem;
+    }
+
+    .upload__icon {
+        width: 64px;
+        height: 64px;
+    }
+
+    .upload__dropzone h3 {
+        font-size: 24px;
+    }
+
+    .upload__dropzone p {
+        font-size: 18px;
+    }
+}
+
+/* Drop Zone Hover State (AC-1) */
+.upload__dropzone:hover {
+    border-color: #4299e1;
+    background: #ebf8ff;
+    transform: scale(1.01);
+}
+
+.upload__dropzone:hover .upload__icon {
+    color: #4299e1;
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* Drop Zone Drag-Over State (AC-1) */
+.upload__dropzone--drag-over {
+    border-style: solid;
+    border-color: #3182ce;
+    background: #bee3f8;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(49, 130, 206, 0.2);
+}
+
+.upload__dropzone--drag-over .upload__icon {
+    color: #3182ce;
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Drop Zone Success Animation (AC-1) */
+.upload__dropzone--success {
+    border-color: #48bb78;
+    border-style: solid;
+    background: #c6f6d5;
+    animation: successPulse 0.5s ease;
+}
+
+@keyframes successPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* Error Display (AC-3) */
+.upload__error {
+    margin-top: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: #fed7d7;
+    border: 1px solid #f56565;
+    border-left: 4px solid #f56565;
+    border-radius: 8px;
+    color: #c53030;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideIn 0.3s ease;
+}
+
+.upload__error::before {
+    content: '⚠️';
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+/* ========================================
+   Batch Conversion Controls (Story 10-3, Story 10-5, AC-4)
+   Mobile-First Responsive Design
+   ======================================== */
+
+/* Mobile: Stacked layout */
+.batch-controls {
+    display: flex;
+    flex-direction: column; /* AC-4: Stack on mobile */
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1.5rem 1rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Tablet+: Side-by-side layout */
+@media (min-width: 768px) {
+    .batch-controls {
+        flex-direction: row;
+        align-items: center;
+        padding: 1.5rem;
+    }
+}
+
+.batch-controls__label {
+    font-weight: var(--font-weight-bold);
+    color: #2d3748;
+}
+
+.batch-controls__select {
+    flex: 1;
+    padding: 0.625rem 1rem;
+    font-size: var(--font-size-base);
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    color: #2d3748;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.batch-controls__select:hover {
+    border-color: #0073E6;
+}
+
+.batch-controls__select:focus {
+    outline: none;
+    border-color: #0073E6;
+    box-shadow: 0 0 0 3px rgba(0, 115, 230, 0.1);
+}
+
+.batch-controls__button {
+    min-height: 56px; /* AC-4: Extra large for batch action */
+    width: 100%; /* AC-4: Full-width on mobile */
+    padding: 0.75rem 2rem;
+    font-size: 18px;
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+}
+
+/* Tablet+: Auto-width */
+@media (min-width: 768px) {
+    .batch-controls__button {
+        width: auto;
+    }
+}
+
+.batch-controls__button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========================================
+   Batch Progress Indicator (Story 10-3, AC-1, AC-4)
+   ======================================== */
+.batch-progress {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.batch-progress__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.batch-progress__title {
+    font-size: var(--font-size-large);
+    font-weight: var(--font-weight-bold);
+    margin: 0;
+    color: #2d3748;
+}
+
+.batch-progress__cancel {
+    padding: 0.5rem 1rem;
+    font-size: var(--font-size-small);
+}
+
+.batch-progress__bar {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.batch-progress__fill {
+    height: 100%;
+    background: #0073E6; /* Blue - processing color */
+    transition: width 0.3s ease;
+    /* Story 10-6: Progress bar width animation - acceptable for progress indicator */
+    /* Note: While 'width' triggers layout, it's smooth due to containing block optimization */
+}
+
+/* File Cards Grid (AC-4, Story 10-5, AC-1/AC-2/AC-3)
+   Mobile-First Responsive Design */
+
+/* Mobile: <768px (AC-1) - 1 column */
+.upload__files {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: 1fr; /* AC-1: Single column */
+    gap: 1rem;
+    padding: 0 1rem; /* AC-5: Edge padding */
+}
+
+/* Tablet: 768px-1023px (AC-2) - 2 columns */
+@media (min-width: 768px) {
+    .upload__files {
+        grid-template-columns: repeat(2, 1fr); /* AC-2: Two columns */
+        gap: 1.5rem;
+        padding: 0 2rem;
+    }
+}
+
+/* Desktop: 1024px+ (AC-3) - 3 columns */
+@media (min-width: 1024px) {
+    .upload__files {
+        grid-template-columns: repeat(3, 1fr); /* AC-3: Three columns */
+        gap: 2rem;
+        max-width: 1400px;
+        margin: 2rem auto 0 auto;
+        padding: 0 2rem;
+    }
+}
+
+/* File Card Component (AC-4, AC-5, AC-6, AC-7) */
+.file-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    animation: cardFadeIn 0.3s ease;
+}
+
+/* File Card Status States (Story 10-3, AC-2, AC-3) */
+.file-card[data-status="queued"] {
+    background: white;
+}
+
+.file-card[data-status="processing"] {
+    background: #F0F7FF; /* Light blue */
+    border-color: #0073E6;
+}
+
+.file-card[data-status="complete"] {
+    background: #E8F5E9; /* Light green */
+    border-color: #4CAF50;
+}
+
+.file-card[data-status="error"] {
+    background: #FFEBEE; /* Light red */
+    border-color: #D32F2F;
+}
+
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Story 10-6: Add will-change hint for GPU optimization (AC-7: 60fps animations) */
+.file-card {
+    will-change: transform;
+}
+
+.file-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+/* File Card Header */
+.file-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.file-card__filename {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: var(--font-weight-bold);
+    color: #2d3748;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+/* File Card Body */
+.file-card__body {
+    margin-bottom: 1rem;
+}
+
+.file-card__size {
+    font-size: 0.875rem;
+    color: #718096;
+    margin-bottom: 0.5rem;
+}
+
+.file-card__status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+    transition: color 0.3s ease;
+}
+
+.file-card__status-icon {
+    font-size: 1rem;
+}
+
+/* Status Icon Colors (Story 10-3, AC-2) */
+.file-card[data-status="queued"] .file-card__status-icon {
+    color: #999;
+}
+
+.file-card[data-status="processing"] .file-card__status-icon {
+    color: #0073E6; /* Blue */
+    animation: spin 1s linear infinite;
+}
+
+.file-card[data-status="complete"] .file-card__status-icon {
+    color: #4CAF50; /* Green */
+}
+
+.file-card[data-status="error"] .file-card__status-icon {
+    color: #D32F2F; /* Red */
+}
+
+.file-card[data-status="error"] .file-card__status {
+    color: #D32F2F;
+}
+
+/* Spinner Animation (Story 10-3, AC-4) */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* File Card Conversion Controls (Story 10-4, AC-1, AC-2) */
+.file-card__conversion {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f7fafc;
+}
+
+.file-card__format-label {
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-bold);
+    color: #4a5568;
+    white-space: nowrap;
+}
+
+.file-card__format-select {
+    flex: 1;
+    min-height: 48px; /* AC-4: Touch-friendly dropdown */
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    color: #2d3748;
+    font-size: 16px; /* AC-6: Readable */
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.file-card__format-select:hover {
+    border-color: #a0aec0;
+}
+
+.file-card__format-select:focus {
+    outline: none;
+    border-color: #0073E6;
+    box-shadow: 0 0 0 3px rgba(0, 115, 230, 0.1);
+}
+
+.file-card__format-select:disabled {
+    background: #edf2f7;
+    color: #a0aec0;
+    cursor: not-allowed;
+}
+
+.file-card__convert {
+    min-height: 48px; /* AC-4: Touch-friendly primary action */
+    width: 100%; /* AC-4: Full-width on mobile */
+    padding: 0.75rem 1rem;
+    background: #0073E6; /* Blue - primary action */
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 16px;
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+/* Tablet+: Auto-width buttons */
+@media (min-width: 768px) {
+    .file-card__convert {
+        width: auto;
+        display: inline-block;
+    }
+}
+
+.file-card__convert:hover {
+    background: #005BB5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.file-card__convert:active {
+    transform: translateY(0);
+}
+
+.file-card__convert:disabled {
+    background: #cbd5e0;
+    color: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.file-card__retry {
+    padding: 0.5rem 1rem;
+    background: #f59e0b; /* Orange/amber - retry action */
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.file-card__retry:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.file-card__retry:active {
+    transform: translateY(0);
+}
+
+.file-card__cancel {
+    padding: 0.5rem 1rem;
+    background: #dc2626; /* Red - cancel/stop action */
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.file-card__cancel:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.file-card__cancel:active {
+    transform: translateY(0);
+}
+
+/* Hide conversion controls in processing/complete states (AC-1, AC-2) */
+.file-card[data-status="processing"] .file-card__conversion,
+.file-card[data-status="complete"] .file-card__conversion {
+    display: none;
+}
+
+/* Disable controls during processing (AC-1) */
+.file-card[data-status="processing"] .file-card__format-select,
+.file-card[data-status="processing"] .file-card__convert {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* File Card Footer (Story 10-5, AC-4) */
+.file-card__footer {
+    display: flex;
+    flex-direction: column; /* AC-4: Stack on mobile */
+    gap: 8px; /* AC-4: Minimum spacing between tap targets */
+}
+
+/* Tablet+: Side-by-side layout */
+@media (min-width: 768px) {
+    .file-card__footer {
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 12px;
+    }
+}
+
+.file-card__download {
+    min-height: 48px; /* AC-4: Touch-friendly */
+    width: 100%; /* AC-4: Full-width on mobile */
+    padding: 0.75rem 1rem;
+    background: #0073E6; /* Blue - primary action */
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 16px;
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Tablet+: Auto-width */
+@media (min-width: 768px) {
+    .file-card__download {
+        width: auto;
+    }
+}
+
+.file-card__download:hover {
+    background: #005BB5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.file-card__download:active {
+    transform: translateY(0);
+}
+
+.file-card__remove {
+    min-height: 44px; /* AC-4: Touch-friendly */
+    width: 100%; /* AC-4: Full-width on mobile */
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #718096;
+    font-size: 16px;
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Tablet+: Auto-width */
+@media (min-width: 768px) {
+    .file-card__remove {
+        width: auto;
+    }
+}
+
+.file-card__remove:hover {
+    background: #fed7d7;
+    border-color: #f56565;
+    color: #c53030;
+}
+
+/* Remove Animation (AC-7) */
+.file-card--removing {
+    animation: cardFadeOut 0.3s ease forwards;
+}
+
+@keyframes cardFadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+/* ========================================
+   Responsive Breakpoints (AC-4)
+   ======================================== */
+
+/* Tablet (768px - 1023px): 2 columns */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .upload__files {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Mobile (<768px): 1 column */
+@media (max-width: 767px) {
+    .upload {
+        padding: 3rem 1.5rem;
+    }
+
+    .upload__dropzone {
+        min-height: 300px;
+        padding: 2rem 1.5rem;
+    }
+
+    .upload__icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .upload__dropzone h3 {
+        font-size: 1.5rem;
+    }
+
+    .upload__dropzone p {
+        font-size: 1rem;
+    }
+
+    .upload__files {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .file-card {
+        padding: 1.25rem;
+    }
+
+    .file-card__remove {
+        width: 100%;
+    }
+}
+
+/* ========================================
+   Touch-Friendly Styles (Story 10-5)
+   ======================================== */
+
+@media (hover: none) and (pointer: coarse) {
+    .upload__dropzone {
+        min-height: 260px;
+    }
+
+    .button--secondary {
+        min-height: 44px;
+        padding: 1rem 2rem;
+    }
+
+    .file-card__remove {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Always show remove button on touch devices */
+    .file-card__remove {
+        opacity: 1;
+    }
 }
 
 /* ========================================
@@ -473,6 +1515,39 @@ footer a:hover {
 /* Touch devices will see "Tap to select your preset file" via JS */
 
 /* ========================================
+   MOBILE STYLES (<768px)
+   Story 10-1, AC-4
+   ======================================== */
+
+@media (max-width: 767px) {
+    /* Hero responsive - Mobile */
+    .hero__title {
+        font-size: 28px;
+    }
+
+    .hero__subtitle {
+        font-size: 16px;
+    }
+
+    .hero {
+        padding: 3rem 1.5rem;
+    }
+
+    /* Format badges responsive - Mobile (stack vertically) */
+    .formats__badges {
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .badge {
+        width: 100%; /* Full width on mobile */
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* ========================================
    TABLET STYLES (768px - 1023px)
    ======================================== */
 
@@ -482,6 +1557,20 @@ footer a:hover {
         padding: 0;
     }
 
+    /* Hero responsive - Tablet (Story 10-1, AC-4) */
+    .hero__title {
+        font-size: 36px;
+    }
+
+    /* Format badges responsive - Tablet */
+    .formats__badges {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    /* Legacy styles */
     header {
         padding: 2.5rem 1.5rem 2rem;
     }
@@ -492,10 +1581,6 @@ footer a:hover {
 
     .tagline {
         font-size: 1.4rem;
-    }
-
-    .formats {
-        font-size: 1.1rem;
     }
 
     main {
@@ -562,6 +1647,20 @@ footer a:hover {
         padding: 0;
     }
 
+    /* Hero responsive - Desktop (Story 10-1, AC-4) */
+    .hero__title {
+        font-size: 48px;
+    }
+
+    /* Format badges responsive - Desktop */
+    .formats__badges {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        max-width: none;
+    }
+
+    /* Legacy styles */
     header {
         padding: 3rem 1.5rem 2rem;
     }
@@ -629,6 +1728,18 @@ footer a:hover {
     .format-option {
         min-height: 48px;
         padding: 0.875rem 1.5rem;
+    }
+
+    /* Story 10-1: Hero CTA button - touch-friendly */
+    .hero__cta {
+        min-height: 44px;
+        padding: 1rem 2rem;
+    }
+
+    /* Story 10-1: Format badges - touch-friendly */
+    .badge {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
     }
 
     /* Privacy badge - larger tap target */
@@ -986,6 +2097,8 @@ footer a:hover {
     display: inline-block;
     animation: spin 1s linear infinite;
     margin-right: 0.5rem;
+    /* Story 10-6: GPU hint for smooth 60fps spinner animation (AC-7) */
+    will-change: transform;
 }
 
 /* Download button (Story 2-7) */
@@ -1941,5 +3054,149 @@ footer a:hover {
 
     .legal-meta p {
         font-size: 0.875rem;
+    }
+}
+
+/* ========================================
+   Story 10-7: Accessibility Enhancements
+   Skip Link, Focus Indicators, Screen Reader Support, Reduced Motion
+   ======================================== */
+
+/* Skip Link (AC-1) - Hidden until focused */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #667eea; /* Primary color from hero */
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    font-weight: 600;
+    z-index: 1000;
+    border-radius: 0 0 4px 0;
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 0; /* Reveal on focus */
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+/* Screen Reader Only Utility (AC-2, AC-3) */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus Indicators (AC-1, AC-5, AC-6) - Visible 2px outline with high contrast */
+button:focus,
+a:focus,
+input:focus,
+select:focus,
+textarea:focus,
+[role="button"]:focus,
+[tabindex]:focus {
+    outline: 2px solid #0056b3; /* High contrast blue (3:1 ratio on white) */
+    outline-offset: 2px;
+}
+
+/* Focus-visible for keyboard navigation only (not mouse clicks) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid #0056b3;
+    outline-offset: 2px;
+}
+
+/* Remove default outline on mouse click (keep for keyboard) */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Enhanced focus for dropzone (AC-1) */
+.upload__dropzone:focus {
+    outline: 2px solid #0056b3;
+    outline-offset: 2px;
+    border-color: #0056b3;
+}
+
+/* Enhanced focus for buttons (AC-1) */
+.button:focus,
+.button:focus-visible {
+    outline: 2px solid #0056b3;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.1);
+}
+
+/* Reduced Motion Support (AC-7) - Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Keep essential visual feedback without animation */
+    .file-card:hover,
+    .badge:hover,
+    .button:hover {
+        transform: none; /* Disable scale/translate animations */
+    }
+
+    /* Replace hover scale with border highlight */
+    .upload__dropzone:hover {
+        transform: none;
+        border-color: #0056b3;
+        border-width: 3px;
+    }
+
+    .button:hover {
+        transform: none;
+        border: 2px solid currentColor;
+    }
+
+    /* Disable spinner animation - show static icon instead */
+    .status-icon--processing,
+    .spinner {
+        animation: none !important;
+    }
+
+    /* Instant progress bar transitions */
+    .batch-progress__fill {
+        transition: none !important;
+    }
+}
+
+/* High Contrast Mode Support (AC-6) */
+@media (prefers-contrast: high) {
+    button:focus,
+    a:focus,
+    input:focus,
+    select:focus,
+    [role="button"]:focus {
+        outline-width: 3px; /* Thicker outline for high contrast */
+    }
+
+    .skip-link:focus {
+        outline-width: 3px;
     }
 }

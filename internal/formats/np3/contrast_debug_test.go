@@ -9,7 +9,7 @@ import (
 // TestContrastDebug examines contrast calculation for failing file
 func TestContrastDebug(t *testing.T) {
 	// Load the Life.np3 file that has contrast mismatch
-	samplePath := filepath.Join("..", "..", "..", "examples", "np3", "Denis Zeqiri", "Life.np3")
+	samplePath := filepath.Join("..", "..", "..", "testdata", "np3", "Life.np3")
 	originalData, err := os.ReadFile(samplePath)
 	if err != nil {
 		t.Fatalf("Read sample failed: %v", err)

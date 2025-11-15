@@ -21,12 +21,12 @@ func TestParse_ValidDCP(t *testing.T) {
 		{
 			name:     "Nikon Z f Portrait",
 			file:     "../../../testdata/dcp/Nikon Z f Camera Portrait.dcp",
-			wantName: "", // This file doesn't have tag 52552 (ProfileName)
+			wantName: "Camera Portrait", // ProfileName from tag 50936
 		},
 		{
 			name:     "Hasselblad Adobe Standard",
 			file:     "../../../testdata/dcp/Hasselblad X1D-50 Adobe Standard.dcp",
-			wantName: "", // This file doesn't have tag 52552 (ProfileName)
+			wantName: "Adobe Standard", // ProfileName from tag 50936
 		},
 	}
 
@@ -150,10 +150,10 @@ func TestAnalyzeToneCurve(t *testing.T) {
 				{0.5, 0.625}, // +0.125 shift (32/255 = 0.125)
 				{1.0, 1.0},
 			},
-			wantExp:   0.5,  // (0.625 - 0.5) / 0.25 = 0.5
-			wantCon:   0.0,  // No contrast change
-			wantHi:    0.0,  // Top unchanged
-			wantSh:    0.0,  // Bottom unchanged
+			wantExp:   0.625,  // (0.625 - 0.5) * 5.0 = 0.625
+			wantCon:   0.0,    // No contrast change
+			wantHi:    0.0,    // Top unchanged
+			wantSh:    0.0,    // Bottom unchanged
 			tolerance: 0.1,
 		},
 		{

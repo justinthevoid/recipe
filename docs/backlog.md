@@ -101,6 +101,59 @@ None.
 
 ---
 
+---
+
+## Story 10-1-landing-page-redesign - Code Review Follow-ups
+**Date**: 2025-11-10
+**Review Outcome**: APPROVED (Production-Ready)
+**Reviewer**: Senior Developer Code Review Workflow
+**Model**: claude-sonnet-4-5-20250929
+
+### Low Priority Action Items (Non-Blocking Improvements)
+
+- [ ] **[L1] Refactor CSS into modular files** - Tech spec recommends modular CSS structure
+  - Current: All styles in single `web/static/style.css` (2463 lines)
+  - Recommended Structure:
+    - `web/css/main.css` - Global styles, CSS variables, reset
+    - `web/css/components.css` - Reusable badges, buttons, cards
+    - `web/css/layout.css` - Responsive grid, breakpoints
+    - `web/css/legacy.css` - Story 2 styles to be deprecated
+  - Impact: Improves maintainability for future Epic 10 stories
+  - Effort: ~2 hours
+  - Epic: 10
+  - References: `docs/tech-spec-epic-10.md:37-46`
+
+- [ ] **[L2] Consolidate duplicate badge styles** - Two badge implementations exist
+  - Current:
+    - `.badge` (Story 10-1, style.css:186-223) - Modern, WCAG compliant
+    - `.format-badge` (Story 2-3, style.css:724-761) - Legacy
+  - Action: Merge into single badge system, update all references
+  - Impact: Reduces maintenance overhead, ensures consistency
+  - Effort: ~1 hour
+  - Epic: 10
+  - References: Tech spec AC-2 (consistent styling across interface)
+
+- [ ] **[L3] Run WebPageTest performance validation** - AC-5 performance target validation
+  - Test: Load time <2 seconds on 3G connection (1.6 Mbps, 300ms RTT)
+  - URL: https://recipe.justins.studio (or local build)
+  - Tools: [WebPageTest](https://www.webpagetest.org/)
+  - Metrics to verify:
+    - First Contentful Paint (FCP): <1.5s
+    - Largest Contentful Paint (LCP): <2.0s
+    - Total Blocking Time (TBT): <300ms
+  - Impact: Informational - implementation follows all best practices, likely meets target
+  - Effort: ~30 minutes
+  - Epic: 10
+  - References: `docs/tech-spec-epic-10.md:422-444` (AC-5 Performance requirements)
+
+**Notes**:
+- Story 10-1: All follow-ups are LOW priority, non-blocking improvements
+- Story 10-1: Implementation is production-ready and approved for deployment
+- Story 10-1: L1 and L2 improve code maintainability for future Epic 10 work
+- Story 10-1: L3 is informational validation only (implementation already follows best practices)
+
+---
+
 **Notes**:
 - Story 1-5: HIGH priority item H1 is BLOCKING - must be completed before story can be re-reviewed
 - Story 1-5: LOW items are documentation clarifications only

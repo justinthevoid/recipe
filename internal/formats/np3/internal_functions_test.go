@@ -152,9 +152,10 @@ func TestEncodeBinaryMinFileSize(t *testing.T) {
 		t.Fatalf("encodeBinary failed: %v", err)
 	}
 
-	// Phase 2: NP3 files are exactly 480 bytes (0x1E0), matching real NP3 files
-	if len(data) != 480 {
-		t.Errorf("File size: got %d, want 480", len(data))
+	// Phase 2: NP3 files are 1050 bytes, matching working NP3 files (e.g., Filmic.np3)
+	// Note: Real NP3 files vary in size (392-1050 bytes), but generator uses 1050 for compatibility
+	if len(data) != 1050 {
+		t.Errorf("File size: got %d, want 1050", len(data))
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 // TestOriginalOverlap examines what original files have in overlap region
 func TestOriginalOverlap(t *testing.T) {
 	// Load one original file
-	samplePath := filepath.Join("..", "..", "..", "examples", "np3", "Denis Zeqiri", "Life.np3")
+	samplePath := filepath.Join("..", "..", "..", "testdata", "np3", "Life.np3")
 	data, err := os.ReadFile(samplePath)
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)

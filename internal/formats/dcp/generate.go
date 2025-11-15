@@ -1,129 +1,118 @@
 // Package dcp provides functionality for generating Adobe DNG Camera Profile (.dcp) files.
 // DCP files are TIFF-based binary files that define camera color profiles for Adobe Lightroom.
 //
-// This package enables embedding NP3 color transformations directly into camera profiles,
-// allowing Lightroom to apply Nikon Picture Control adjustments at the base profile level
-// rather than as post-processing presets.
+// This package enables converting UniversalRecipe presets to DCP format, allowing
+// presets from NP3, XMP, lrtemplate, and .costyle formats to be used as camera profiles
+// in Lightroom, Camera Raw, and with DNG files.
 package dcp
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
-	"os"
 
-	"github.com/justin/recipe/internal/lut"
 	"github.com/justin/recipe/internal/models"
 )
 
-// DCPProfile represents a DNG Camera Profile structure
-type DCPProfile struct {
-	CameraModel   string
-	ProfileName   string
-	BaseDCPPath   string // Path to base Nikon DCP to modify
-	LUTData       []byte // 3D LUT data to embed
-	UniqueCameraModel string
-}
-
-// GenerateFromNP3 creates a DCP camera profile with embedded NP3 color transformations.
+// Generate creates a DNG Camera Profile (.dcp) file from a UniversalRecipe.
 //
-// Strategy:
-// 1. Read base Nikon Camera Neutral DCP (most neutral starting point)
-// 2. Generate 3D LUT from NP3 recipe
-// 3. Embed LUT as a "ProfileLookTable" or "ProfileToneCurve"
-// 4. Update profile name to match NP3 preset name
-// 5. Write modified DCP to output
+// DCP files are Adobe DNG (Digital Negative) containers with camera profiles
+// stored as binary TIFF tags. This function generates:
+//   - Tag 50708: Unique camera model ("Nikon Z f" or from recipe.Metadata["camera_model"])
+//   - Tag 50721-50722: Calibrated color matrices (Nikon Z f calibration)
+//   - Tag 50778-50779: Calibration illuminants (Standard Light A, D65)
+//   - Tag 50932: Profile calibration signature ("com.adobe")
+//   - Tag 50936: Profile name (from recipe.Metadata["profile_name"])
+//   - Tag 50940: Profile tone curve (binary float32 array)
+//   - Tag 50941: Profile embed policy (Allow Copying)
+//   - Tag 50942: Profile copyright
+//   - Tag 50964-50965: Calibrated forward matrices (Nikon Z f calibration)
+//   - Tag 50981-50982: 3D color lookup table (90×16×16 identity HSV→RGB LUT)
+//   - Tag 51108: Profile look table encoding (sRGB)
+//   - Tag 51109: Baseline exposure offset (-0.15 EV for Nikon Z f)
+//   - Tag 51110: Default black render (None)
 //
-// This approach achieves 90-95% accuracy because:
-// - Base profile uses Nikon's color matrices (not Adobe's interpretation)
-// - 3D LUT applies on top of correct color space
-// - All transformations happen at profile level (before user adjustments)
-func GenerateFromNP3(recipe *models.UniversalRecipe, baseDCPPath string) ([]byte, error) {
-	// Read base Nikon DCP
-	baseDCP, err := os.ReadFile(baseDCPPath)
-	if err != nil {
-		return nil, fmt.Errorf("read base DCP: %w", err)
+// Tone curves are generated from UniversalRecipe exposure, contrast, highlights,
+// and shadows parameters. All curves use 0.0-1.0 normalized values as required
+// by the DNG specification.
+//
+// Color matrices are calibrated for Nikon Z f from Adobe Camera Raw profiles.
+// This ensures compatibility with Adobe Lightroom's profile loading system.
+//
+// Example:
+//
+//	recipe := &models.UniversalRecipe{
+//	    Exposure: 0.5,      // +0.5 EV
+//	    Contrast: 30,       // +30
+//	    Highlights: -20,    // -20
+//	    Shadows: 10,        // +10
+//	    Metadata: map[string]interface{}{
+//	        "profile_name": "Portrait",
+//	    },
+//	}
+//	dcpData, err := dcp.Generate(recipe)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	os.WriteFile("portrait.dcp", dcpData, 0644)
+//
+// Returns error if:
+//   - recipe is nil
+//   - Binary DNG structure generation fails
+//   - TIFF IFD writing fails
+//
+// Supported DCP versions: DNG 1.0-1.6
+// Performance target: <200ms (slower than other formats due to TIFF/DNG overhead)
+func Generate(recipe *models.UniversalRecipe) ([]byte, error) {
+	// Validate input
+	if recipe == nil {
+		return nil, fmt.Errorf("recipe cannot be nil")
 	}
 
-	// Generate 3D LUT from recipe
-	lutData, err := lut.Generate3DLUT(recipe)
-	if err != nil {
-		return nil, fmt.Errorf("generate LUT: %w", err)
-	}
+	// Step 1: Generate tone curve points (5-point piecewise linear curve)
+	points := universalToToneCurve(recipe)
 
-	// Parse TIFF structure and locate key tags
-	profile, err := parseDCP(baseDCP)
-	if err != nil {
-		return nil, fmt.Errorf("parse DCP: %w", err)
-	}
+	// Step 2: Convert tone curve to binary float32 array (tag 50940)
+	toneCurveBinary := generateBinaryToneCurve(points)
 
-	// Update profile name
-	if recipe.Name != "" {
-		profile.ProfileName = recipe.Name
-	}
+	// Step 3: Generate calibrated color matrices (tags 50721-50722)
+	// Using Nikon Z f calibration from Adobe Camera Raw
+	colorMatrix1Binary := srationalArrayToBytes(generateColorMatrix())
+	colorMatrix2Binary := srationalArrayToBytes(generateColorMatrix2())
 
-	// Embed 3D LUT as ProfileLookTable (DNG spec tag 50982)
-	profile.LUTData = lutData
+	// Step 4: Generate calibrated forward matrices (tags 50964-50965)
+	// Forward matrices transform XYZ → camera RGB (same for both illuminants)
+	forwardMatrix := generateForwardMatrix()
+	forwardMatrix1Binary := srationalArrayToBytes(forwardMatrix)
+	forwardMatrix2Binary := srationalArrayToBytes(forwardMatrix) // Same matrix for both
 
-	// Generate modified DCP
-	output, err := writeDCP(profile)
-	if err != nil {
-		return nil, fmt.Errorf("write DCP: %w", err)
-	}
+	// Step 5: Generate baseline exposure offset (tag 51109)
+	// Use Adobe's baseline (-0.15 EV) for Nikon Z f
+	baselineExposureBinary := srationalArrayToBytes([]SRational{{Numerator: -15, Denominator: 100}})
 
-	return output, nil
-}
-
-// parseDCP extracts the TIFF/DCP structure from a DCP file.
-// DCP files are TIFF files with special tags defined in the DNG specification.
-func parseDCP(data []byte) (*DCPProfile, error) {
-	if len(data) < 8 {
-		return nil, fmt.Errorf("file too small: %d bytes", len(data))
-	}
-
-	// Check TIFF byte order (II = little-endian, MM = big-endian)
-	var byteOrder binary.ByteOrder
-	if data[0] == 'I' && data[1] == 'I' {
-		byteOrder = binary.LittleEndian
-	} else if data[0] == 'M' && data[1] == 'M' {
-		byteOrder = binary.BigEndian
-	} else {
-		return nil, fmt.Errorf("invalid TIFF header: %x %x", data[0], data[1])
-	}
-
-	// DCP files use magic number 0x5243 (RC) instead of standard TIFF 0x002A
-	magic := byteOrder.Uint16(data[2:4])
-	if magic != 0x5243 && magic != 0x002A {
-		return nil, fmt.Errorf("invalid DCP magic: %x (expected 0x5243)", magic)
-	}
-
-	profile := &DCPProfile{}
-
-	// Extract camera model (search for "Nikon" string around offset 0xD0)
-	cameraStart := bytes.Index(data, []byte("Nikon"))
-	if cameraStart != -1 {
-		cameraEnd := bytes.IndexByte(data[cameraStart:], 0)
-		if cameraEnd != -1 {
-			profile.CameraModel = string(data[cameraStart : cameraStart+cameraEnd])
+	// Step 6: Get profile name from metadata (tag 52552 - OPTIONAL)
+	profileName := ""
+	if name, ok := recipe.Metadata["profile_name"]; ok {
+		if nameStr, ok := name.(string); ok {
+			profileName = nameStr
 		}
 	}
 
-	// Extract profile name (search for "Camera" string around offset 0x170)
-	profileStart := bytes.Index(data, []byte("Camera"))
-	if profileStart != -1 {
-		profileEnd := bytes.IndexByte(data[profileStart:], 0)
-		if profileEnd != -1 {
-			profile.ProfileName = string(data[profileStart : profileStart+profileEnd])
+	// Step 7: Get camera model from metadata (tag 50708 - OPTIONAL)
+	cameraModel := ""
+	if model, ok := recipe.Metadata["camera_model"]; ok {
+		if modelStr, ok := model.(string); ok {
+			cameraModel = modelStr
 		}
 	}
 
-	return profile, nil
-}
+	// Step 8: Generate identity 3D color lookup table (tags 50981-50982)
+	// Required by Lightroom even for neutral/pass-through profiles
+	lookTableBinary := generateIdentityLUT()
 
-// writeDCP generates a DCP file from a profile structure.
-// This creates a minimal TIFF/DCP structure with embedded LUT data.
-func writeDCP(profile *DCPProfile) ([]byte, error) {
-	// For now, return an error indicating this is complex
-	// Full implementation requires TIFF/DCP writer
-	return nil, fmt.Errorf("DCP writing not yet implemented - requires TIFF library integration")
+	// Step 9: Create DNG file with binary tags
+	dngData, err := writeDNG(toneCurveBinary, colorMatrix1Binary, colorMatrix2Binary, forwardMatrix1Binary, forwardMatrix2Binary, profileName, cameraModel, baselineExposureBinary, lookTableBinary)
+	if err != nil {
+		return nil, fmt.Errorf("failed to write DNG: %w", err)
+	}
+
+	return dngData, nil
 }
