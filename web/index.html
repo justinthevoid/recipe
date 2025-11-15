@@ -14,6 +14,9 @@
     <!-- Story 10-6: Load non-critical CSS asynchronously -->
     <link rel="preload" href="static/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="static/style.css"></noscript>
+
+    <!-- Story 11-1: Preview modal CSS -->
+    <link rel="stylesheet" href="static/preview.css">
 </head>
 <body>
     <!-- Story 10-7: Skip link for keyboard navigation (AC-1) -->
@@ -467,6 +470,37 @@
             Files processed locally via WebAssembly. No server uploads. No data stored.
         </p>
     </footer>
+
+    <!-- Story 11-1: Preview Modal (Placeholder for Story 11.3) -->
+    <div id="preview-modal" class="preview-modal" hidden>
+        <div class="preview-modal__overlay"></div>
+        <div class="preview-modal__content">
+            <button class="preview-modal__close" aria-label="Close preview modal">✕</button>
+
+            <!-- Preview Image with CSS filter (Story 11-1, AC-3) -->
+            <img id="preview-image"
+                 class="preview-image"
+                 src="static/images/preview-placeholder.svg"
+                 alt="Reference image with preset preview"
+                 aria-describedby="preview-disclaimer">
+
+            <!-- Accuracy Disclaimer (Story 11-1, AC-4) -->
+            <div class="preview-disclaimer" id="preview-disclaimer">
+                <span class="preview-disclaimer__label">
+                    Approximate preview using CSS filters
+                </span>
+                <button class="preview-disclaimer__help"
+                        aria-label="Learn about CSS filter preview limitations"
+                        title="This preview uses CSS filters for instant feedback. Actual conversion results may differ.">
+                    ℹ️
+                </button>
+            </div>
+
+            <div class="preview-controls">
+                <!-- Slider, tabs will be added in Stories 11.3, 11.4 -->
+            </div>
+        </div>
+    </div>
 
     <!-- Story 10-6: Load JavaScript with defer to avoid render-blocking -->
     <script src="static/wasm_exec.js" defer></script>

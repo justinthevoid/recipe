@@ -135,7 +135,7 @@ development_status:
 
   # Epic 11: Image Preview System (Path A FR-4)
   epic-11: contexted  # Path A: CSS filter-based preview system - Tech spec: docs/tech-spec-epic-11.md
-  11-1-css-filter-mapping: ready-for-dev  # CSS filter-based preview (exposure, contrast, saturation, hue) - Story created: docs/stories/11-1-css-filter-mapping.md (2025-11-08) - Context: docs/stories/11-1-css-filter-mapping.context.xml (2025-11-09)
+  11-1-css-filter-mapping: in-progress  # CSS filter-based preview (exposure, contrast, saturation, hue) - Story created: docs/stories/11-1-css-filter-mapping.md (2025-11-08) - Context: docs/stories/11-1-css-filter-mapping.context.xml (2025-11-09)
   11-2-reference-image-bundle: ready-for-dev  # Reference image bundle (Portrait, Landscape, Product) - Story created: docs/stories/11-2-reference-image-bundle.md (2025-11-09) - Context: docs/stories/11-2-reference-image-bundle.context.xml (2025-11-09)
   11-3-preview-modal-interface: ready-for-dev  # Preview modal with before/after slider - Story created: docs/stories/11-3-preview-modal-interface.md (2025-11-09) - Context: docs/stories/11-3-preview-modal-interface.context.xml (2025-11-09)
   11-4-preview-slider-interaction: ready-for-dev  # Interactive slider with keyboard/touch support - Story created: docs/stories/11-4-preview-slider-interaction.md (2025-11-09) - Context: docs/stories/11-4-preview-slider-interaction.context.xml (2025-11-09)
