@@ -19,3 +19,4 @@ benchmark-results.txt
 cpu.prof
 mem.prof
 node_modules/
+output/Logfile.XML
