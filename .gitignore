@@ -5,8 +5,9 @@ legacy/
 .txt
 .html
 .venv
-.tiff
-.nef
+*.tif
+*.tiff
+*.nef
 
 # Test coverage reports
 coverage.out
