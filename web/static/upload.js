@@ -894,18 +894,13 @@ export class UploadManager {
 let uploadManager;
 
 export function initializeUploadManager() {
-    uploadManager = new UploadManager();
-    console.log('UploadManager initialized');
+    if (!uploadManager) {
+        uploadManager = new UploadManager();
+        console.log('UploadManager initialized');
+    }
     return uploadManager;
 }
 
 export function getUploadManager() {
     return uploadManager;
-}
-
-// Auto-initialize if DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeUploadManager);
-} else {
-    initializeUploadManager();
 }
