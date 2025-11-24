@@ -6,6 +6,7 @@
 
 import { convertFile } from './converter.js';
 import { announceStatus, announceError, moveFocusToFirstFileCard } from './main.js';
+import { applyPreviewFilter } from './preview.js';
 
 /**
  * UploadManager Class
@@ -238,6 +239,12 @@ export class UploadManager {
             }
         });
 
+        // Preview button listener (Story 11-1, AC-3)
+        const previewButton = card.querySelector('.file-card__preview');
+        previewButton.addEventListener('click', () => {
+            this.showPreviewForFile(fileId);
+        });
+
         // Convert button listener (Story 10-4, AC-2)
         const convertButton = card.querySelector('.file-card__convert');
         convertButton.addEventListener('click', () => {
@@ -301,6 +308,7 @@ export class UploadManager {
                     <select class="file-card__format-select" id="format-${fileId}" data-file-id="${fileId}" aria-label="Select target format for ${fullName}">
                         ${formatOptions}
                     </select>
+                    <button class="file-card__preview" data-file-id="${fileId}" aria-label="Preview ${fullName} adjustments">Preview</button>
                     <button class="file-card__convert" data-file-id="${fileId}" aria-label="Convert ${fullName} to ${defaultTarget.toUpperCase()}">Convert</button>
                     <button class="file-card__retry" data-file-id="${fileId}" hidden aria-label="Retry converting ${fullName}">Retry</button>
                     <button class="file-card__cancel" data-file-id="${fileId}" hidden aria-label="Cancel converting ${fullName}">Cancel</button>
@@ -627,6 +635,61 @@ export class UploadManager {
 
         title.textContent = `Conversion cancelled (${completed} of ${total} complete)`;
         cancelBtn.setAttribute('hidden', '');
+    }
+
+    /**
+     * Show preview for uploaded file (Story 11-1, AC-3, H1, H2)
+     * Extracts parameters from preset file and applies CSS filter preview
+     * @param {number} fileId - File ID to preview
+     */
+    async showPreviewForFile(fileId) {
+        const fileData = this.uploadedFiles.get(fileId);
+        if (!fileData) {
+            console.error('File not found:', fileId);
+            return;
+        }
+
+        console.log(`Showing preview for file ${fileId}: ${fileData.file.name}`);
+
+        try {
+            // Check if WASM is ready
+            if (typeof extractParameters !== 'function') {
+                throw new Error('WASM module not loaded. Please refresh the page.');
+            }
+
+            // Read file as Uint8Array
+            const arrayBuffer = await fileData.file.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+
+            // Extract parameters using WASM
+            const jsonString = await extractParameters(uint8Array, fileData.format);
+            const recipe = JSON.parse(jsonString);
+
+            console.log('Extracted parameters:', recipe);
+
+            // Apply CSS filter preview
+            applyPreviewFilter(recipe);
+
+            // Show preview modal (Story 11-3 will implement the modal UI)
+            const modal = document.getElementById('preview-modal');
+            if (modal) {
+                modal.removeAttribute('hidden');
+                modal.style.display = 'flex';
+            }
+
+            // Announce to screen readers (Story 10-7, AC-2)
+            announceStatus(`Preview loaded for ${fileData.file.name}`);
+
+        } catch (error) {
+            console.error(`Preview failed for file ${fileId}:`, error);
+
+            // Show user-friendly error message
+            const errorMessage = error.message || 'Unable to generate preview';
+            announceError(`Preview error: ${errorMessage}`);
+
+            // Optionally show error in UI (could use a toast notification)
+            alert(`Preview Error: ${errorMessage}\n\nPlease ensure the file is a valid preset file.`);
+        }
     }
 
     /**

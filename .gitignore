@@ -16,3 +16,4 @@ benchmark-results.txt
 *.prof
 cpu.prof
 mem.prof
+node_modules/
