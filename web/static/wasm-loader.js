@@ -1,16 +1,14 @@
 // wasm-loader.js - WASM Module Initialization
-// Epic 2, Stories 2-1 & 2-8: HTML Drag-Drop UI & Error Handling
-// Epic 10, Story 10-6: Performance Optimization - Lazy-load WASM until first file upload
 // Loads recipe.wasm and exposes getVersion() to populate footer
 
 import { showError as showErrorPanel } from './error-handler.js';
 
-// Track WASM initialization state (Story 10-6: Lazy-loading)
+// Track WASM initialization state
 let wasmInitialized = false;
 let wasmInitPromise = null;
 
 /**
- * Initialize the WASM module (Story 10-6: Now lazy-loaded)
+ * Initialize the WASM module
  * Loads recipe.wasm, starts Go runtime, and dispatches wasmReady event
  * Can be called multiple times safely - will only initialize once
  * @returns {Promise<void>}
@@ -101,7 +99,7 @@ export async function initializeWASM() {
                 versionEl.textContent = 'error';
             }
 
-            // Story 2-8: Show centralized error panel
+            // Show centralized error panel
             showErrorPanel('wasm-load-failed', error);
 
             // Re-throw to propagate error
@@ -113,7 +111,7 @@ export async function initializeWASM() {
 }
 
 /**
- * Check if WASM is initialized (Story 10-6)
+ * Check if WASM is initialized
  * @returns {boolean} True if WASM is ready
  */
 export function isWASMReady() {
