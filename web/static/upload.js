@@ -1,7 +1,4 @@
 // upload.js - Batch File Upload Manager
-// Story 10-2: Batch File Upload with Drag-and-Drop
-// Story 10-4: Individual File Conversion Controls
-// Story 10-7: Accessibility Enhancements (ARIA announcements)
 // Handles drag-drop, file validation, file cards, and empty state
 
 import { convertFile } from './converter.js';
@@ -11,7 +8,7 @@ import { applyPreviewFilter } from './preview.js';
 /**
  * UploadManager Class
  * Manages batch file uploads with drag-and-drop support
- * Story 10-4: Added individual file conversion support
+ * Manages batch file uploads with drag-and-drop support
  */
 export class UploadManager {
     constructor() {
@@ -124,7 +121,7 @@ export class UploadManager {
             }
         });
 
-        // Story 10-7: Announce file upload to screen readers (AC-2)
+        // Announce file upload to screen readers
         if (validFiles.length > 0) {
             const fileNames = validFiles.map(f => f.name).join(', ');
             if (validFiles.length === 1) {
@@ -133,7 +130,7 @@ export class UploadManager {
                 announceStatus(`${validFiles.length} files uploaded: ${fileNames}`);
             }
 
-            // Story 10-7: Move focus to first file card (AC-5)
+            // Move focus to first file card
             if (firstFileId) {
                 moveFocusToFirstFileCard(firstFileId);
             }
@@ -142,7 +139,7 @@ export class UploadManager {
         // Show error for rejected files (AC-3)
         if (rejectedFiles.length > 0) {
             this.showError(validFiles.length, rejectedFiles);
-            // Story 10-7: Announce errors to screen readers (AC-2)
+            // Announce errors to screen readers
             const errorSummary = rejectedFiles.map(f => `${f.name}: ${f.reason}`).join('. ');
             announceError(`Error: ${rejectedFiles.length} file(s) rejected. ${errorSummary}`);
         } else if (validFiles.length > 0) {
@@ -150,7 +147,7 @@ export class UploadManager {
             this.hideError();
         }
 
-        // Show batch controls and hide empty state if files uploaded (AC-8, Story 10-3)
+        // Show batch controls and hide empty state if files uploaded
         if (this.uploadedFiles.size > 0) {
             this.hideEmptyState();
             this.showBatchControls();
@@ -191,22 +188,21 @@ export class UploadManager {
         const fileSize = this.formatFileSize(file.size);
         const truncatedName = this.truncateFilename(file.name, 30);
 
-        // Get default target format (Story 10-4, AC-1)
+        // Get default target format
         const validTargets = this.getValidTargetFormats(format);
         const defaultTarget = validTargets[0];
 
-        // Store file data (Story 10-3: Extended with output data fields)
-        // Story 10-4: Added targetFormat and abortController fields
+        // Store file data
         this.uploadedFiles.set(fileId, {
             id: fileId,
             file: file,
             format: format,
-            targetFormat: defaultTarget, // Story 10-4: Selected target format
+            targetFormat: defaultTarget,
             status: 'queued',
             outputData: null,
             outputFormat: null,
             error: null,
-            abortController: null // Story 10-4, AC-7: For cancellation support
+            abortController: null
         });
 
         // Create file card HTML
@@ -224,13 +220,13 @@ export class UploadManager {
             this.removeFile(fileId);
         });
 
-        // Download button listener (Story 10-3, AC-5)
+        // Download button listener
         const downloadButton = card.querySelector('.file-card__download');
         downloadButton.addEventListener('click', () => {
             this.downloadFile(fileId);
         });
 
-        // Format dropdown listener (Story 10-4, AC-1)
+        // Format dropdown listener
         const formatSelect = card.querySelector('.file-card__format-select');
         formatSelect.addEventListener('change', (e) => {
             const fileData = this.uploadedFiles.get(fileId);
@@ -239,38 +235,37 @@ export class UploadManager {
             }
         });
 
-        // Preview button listener (Story 11-1, AC-3)
+        // Preview button listener
         const previewButton = card.querySelector('.file-card__preview');
         previewButton.addEventListener('click', () => {
             this.showPreviewForFile(fileId);
         });
 
-        // Convert button listener (Story 10-4, AC-2)
+        // Convert button listener
         const convertButton = card.querySelector('.file-card__convert');
         convertButton.addEventListener('click', () => {
             this.convertIndividualFile(fileId);
         });
 
-        // Retry button listener (Story 10-4, AC-5)
+        // Retry button listener
         const retryButton = card.querySelector('.file-card__retry');
         retryButton.addEventListener('click', () => {
             this.convertIndividualFile(fileId);
         });
 
-        // Cancel button listener (Story 10-4, AC-7)
+        // Cancel button listener
         const cancelButton = card.querySelector('.file-card__cancel');
         cancelButton.addEventListener('click', () => {
             this.cancelIndividualConversion(fileId);
         });
 
-        // Story 10-7: Return fileId for focus management (AC-5)
+        // Return fileId for focus management
         return fileId;
     }
 
     /**
      * Create file card HTML (AC-4, AC-5, AC-6, AC-7)
-     * Story 10-3: Added status indicators and download button
-     * Story 10-4: Added format dropdown and individual convert button (AC-1, AC-2)
+     * Create file card HTML
      * @param {number} fileId - Unique file ID
      * @param {string} displayName - Truncated filename for display
      * @param {string} fullName - Full filename for title attribute
@@ -279,7 +274,7 @@ export class UploadManager {
      * @returns {string} HTML string for file card
      */
     createFileCard(fileId, displayName, fullName, format, fileSize) {
-        // Get valid target formats for this source format (Story 10-4, AC-1)
+        // Get valid target formats for this source format
         const validTargets = this.getValidTargetFormats(format);
         const defaultTarget = validTargets[0]; // First format alphabetically
 
@@ -339,7 +334,7 @@ export class UploadManager {
             // Remove from state
             this.uploadedFiles.delete(fileId);
 
-            // Show empty state and hide batch controls if no files left (AC-8, Story 10-3)
+            // Show empty state and hide batch controls if no files left
             if (this.uploadedFiles.size === 0) {
                 this.showEmptyState();
                 this.hideBatchControls();
@@ -363,7 +358,7 @@ export class UploadManager {
     }
 
     /**
-     * Get valid target formats for a source format (Story 10-4, AC-1)
+     * Get valid target formats for a source format
      * Returns all supported formats except the source format
      * @param {string} sourceFormat - Source format identifier
      * @returns {string[]} Array of valid target formats (sorted alphabetically)
@@ -472,7 +467,7 @@ export class UploadManager {
     }
 
     /**
-     * Show batch controls (Story 10-3)
+     * Show batch controls
      */
     showBatchControls() {
         const batchControls = document.getElementById('batch-controls');
@@ -482,7 +477,7 @@ export class UploadManager {
     }
 
     /**
-     * Hide batch controls (Story 10-3)
+     * Hide batch controls
      */
     hideBatchControls() {
         const batchControls = document.getElementById('batch-controls');
@@ -492,7 +487,7 @@ export class UploadManager {
     }
 
     /**
-     * Update file status (Story 10-3, AC-2, AC-3)
+     * Update file status
      * Updates file card UI based on conversion state
      * @param {number} fileId - File ID to update
      * @param {string} status - Status ('queued', 'processing', 'complete', 'error')
@@ -544,7 +539,7 @@ export class UploadManager {
                 downloadBtn.setAttribute('hidden', '');
                 convertBtn.setAttribute('hidden', '');
                 retryBtn.setAttribute('hidden', '');
-                cancelBtn.removeAttribute('hidden'); // Show cancel button (Story 10-4, AC-7)
+                cancelBtn.removeAttribute('hidden'); // Show cancel button
                 break;
             case 'complete':
                 statusIcon.textContent = '✓';
@@ -561,14 +556,14 @@ export class UploadManager {
                 statusText.title = errorMessage || 'Conversion failed'; // Full message on hover
                 downloadBtn.setAttribute('hidden', '');
                 convertBtn.setAttribute('hidden', '');
-                retryBtn.removeAttribute('hidden'); // Show retry button (Story 10-4, AC-5)
+                retryBtn.removeAttribute('hidden'); // Show retry button
                 cancelBtn.setAttribute('hidden', '');
                 break;
         }
     }
 
     /**
-     * Truncate error message (Story 10-3, AC-6)
+     * Truncate error message
      * @param {string} message - Error message
      * @param {number} maxLength - Maximum length
      * @returns {string} Truncated message
@@ -581,7 +576,7 @@ export class UploadManager {
     }
 
     /**
-     * Update batch progress (Story 10-3, AC-1)
+     * Update batch progress
      * Updates progress bar and title text
      * @param {number} completed - Number of completed files
      * @param {number} total - Total number of files
@@ -606,7 +601,7 @@ export class UploadManager {
     }
 
     /**
-     * Show batch completion message (Story 10-3, AC-1)
+     * Show batch completion message
      * @param {number} successCount - Number of successfully converted files
      * @param {number} errorCount - Number of failed files (optional)
      */
@@ -625,7 +620,7 @@ export class UploadManager {
     }
 
     /**
-     * Show batch cancelled message (Story 10-3, AC-7)
+     * Show batch cancelled message
      * @param {number} completed - Number of completed files before cancellation
      * @param {number} total - Total number of files
      */
@@ -638,7 +633,7 @@ export class UploadManager {
     }
 
     /**
-     * Show preview for uploaded file (Story 11-1, AC-3, H1, H2)
+     * Show preview for uploaded file
      * Extracts parameters from preset file and applies CSS filter preview
      * @param {number} fileId - File ID to preview
      */
@@ -670,14 +665,14 @@ export class UploadManager {
             // Apply CSS filter preview
             applyPreviewFilter(recipe);
 
-            // Show preview modal (Story 11-3 will implement the modal UI)
+            // Show preview modal
             const modal = document.getElementById('preview-modal');
             if (modal) {
                 modal.removeAttribute('hidden');
                 modal.style.display = 'flex';
             }
 
-            // Announce to screen readers (Story 10-7, AC-2)
+            // Announce to screen readers
             announceStatus(`Preview loaded for ${fileData.file.name}`);
 
         } catch (error) {
@@ -693,7 +688,7 @@ export class UploadManager {
     }
 
     /**
-     * Convert individual file (Story 10-4, AC-2, AC-3)
+     * Convert individual file
      * Converts a single file to its selected target format
      * @param {number} fileId - File ID to convert
      */
@@ -715,14 +710,14 @@ export class UploadManager {
             return;
         }
 
-        // Clear previous error (Story 10-4, AC-5 - retry functionality)
+        // Clear previous error
         if (fileData.status === 'error') {
             fileData.error = null;
         }
 
         console.log(`Converting file ${fileId}: ${fileData.format} → ${fileData.targetFormat}`);
 
-        // Create AbortController for cancellation support (Story 10-4, AC-7)
+        // Create AbortController for cancellation support
         fileData.abortController = new AbortController();
 
         // Update status to processing
@@ -760,13 +755,13 @@ export class UploadManager {
             this.updateFileStatus(fileId, 'error', errorMessage);
         }
 
-        // Update batch progress (Story 10-4, AC-6)
+        // Update batch progress
         // Count files by status to show overall progress
         this.updateOverallProgress();
     }
 
     /**
-     * Cancel individual file conversion (Story 10-4, AC-7)
+     * Cancel individual file conversion
      * Aborts conversion for a single file and reverts status to queued
      * @param {number} fileId - File ID to cancel
      */
@@ -791,14 +786,14 @@ export class UploadManager {
             fileData.abortController = null;
         }
 
-        // Revert status to queued (Story 10-4, AC-7)
+        // Revert status to queued
         this.updateFileStatus(fileId, 'queued');
 
         console.log(`File ${fileId} conversion cancelled, status reverted to queued`);
     }
 
     /**
-     * Update overall batch progress (Story 10-4, AC-6)
+     * Update overall batch progress
      * Counts all converted files (both batch and individual) to show progress
      */
     updateOverallProgress() {

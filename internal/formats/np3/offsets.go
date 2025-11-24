@@ -253,7 +253,14 @@ func DecodeScaled4(b byte) float64 {
 func EncodeScaled4(value float64) byte {
 	// Round before converting to int to avoid truncation errors
 	// Example: 0.2 * 4 = 0.8 → round(0.8) = 1 (not int(0.8) = 0)
-	result := int(value*ScaleFactor4+0.5) + BiasValue
+	scaled := value * ScaleFactor4
+	var rounded int
+	if scaled < 0 {
+		rounded = int(scaled - 0.5)
+	} else {
+		rounded = int(scaled + 0.5)
+	}
+	result := rounded + BiasValue
 	if result < 0 {
 		return 0
 	}

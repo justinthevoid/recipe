@@ -42,6 +42,31 @@ var magicBytes = []byte{'N', 'C', 'P'}
 // Note: Some variant NP3 files can be as small as 392 bytes
 const minFileSize = 300
 
+// Heuristic analysis ranges (Pattern 2)
+const (
+	heuristicNameStart = 20
+	heuristicNameEnd   = 60
+
+	heuristicRawParamsStart = 64
+	heuristicRawParamsEnd   = 80
+
+	heuristicColorDataStart = 100
+	heuristicColorDataEnd   = 300
+
+	heuristicToneCurveStart = 150
+	heuristicToneCurveEnd   = 500
+
+	// Specific parameter ranges within raw params
+	heuristicSharpnessStart = 66
+	heuristicSharpnessEnd   = 70
+
+	heuristicBrightnessStart = 71
+	heuristicBrightnessEnd   = 75
+
+	heuristicHueStart = 76
+	heuristicHueEnd   = 79
+)
+
 // Parse decodes a Nikon Picture Control (.np3) binary file into a UniversalRecipe.
 //
 // The function validates the file structure (magic bytes and minimum size),
@@ -227,8 +252,8 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 
 	// Extract preset name (offset 20-60, null-terminated ASCII)
 	// Python reference: data[20:60].decode('ascii', errors='ignore').strip('\x00').strip()
-	if len(data) >= 60 {
-		nameBytes := data[20:60]
+	if len(data) >= heuristicNameEnd {
+		nameBytes := data[heuristicNameStart:heuristicNameEnd]
 		// Find null terminator
 		nameEnd := 0
 		for i, b := range nameBytes {
@@ -254,8 +279,8 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	// Extract raw parameter bytes (offsets 64-80)
 	// Python reference: Converts bytes with >128 to negative values
 	var rawParams []rawParamByte
-	if len(data) >= 80 {
-		for i := 64; i < 80; i++ {
+	if len(data) >= heuristicRawParamsEnd {
+		for i := heuristicRawParamsStart; i < heuristicRawParamsEnd; i++ {
 			b := data[i]
 			// Skip null and 128 (neutral) values
 			if b != 0 && b != 128 {
@@ -278,8 +303,8 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	// Extract color data (bytes 100-300, RGB triplets)
 	// Python reference: Extracts RGB triplets where at least one channel > 10
 	var colorData []colorDataPoint
-	if len(data) >= 103 { // Need at least 3 bytes for first triplet
-		for i := 100; i < len(data) && i < 300; i += 3 {
+	if len(data) >= heuristicColorDataStart+3 { // Need at least 3 bytes for first triplet
+		for i := heuristicColorDataStart; i < len(data) && i < heuristicColorDataEnd; i += 3 {
 			if i+2 >= len(data) {
 				break
 			}
@@ -299,8 +324,8 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	// Extract tone curve data (bytes 150-500, paired values)
 	// Python reference: Extracts pairs where at least one byte is non-zero
 	var toneCurve []toneCurvePoint
-	if len(data) > 200 {
-		for i := 150; i < len(data) && i < 500; i += 2 {
+	if len(data) > heuristicToneCurveStart+50 { // Ensure enough data for a meaningful curve
+		for i := heuristicToneCurveStart; i < len(data) && i < heuristicToneCurveEnd; i += 2 {
 			if i+1 >= len(data) {
 				break
 			}
@@ -468,7 +493,7 @@ func extractHeuristicParameters(params *np3Parameters, rawParams []rawParamByte)
 	brightnessSum := 0
 	brightnessCount := 0
 	for _, rp := range rawParams {
-		if rp.offset >= 71 && rp.offset <= 75 {
+		if rp.offset >= heuristicBrightnessStart && rp.offset <= heuristicBrightnessEnd {
 			// Use raw byte and apply simple offset decoding (not two's complement)
 			// adjusted = raw_byte - 128
 			adjusted := int(rp.raw) - 128
@@ -496,7 +521,7 @@ func extractHeuristicParameters(params *np3Parameters, rawParams []rawParamByte)
 	hueSum := 0
 	hueCount := 0
 	for _, rp := range rawParams {
-		if rp.offset >= 76 && rp.offset <= 79 {
+		if rp.offset >= heuristicHueStart && rp.offset <= heuristicHueEnd {
 			// Use raw byte and apply simple offset decoding (not two's complement)
 			adjusted := int(rp.raw) - 128
 			hueSum += adjusted
@@ -552,7 +577,7 @@ func estimateParameters(params *np3Parameters, rawParams []rawParamByte, colorDa
 	sharpnessSum := 0
 	sharpnessCount := 0
 	for _, rp := range rawParams {
-		if rp.offset >= 66 && rp.offset <= 70 {
+		if rp.offset >= heuristicSharpnessStart && rp.offset <= heuristicSharpnessEnd {
 			sharpnessSum += rp.adjusted
 			sharpnessCount++
 		}
@@ -579,7 +604,7 @@ func estimateParameters(params *np3Parameters, rawParams []rawParamByte, colorDa
 	brightnessSum := 0
 	brightnessCount := 0
 	for _, rp := range rawParams {
-		if rp.offset >= 71 && rp.offset <= 75 {
+		if rp.offset >= heuristicBrightnessStart && rp.offset <= heuristicBrightnessEnd {
 			brightnessSum += rp.adjusted
 			brightnessCount++
 		}
@@ -603,7 +628,7 @@ func estimateParameters(params *np3Parameters, rawParams []rawParamByte, colorDa
 	hueSum := 0
 	hueCount := 0
 	for _, rp := range rawParams {
-		if rp.offset >= 76 && rp.offset <= 79 {
+		if rp.offset >= heuristicHueStart && rp.offset <= heuristicHueEnd {
 			hueSum += rp.adjusted
 			hueCount++
 		}

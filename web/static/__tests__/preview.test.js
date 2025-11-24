@@ -1,21 +1,19 @@
 /**
  * Unit tests for preview.js
- * Story: 11-1-css-filter-mapping
- * Epic: 11 (Image Preview System)
  *
- * Tests CSS filter mapping function for 100% coverage (AC-7)
+ * Tests CSS filter mapping function for 100% coverage
  */
 
 import { recipeToCSSFilters, clamp, isCSSFilterSupported } from '../preview.js';
 
 describe('recipeToCSSFilters', () => {
-    // AC-7: Test: Zero parameters → 'none'
+    // Test: Zero parameters → 'none'
     test('returns "none" for zero parameters', () => {
         const recipe = { exposure: 0, contrast: 0, saturation: 0, hue: 0 };
         expect(recipeToCSSFilters(recipe)).toBe('none');
     });
 
-    // AC-7: Test: Exposure +0.5 → 'brightness(150%)'
+    // Test: Exposure +0.5 → 'brightness(150%)'
     test('maps exposure to brightness', () => {
         const recipe = { exposure: 0.5 };
         expect(recipeToCSSFilters(recipe)).toBe('brightness(150%)');
@@ -26,7 +24,7 @@ describe('recipeToCSSFilters', () => {
         expect(recipeToCSSFilters(recipe)).toBe('brightness(50%)');
     });
 
-    // AC-7: Test: Contrast +0.3 → 'contrast(130%)'
+    // Test: Contrast +0.3 → 'contrast(130%)'
     test('maps contrast to contrast', () => {
         const recipe = { contrast: 0.3 };
         expect(recipeToCSSFilters(recipe)).toBe('contrast(130%)');
@@ -37,7 +35,7 @@ describe('recipeToCSSFilters', () => {
         expect(recipeToCSSFilters(recipe)).toBe('contrast(70%)');
     });
 
-    // AC-7: Test: Saturation -0.5 → 'saturate(50%)'
+    // Test: Saturation -0.5 → 'saturate(50%)'
     test('maps saturation to saturate', () => {
         const recipe = { saturation: -0.5 };
         expect(recipeToCSSFilters(recipe)).toBe('saturate(50%)');
@@ -48,7 +46,7 @@ describe('recipeToCSSFilters', () => {
         expect(recipeToCSSFilters(recipe)).toBe('saturate(150%)');
     });
 
-    // AC-7: Test: Hue +30 → 'hue-rotate(30deg)'
+    // Test: Hue +30 → 'hue-rotate(30deg)'
     test('maps hue to hue-rotate', () => {
         const recipe = { hue: 30 };
         expect(recipeToCSSFilters(recipe)).toBe('hue-rotate(30deg)');
@@ -59,7 +57,7 @@ describe('recipeToCSSFilters', () => {
         expect(recipeToCSSFilters(recipe)).toBe('hue-rotate(-30deg)');
     });
 
-    // AC-7: Test: Temperature +20 → 'sepia(6) hue-rotate(10deg)'
+    // Test: Temperature +20 → 'sepia(6) hue-rotate(10deg)'
     test('maps temperature to sepia + hue-rotate', () => {
         const recipe = { temperature: 20 };
         expect(recipeToCSSFilters(recipe)).toBe('sepia(6) hue-rotate(10deg)');
@@ -70,7 +68,7 @@ describe('recipeToCSSFilters', () => {
         expect(recipeToCSSFilters(recipe)).toBe('sepia(6) hue-rotate(-10deg)');
     });
 
-    // AC-7: Test: Multiple parameters combine correctly
+    // Test: Multiple parameters combine correctly
     test('combines multiple filters', () => {
         const recipe = { exposure: 0.5, contrast: 0.3, saturation: -0.5 };
         expect(recipeToCSSFilters(recipe)).toBe('brightness(150%) contrast(130%) saturate(50%)');
@@ -87,13 +85,13 @@ describe('recipeToCSSFilters', () => {
         expect(recipeToCSSFilters(recipe)).toBe('brightness(150%) contrast(130%) saturate(50%) hue-rotate(30deg) sepia(6) hue-rotate(10deg)');
     });
 
-    // AC-7: Test: Out-of-range exposure (+5.0) clamps to 'brightness(200%)'
+    // Test: Out-of-range exposure (+5.0) clamps to 'brightness(200%)'
     test('clamps exposure to 200% maximum', () => {
         const recipe = { exposure: 5.0 };
         expect(recipeToCSSFilters(recipe)).toBe('brightness(200%)');
     });
 
-    // AC-7: Test: Negative exposure (-3.0) clamps to 'brightness(0%)'
+    // Test: Negative exposure (-3.0) clamps to 'brightness(0%)'
     test('clamps exposure to 0% minimum', () => {
         const recipe = { exposure: -3.0 };
         expect(recipeToCSSFilters(recipe)).toBe('brightness(0%)');
@@ -139,17 +137,17 @@ describe('recipeToCSSFilters', () => {
         expect(recipeToCSSFilters(recipe)).toBe('sepia(30) hue-rotate(-50deg)');
     });
 
-    // AC-7: Test: Null recipe → 'none'
+    // Test: Null recipe → 'none'
     test('handles null recipe gracefully', () => {
         expect(recipeToCSSFilters(null)).toBe('none');
     });
 
-    // AC-7: Test: Undefined recipe → 'none'
+    // Test: Undefined recipe → 'none'
     test('handles undefined recipe gracefully', () => {
         expect(recipeToCSSFilters(undefined)).toBe('none');
     });
 
-    // AC-7: Test: Invalid parameter types skip gracefully
+    // Test: Invalid parameter types skip gracefully
     test('skips invalid parameters', () => {
         const recipe = { exposure: 'invalid', contrast: 0.3 };
         expect(recipeToCSSFilters(recipe)).toBe('contrast(130%)');
@@ -274,8 +272,8 @@ describe('applyPreviewFilter', () => {
         document.body.appendChild(mockImage);
 
         // Mock console.log
-        jest.spyOn(console, 'log').mockImplementation(() => {});
-        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        jest.spyOn(console, 'log').mockImplementation(() => { });
+        jest.spyOn(console, 'warn').mockImplementation(() => { });
     });
 
     afterEach(() => {
@@ -336,7 +334,7 @@ describe('checkBrowserCompatibility', () => {
         document.body.appendChild(modal);
 
         // Mock console.warn and alert
-        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        jest.spyOn(console, 'warn').mockImplementation(() => { });
         global.alert = jest.fn();
     });
 

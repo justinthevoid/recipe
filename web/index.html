@@ -358,51 +358,7 @@
         Loading converter...
     </div>
 
-    <!-- Legacy Drop Zone (TODO: Remove after migration to Story 10-2 batch upload) -->
-    <div id="legacy-upload" hidden>
-        <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload preset file">
-            <input type="file" id="fileInput" accept=".np3,.xmp,.lrtemplate" hidden aria-label="Choose preset file">
-            <div class="drop-zone-content">
-                <div class="icon">📁</div>
-                <p class="primary-text">Drop your preset file here</p>
-                <p class="secondary-text">or click to browse</p>
-                <p class="formats-text">.np3, .xmp, .lrtemplate</p>
-            </div>
-        </div>
 
-        <!-- Error Display -->
-        <div id="errorMessage" class="error-message" role="alert" style="display: none;"></div>
-
-        <!-- File Info (hidden until file uploaded, populated by Story 2-2) -->
-        <div id="fileInfo" class="file-info" style="display: none;"></div>
-
-        <!-- Parameter Display Panel (Story 2-4) -->
-        <div id="parameterStatus" class="status loading" style="display: none;" role="status" aria-live="polite">
-            Extracting parameters...
-        </div>
-        <div id="parameterError" class="error-message" style="display: none;" role="alert"></div>
-        <div id="parameterPanel" style="display: none;"></div>
-
-        <!-- Conversion Controls (populated by Stories 2-5, 2-6, 2-7) -->
-        <div id="conversionControls" class="conversion-controls" style="display: none;"></div>
-
-        <!-- Conversion Status (Story 2-6) -->
-        <div id="conversionStatus" class="status" style="display: none;" role="status" aria-live="polite"></div>
-
-        <!-- Conversion Error (Story 2-6) -->
-        <div id="conversionError" class="error-message" style="display: none;" role="alert"></div>
-
-        <!-- Download Button (Story 2-7) -->
-        <button id="downloadButton" class="download-button" style="display: none;" disabled>
-            Download Converted Preset
-        </button>
-
-        <!-- Download Status (Story 2-7) -->
-        <div id="downloadStatus" class="status" style="display: none;" role="status" aria-live="polite"></div>
-
-        <!-- Download Error (Story 2-7) -->
-        <div id="downloadError" class="error-message" style="display: none;" role="alert"></div>
-    </div>
 
     <!-- Footer -->
     <footer role="contentinfo">
