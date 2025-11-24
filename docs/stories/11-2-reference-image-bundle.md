@@ -763,6 +763,98 @@ claude-sonnet-4-5-20250929
 
 ### Debug Log References
 
+**2025-11-15 - Story 11-2 Implementation (Automated Infrastructure)**
+
+This story requires **hybrid implementation**: automated infrastructure setup + manual asset preparation by Justin.
+
+**Automated Infrastructure Completed:**
+1. Created `web/images/` directory structure for reference images
+2. Created `web/images/CREDITS.md` template with CC0 attribution format
+3. Created comprehensive `web/images/IMAGE_PREPARATION_GUIDE.md` with:
+   - Step-by-step image selection criteria (Portrait, Landscape, Product)
+   - Complete optimization scripts (resize, WebP conversion, JPEG fallback)
+   - File size validation targets
+   - Browser compatibility testing checklist
+   - Visual quality validation procedures
+   - AC validation checklist
+4. Updated `README.md` with Reference Images documentation under Epic 11 section
+
+**Manual Tasks Remaining for Justin:**
+
+⚠️ **CRITICAL: Story 11-2 cannot be marked complete until actual image assets are prepared**
+
+Justin must complete these steps (detailed in `web/images/IMAGE_PREPARATION_GUIDE.md`):
+
+1. **Select 3 Reference Images** from Unsplash/Pexels/Pixabay (CC0 license):
+   - Portrait: Person with natural lighting, visible skin tones, neutral background
+   - Landscape: Outdoor scene with blue sky, green foliage, good tonal range
+   - Product: Still-life with neutral background, varied colors, studio lighting
+
+2. **Install Optimization Tools:**
+   - macOS: `brew install webp imagemagick`
+   - Windows: Download WebP tools + ImageMagick (see guide)
+   - Linux: `sudo apt-get install webp imagemagick`
+
+3. **Optimize Images** (run commands from guide):
+   - Resize to 3 sizes each: 1200px (desktop), 800px (tablet), 400px (mobile)
+   - Convert to WebP format (quality 80%)
+   - Create JPEG fallbacks (quality 85%)
+   - Verify file sizes: Portrait <150KB, Landscape <180KB, Product <120KB
+
+4. **Update CREDITS.md** with actual photographer attribution
+
+5. **Validate** images meet all 7 acceptance criteria
+
+**Why This Approach:**
+- AI agents cannot download external images or run local binary tools (cwebp, convert)
+- Image selection requires human judgment for aesthetic quality and licensing verification
+- WebP optimization requires local tooling not available in agent environment
+- This hybrid approach maximizes automation while acknowledging physical constraints
+
+**Next Steps for Justin:**
+1. Review `web/images/IMAGE_PREPARATION_GUIDE.md` for complete instructions
+2. Select and optimize images following the guide
+3. Verify all ACs met using the validation checklist
+4. Return to this story and mark tasks complete
+5. Story 11-3 (Preview Modal) can then use these reference images
+
 ### Completion Notes List
 
+**Infrastructure Setup (Automated - COMPLETE)**
+✅ Created directory structure: `web/images/`
+✅ Created attribution template: `web/images/CREDITS.md`
+✅ Created comprehensive preparation guide: `web/images/IMAGE_PREPARATION_GUIDE.md` (12,683 bytes)
+✅ Updated README.md with Reference Images section under Epic 11
+✅ Documented integration points for Story 11.3 (Preview Modal will use these images)
+
+**Asset Preparation (Manual - PENDING JUSTIN)**
+⚠️ Image selection from CC0 sources (Unsplash/Pexels/Pixabay)
+⚠️ Image optimization (resize, WebP conversion, JPEG fallback)
+⚠️ File size validation (<200KB each, <600KB total)
+⚠️ CREDITS.md population with actual photographer details
+⚠️ Visual quality validation (CSS filter compatibility testing)
+⚠️ Browser compatibility validation (WebP + JPEG fallback)
+
 ### File List
+
+**Created:**
+- `web/images/` (directory)
+- `web/images/CREDITS.md` (attribution template, 1,774 bytes)
+- `web/images/IMAGE_PREPARATION_GUIDE.md` (comprehensive guide, 12,683 bytes)
+
+**Modified:**
+- `README.md` (added Reference Images section under Epic 11)
+
+**To be Created by Justin:**
+- `web/images/preview-portrait.webp` (Desktop, ~150 KB)
+- `web/images/preview-portrait-800w.webp` (Tablet, ~80 KB)
+- `web/images/preview-portrait-400w.webp` (Mobile, ~30 KB)
+- `web/images/preview-portrait.jpg` (Fallback, ~180 KB)
+- `web/images/preview-landscape.webp` (Desktop, ~180 KB)
+- `web/images/preview-landscape-800w.webp` (Tablet, ~100 KB)
+- `web/images/preview-landscape-400w.webp` (Mobile, ~40 KB)
+- `web/images/preview-landscape.jpg` (Fallback, ~220 KB)
+- `web/images/preview-product.webp` (Desktop, ~120 KB)
+- `web/images/preview-product-800w.webp` (Tablet, ~60 KB)
+- `web/images/preview-product-400w.webp` (Mobile, ~25 KB)
+- `web/images/preview-product.jpg` (Fallback, ~140 KB)

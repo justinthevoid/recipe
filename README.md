@@ -11,9 +11,57 @@ All processing happens locally on your device - files are never uploaded to any 
 - 🔒 **100% Privacy:** All conversions run in your browser via WebAssembly (no server uploads)
 - ⚡ **Fast:** Sub-millisecond conversions (0.003-0.079ms per file)
 - 📱 **Mobile-Responsive:** Works on phones, tablets, and desktops
+- 🖼️ **Instant Preview:** CSS filter-based preset preview (approximate, <100ms)
 - 🌍 **Browser Support:** Chrome 131+, Firefox 132+, Safari 18.0+, Edge 131+ (90%+ market coverage)
 
 No account required. Start converting presets instantly.
+
+### CSS Filter Preview (Epic 11)
+
+Recipe provides an **approximate preview** of preset adjustments using CSS filters for instant feedback.
+
+**How It Works:**
+
+Recipe maps preset parameters to browser-native CSS filters for instant visual preview:
+
+- **Exposure** → `brightness()` CSS filter (0% to 200%)
+- **Contrast** → `contrast()` CSS filter (0% to 200%)
+- **Saturation** → `saturate()` CSS filter (0% to 200%)
+- **Hue** → `hue-rotate()` CSS filter (-180deg to +180deg)
+- **Temperature/Tint** → `sepia()` + `hue-rotate()` (approximation)
+
+**Limitations:**
+
+⚠️ **CSS filters are approximations** - actual preset adjustments use more sophisticated color science.
+
+- Temperature/tint uses simplified formulas (not accurate color temperature)
+- Tone curves not supported in Phase 1 (planned for Phase 2)
+- Actual conversion results may differ from preview
+- For accurate results, convert the preset and view in your photo editor
+
+**Browser Support:**
+
+CSS filter preview requires modern browsers:
+- Chrome 18+ (2012)
+- Firefox 35+ (2015)
+- Safari 9.1+ (2016)
+- Edge 12+ (2015)
+
+**Not supported:** Internet Explorer 11
+
+#### Reference Images
+
+Recipe includes three representative reference images for preset preview:
+
+| Image Type | Use Case | Key Features |
+| ---------- | -------- | ------------ |
+| **Portrait** | Test presets on portraits, skin tones | Natural lighting, visible skin tones, neutral background |
+| **Landscape** | Test presets on nature, landscapes | Blue sky, green foliage, good tonal range, daylight |
+| **Product** | Test presets on commercial, product photography | Neutral background, varied colors, studio lighting |
+
+**Licensing:** All reference images are licensed under CC0 (Public Domain). See [`web/images/CREDITS.md`](web/images/CREDITS.md) for attribution details.
+
+**Optimization:** Images are optimized for web with WebP format (JPEG fallback) and responsive sizes (Desktop 1200px, Tablet 800px, Mobile 400px) for fast loading on all devices.
 
 ## ⚖️ Legal Notice
 

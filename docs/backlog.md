@@ -158,3 +158,81 @@ None.
 - Story 1-5: HIGH priority item H1 is BLOCKING - must be completed before story can be re-reviewed
 - Story 1-5: LOW items are documentation clarifications only
 - Story 1-2: All HIGH priority items must be completed before story can be re-reviewed. MEDIUM items should be addressed in same iteration. LOW items can be deferred to epic retrospective if time-constrained.
+
+---
+
+## Story 11-1-css-filter-mapping - Code Review Follow-ups
+**Date**: 2025-11-15
+**Review Outcome**: BLOCKED
+**Reviewer**: Senior Developer Code Review Workflow
+**Model**: claude-sonnet-4-5-20250929
+**Epic**: 11 (Image Preview System)
+
+### High Priority Action Items
+
+- [ ] **[H1] Integrate preview with upload flow** - Task 7 marked complete but NO integration code exists
+  - File: `web/static/main.js` or `web/static/upload.js`
+  - Impact: BLOCKING - AC-3 requires preview applied when file uploaded/dropped
+  - Evidence: No calls to `applyPreviewFilter()` from upload handling code
+  - Implementation Required:
+    - Import `applyPreviewFilter()` from `preview.js`
+    - Call it in `handlePresetUpload()` or equivalent function after preset parsing
+    - Pass parsed UniversalRecipe to the function
+    - Verify preview image filter updates correctly
+  - Related AC: AC-3 (Preview applied when file uploaded/dropped)
+  - Related Task: Task 7 (Integration with Preset Upload Flow)
+  - Verification: Upload NP3/XMP/lrtemplate file → preview image filter updates
+
+- [ ] **[H2] Add "Preview" button to file cards in upload interface** - UI element to trigger preview missing
+  - File: `web/index.html`, `web/static/upload.js`
+  - Impact: BLOCKING - AC-3 requires preview visible when file uploaded
+  - Evidence: No button in file card HTML, no click handler to show preview modal
+  - Implementation Required:
+    - Add "Preview" button to each uploaded file card in HTML
+    - Add click handler that calls `showPreviewModal()` and `applyPreviewFilter(recipe)`
+    - Style button consistently with existing UI (badge/button styles)
+    - Test with multiple uploaded files (each card gets preview button)
+  - Related AC: AC-3
+  - Related Task: Task 7
+  - Verification: Upload file → "Preview" button appears on file card → clicking shows modal with filter applied
+
+- [ ] **[H3] Execute performance testing on iPhone 8 and Android mid-range device** - AC-6 performance validation required
+  - File: Test report to be added to story Dev Notes or separate test log
+  - Impact: BLOCKING - AC-6 requires <100ms filter application, 60fps slider responsiveness
+  - Evidence: Task 5 correctly marked pending [ ], no test results documented
+  - Testing Required:
+    - iPhone 8 (iOS 12+): Measure filter application time, slider responsiveness
+    - Android mid-range (e.g., Samsung Galaxy A52): Same measurements
+    - GPU acceleration verification (use browser DevTools Performance tab)
+    - Document results in story file or separate test report
+  - Device Requirements:
+    - iPhone 8 running iOS 12 or later
+    - Android mid-range device (2019-2021 era, e.g., Samsung Galaxy A52, Google Pixel 4a)
+  - Related AC: AC-6 (Performance Optimization)
+  - Related Task: Task 5 (Performance Testing)
+  - Verification: Filter application <100ms, slider updates at 60fps, GPU acceleration active
+
+### Medium Priority Action Items
+
+- [ ] **[M1] Document manual browser testing results** - AC-5 validation requires evidence
+  - File: Story Dev Notes section or separate test report
+  - Impact: Task 4 marked [x] complete but no manual testing evidence provided
+  - Evidence: No screenshots, test log, or documented results in story file
+  - Testing Required:
+    - Chrome (latest 2 versions): Desktop + Android
+    - Firefox (latest 2 versions): Desktop
+    - Safari (latest 2 versions): Desktop + iOS
+    - Edge (latest 2 versions): Desktop
+    - Verify CSS filter support detection works correctly
+    - Document fallback behavior for unsupported browsers (if any)
+  - Related AC: AC-5 (Browser Compatibility Testing)
+  - Related Task: Task 4 (Browser Compatibility Detection)
+  - Verification: Add section to story with browser versions tested, screenshots or test log
+
+**Notes**:
+- Story 11-1: All HIGH priority items (H1, H2, H3) are BLOCKING - must be completed before story can move to DONE
+- Story 11-1: Implementation quality is excellent (92% test coverage, 51/51 tests pass, type validation, GPU acceleration)
+- Story 11-1: Core CSS filter mapping function is complete and thoroughly tested
+- Story 11-1: Integration gap (H1, H2) is critical - preview feature exists but not wired into upload flow
+- Story 11-1: Performance testing (H3) must be done on actual devices, not just desktop browsers
+- Story 11-1: MEDIUM item M1 should be completed with H3 in same test session

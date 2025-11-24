@@ -31,7 +31,7 @@ export function recipeToCSSFilters(recipe) {
     // Exposure → brightness (range: -2.0 to +2.0 → 0% to 200%)
     // Formula: brightness = (1.0 + exposure) * 100%
     // Example: Exposure +0.5 → brightness(150%)
-    if (recipe.exposure != null && recipe.exposure !== 0) {
+    if (recipe.exposure != null && recipe.exposure !== 0 && typeof recipe.exposure === 'number') {
         const brightness = clamp((1.0 + recipe.exposure) * 100, 0, 200);
         filters.push(`brightness(${brightness}%)`);
     }
@@ -39,7 +39,7 @@ export function recipeToCSSFilters(recipe) {
     // Contrast → contrast (range: -1.0 to +1.0 → 0% to 200%)
     // Formula: contrast = (1.0 + contrast) * 100%
     // Example: Contrast +0.3 → contrast(130%)
-    if (recipe.contrast != null && recipe.contrast !== 0) {
+    if (recipe.contrast != null && recipe.contrast !== 0 && typeof recipe.contrast === 'number') {
         const contrast = clamp((1.0 + recipe.contrast) * 100, 0, 200);
         filters.push(`contrast(${contrast}%)`);
     }
@@ -47,7 +47,7 @@ export function recipeToCSSFilters(recipe) {
     // Saturation → saturate (range: -1.0 to +1.0 → 0% to 200%)
     // Formula: saturate = (1.0 + saturation) * 100%
     // Example: Saturation -0.5 → saturate(50%)
-    if (recipe.saturation != null && recipe.saturation !== 0) {
+    if (recipe.saturation != null && recipe.saturation !== 0 && typeof recipe.saturation === 'number') {
         const saturate = clamp((1.0 + recipe.saturation) * 100, 0, 200);
         filters.push(`saturate(${saturate}%)`);
     }
@@ -55,7 +55,7 @@ export function recipeToCSSFilters(recipe) {
     // Hue → hue-rotate (range: -180 to +180 degrees)
     // Formula: hue-rotate = hue (direct mapping)
     // Example: Hue +30 → hue-rotate(30deg)
-    if (recipe.hue != null && recipe.hue !== 0) {
+    if (recipe.hue != null && recipe.hue !== 0 && typeof recipe.hue === 'number') {
         const hue = clamp(recipe.hue, -180, 180);
         filters.push(`hue-rotate(${hue}deg)`);
     }
@@ -65,7 +65,7 @@ export function recipeToCSSFilters(recipe) {
     // Cool temperatures (-) → sepia() + negative hue-rotate
     // Formula: sepia(|temperature| * 0.3) hue-rotate(temperature * 0.5deg)
     // Note: This is an approximation - CSS lacks true color temperature adjustment
-    if (recipe.temperature != null && recipe.temperature !== 0) {
+    if (recipe.temperature != null && recipe.temperature !== 0 && typeof recipe.temperature === 'number') {
         const temp = clamp(recipe.temperature, -100, 100);
         const sepia = Math.abs(temp) * 0.3;
         const hueShift = temp * 0.5;

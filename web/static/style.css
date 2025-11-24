@@ -898,6 +898,49 @@ header h1 {
     transform: none;
 }
 
+/* Story 11-1: Preview button */
+.file-card__preview {
+    min-height: 48px; /* AC-4: Touch-friendly secondary action */
+    width: 100%; /* AC-4: Full-width on mobile */
+    padding: 0.75rem 1rem;
+    background: #6B7280; /* Gray - secondary action */
+    border: 2px solid #6B7280;
+    border-radius: 6px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+/* Tablet+: Auto-width preview button */
+@media (min-width: 768px) {
+    .file-card__preview {
+        width: auto;
+        display: inline-block;
+    }
+}
+
+.file-card__preview:hover {
+    background: #4B5563;
+    border-color: #4B5563;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.file-card__preview:active {
+    transform: translateY(0);
+}
+
+.file-card__preview:disabled {
+    background: #cbd5e0;
+    border-color: #cbd5e0;
+    color: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .file-card__retry {
     padding: 0.5rem 1rem;
     background: #f59e0b; /* Orange/amber - retry action */
@@ -952,7 +995,8 @@ header h1 {
 
 /* Disable controls during processing (AC-1) */
 .file-card[data-status="processing"] .file-card__format-select,
-.file-card[data-status="processing"] .file-card__convert {
+.file-card[data-status="processing"] .file-card__convert,
+.file-card[data-status="processing"] .file-card__preview {
     pointer-events: none;
     opacity: 0.6;
 }
