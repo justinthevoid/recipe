@@ -225,6 +225,13 @@ function init() {
     // Story 10-3: Initialize batch conversion controls
     initializeBatchControls();
 
+    // Update status banner to show ready state (WASM loads on first upload)
+    const statusEl = document.getElementById('status');
+    if (statusEl) {
+        statusEl.className = 'status ready';
+        statusEl.textContent = 'Ready to convert';
+    }
+
     console.log('Initialization complete');
 }
 
