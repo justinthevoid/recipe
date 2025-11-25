@@ -9,6 +9,7 @@
   import Modal from "./lib/components/Modal.svelte";
   import UploadZone from "./lib/components/UploadZone.svelte";
   import FileList from "./lib/components/FileList.svelte";
+  import PreviewModal from "./lib/components/PreviewModal.svelte";
 
   let showLegalModal = false;
 
@@ -47,6 +48,8 @@
       affiliated with Nikon, Adobe, or Phase One.
     </p>
   </Modal>
+
+  <PreviewModal />
 </main>
 
 <style>
