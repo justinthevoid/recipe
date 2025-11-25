@@ -16,6 +16,9 @@
     let loading = false;
     let error = null;
 
+    // Slider state
+    let sliderPosition = 50;
+
     // Subscribe to store
     previewFile.subscribe(async (f) => {
         file = f;
@@ -36,6 +39,7 @@
         groupedParams = null;
         cssFilter = "none";
         error = null;
+        sliderPosition = 50;
     }
 
     async function loadPreview(f) {
@@ -82,17 +86,81 @@
                 <!-- Left: Image Preview -->
                 <div class="preview-image-section">
                     <h3>Instant Preview</h3>
+
                     <div class="image-container">
+                        <!-- Before Image (Background) -->
                         <img
                             src="/images/portrait-original.jpg"
-                            alt="Preview"
-                            style="filter: {cssFilter};"
-                            class="preview-img"
+                            alt="Before"
+                            class="preview-img before"
                         />
+
+                        <!-- After Image (Foreground, Clipped) -->
+                        <img
+                            src="/images/portrait-original.jpg"
+                            alt="After"
+                            style="filter: {cssFilter}; clip-path: inset(0 0 0 {sliderPosition}%);"
+                            class="preview-img after"
+                        />
+
+                        <!-- Slider Handle -->
+                        <div
+                            class="slider-handle"
+                            style="left: {sliderPosition}%"
+                        >
+                            <div class="slider-line"></div>
+                            <div class="slider-button">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        d="M18 8L22 12L18 16"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                    <path
+                                        d="M6 8L2 12L6 16"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Range Input (Invisible Control) -->
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            bind:value={sliderPosition}
+                            class="slider-input"
+                            aria-label="Comparison slider"
+                        />
+
+                        <!-- Labels -->
+                        <div
+                            class="label label-before"
+                            style="opacity: {sliderPosition < 10 ? 0 : 1}"
+                        >
+                            Before
+                        </div>
+                        <div
+                            class="label label-after"
+                            style="opacity: {sliderPosition > 90 ? 0 : 1}"
+                        >
+                            After
+                        </div>
+
                         {#if loading}
                             <div class="loader-overlay">Loading...</div>
                         {/if}
                     </div>
+
                     <p class="disclaimer">
                         * Approximation using CSS filters. Actual conversion may
                         vary.
@@ -159,6 +227,7 @@
         align-items: center;
         justify-content: center;
         border-right: 1px solid var(--glass-border);
+        position: relative;
     }
 
     .image-container {
@@ -167,13 +236,83 @@
         border-radius: 8px;
         overflow: hidden;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        user-select: none;
     }
 
     .preview-img {
         display: block;
         max-width: 100%;
         height: auto;
-        transition: filter 0.3s ease;
+        pointer-events: none;
+    }
+
+    .preview-img.after {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Slider Controls */
+    .slider-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: col-resize;
+        z-index: 20;
+        margin: 0;
+    }
+
+    .slider-handle {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(255, 255, 255, 0.8);
+        pointer-events: none; /* Let clicks pass to input */
+        z-index: 10;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .slider-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 32px;
+        height: 32px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #333;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .label {
+        position: absolute;
+        top: 1rem;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        z-index: 5;
+    }
+
+    .label-before {
+        left: 1rem;
+    }
+
+    .label-after {
+        right: 1rem;
     }
 
     .preview-params-section {
