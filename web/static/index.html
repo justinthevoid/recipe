@@ -4,844 +4,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipe - Convert Photo Presets</title>
+    <title>Recipe - Pro Preset Converter</title>
+    <meta name="description"
+        content="Convert Lightroom, Capture One, and Nikon presets instantly and privately in your browser.">
 
-    <!-- Story 10-6: Critical CSS inlined for fast FCP (<14 KB TCP threshold) -->
-    <style>
-        /* Critical CSS: Above-the-fold only (6.8 KB < 14 KB target) */
-        :root {
-            --color-np3: #FFC107;
-            --color-xmp: #0073E6;
-            --color-lrtemplate: #D81B60;
-            --color-costyle: #9C27B0;
-            --color-dcp: #4CAF50;
-            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-weight-normal: 400;
-            --font-weight-bold: 600;
-            --line-height-body: 1.6;
-            --line-height-heading: 1.2
-        }
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0
-        }
-
-        html {
-            scroll-behavior: smooth;
-            font-size: 16px;
-            line-height: 1.5
-        }
-
-        body {
-            font-family: var(--font-family);
-            font-size: 16px;
-            font-weight: var(--font-weight-normal);
-            line-height: var(--line-height-body);
-            color: #2d3748;
-            background: #f7fafc;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden
-        }
-
-        img,
-        svg {
-            max-width: 100%;
-            height: auto
-        }
-
-        .hero {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem 1rem;
-            text-align: center
-        }
-
-        .hero__container {
-            max-width: 1200px;
-            margin: 0 auto
-        }
-
-        .hero__title {
-            font-size: 28px;
-            font-weight: var(--font-weight-bold);
-            line-height: var(--line-height-heading);
-            margin: 0 0 1rem 0
-        }
-
-        .hero__subtitle {
-            font-size: 16px;
-            line-height: var(--line-height-body);
-            max-width: 700px;
-            margin: 0 auto 1.5rem auto;
-            opacity: .95
-        }
-
-        .hero__cta {
-            display: block;
-            width: 100%;
-            padding: 1rem 2rem;
-            font-size: 18px;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all .2s ease
-        }
-
-        @media (min-width:768px) {
-            .hero {
-                padding: 3rem 2rem
-            }
-
-            .hero__title {
-                font-size: 36px
-            }
-
-            .hero__subtitle {
-                font-size: 18px
-            }
-
-            .hero__cta {
-                display: inline-block;
-                width: auto
-            }
-        }
-
-        @media (min-width:1024px) {
-            .hero {
-                padding: 4rem 2rem
-            }
-
-            .hero__title {
-                font-size: 48px
-            }
-
-            .hero__subtitle {
-                font-size: 20px
-            }
-        }
-
-        .button {
-            min-height: 44px;
-            padding: .75rem 1.5rem;
-            font-size: 16px;
-            font-weight: var(--font-weight-bold);
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-            transition: all .2s ease
-        }
-
-        .button--primary {
-            background: white;
-            color: #667eea
-        }
-
-        .button--primary:hover {
-            background: #f7fafc;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .2)
-        }
-
-        .button--primary:active {
-            transform: translateY(0)
-        }
-
-        .button--secondary {
-            background: #e2e8f0;
-            color: #2d3748
-        }
-
-        .button--secondary:hover {
-            background: #cbd5e0;
-            transform: translateY(-1px)
-        }
-
-        .formats {
-            background: #ffffff;
-            padding: 2rem 1rem;
-            text-align: center
-        }
-
-        .formats__container {
-            max-width: 1200px;
-            margin: 0 auto
-        }
-
-        .formats__title {
-            font-size: 1.5rem;
-            font-weight: var(--font-weight-bold);
-            color: #2d3748;
-            margin: 0 0 1.5rem 0
-        }
-
-        .formats__badges {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            max-width: 400px;
-            margin: 0 auto
-        }
-
-        .badge {
-            display: block;
-            width: 100%;
-            padding: 1rem;
-            border-radius: 6px;
-            font-weight: var(--font-weight-bold);
-            font-size: 18px;
-            color: white;
-            text-align: center;
-            transition: all .2s ease
-        }
-
-        @media (min-width:768px) {
-            .formats {
-                padding: 3rem 2rem
-            }
-
-            .formats__title {
-                font-size: 2rem
-            }
-
-            .formats__badges {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                max-width: 600px
-            }
-
-            .badge {
-                font-size: 16px
-            }
-        }
-
-        @media (min-width:1024px) {
-            .formats__badges {
-                display: flex;
-                flex-direction: row;
-                justify-content: center;
-                max-width: none;
-                gap: 1.5rem
-            }
-
-            .badge {
-                width: auto;
-                padding: .75rem 1.5rem;
-                font-size: 16px
-            }
-        }
-
-        .badge--np3 {
-            background-color: var(--color-np3);
-            color: #212121
-        }
-
-        .badge--xmp {
-            background-color: var(--color-xmp)
-        }
-
-        .badge--lrtemplate {
-            background-color: var(--color-lrtemplate)
-        }
-
-        .badge--costyle {
-            background-color: var(--color-costyle)
-        }
-
-        .badge--dcp {
-            background-color: var(--color-dcp);
-            color: #212121
-        }
-
-        .badge:hover {
-            opacity: .9;
-            transform: translateY(-2px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, .15)
-        }
-
-        .upload {
-            padding: 2rem 1rem;
-            background: #f7fafc
-        }
-
-        .upload__container {
-            max-width: 1200px;
-            margin: 0 auto
-        }
-
-        .upload__dropzone {
-            min-height: 200px;
-            border: 2px dashed #cbd5e0;
-            border-radius: 8px;
-            background: #ffffff;
-            padding: 2rem 1rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all .3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem
-        }
-
-        .upload__icon {
-            width: 48px;
-            height: 48px;
-            color: #718096;
-            opacity: .7;
-            transition: all .3s ease
-        }
-
-        .upload__dropzone h3 {
-            font-size: 18px;
-            font-weight: var(--font-weight-bold);
-            color: #2d3748;
-            margin: 0
-        }
-
-        .upload__dropzone p {
-            font-size: 14px;
-            color: #718096;
-            margin: 0
-        }
-
-        @media (min-width:768px) {
-            .upload {
-                padding: 3rem 2rem
-            }
-
-            .upload__dropzone {
-                min-height: 250px;
-                padding: 3rem 2rem;
-                gap: 1.5rem
-            }
-
-            .upload__icon {
-                width: 56px;
-                height: 56px
-            }
-
-            .upload__dropzone h3 {
-                font-size: 20px
-            }
-
-            .upload__dropzone p {
-                font-size: 16px
-            }
-        }
-
-        @media (min-width:1024px) {
-            .upload__dropzone {
-                min-height: 300px;
-                padding: 4rem 2rem;
-                gap: 2rem
-            }
-
-            .upload__icon {
-                width: 64px;
-                height: 64px
-            }
-
-            .upload__dropzone h3 {
-                font-size: 24px
-            }
-        }
-
-        #browse-button {
-            width: 100%;
-            min-height: 48px
-        }
-
-        @media (min-width:768px) {
-            #browse-button {
-                width: auto
-            }
-        }
-    </style>
-
-    <!-- Story 10-6: Load non-critical CSS asynchronously -->
-    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-        <link rel="stylesheet" href="style.css">
-    </noscript>
-
-    <!-- Story 11-1: Preview modal CSS -->
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Preview modal CSS (kept separate as per original structure) -->
     <link rel="stylesheet" href="preview.css">
 </head>
 
 <body>
-    <!-- Story 10-7: Skip link for keyboard navigation (AC-1) -->
-    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <!-- Skip Link -->
+    <a href="#main-content" class="sr-only">Skip to main content</a>
 
-    <!-- ARIA live regions for screen reader announcements (Story 10-7, AC-2) -->
-    <div id="status-announcements" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
-    <div id="error-announcements" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
-
-    <!-- Hero Section (Story 10-1) -->
-    <header class="hero" id="hero" role="banner">
-        <div class="hero__container">
-            <h1 class="hero__title">Convert Photo Presets. Instantly. Privately.</h1>
-            <p class="hero__subtitle">
-                Transform your photo editing presets between Nikon, Adobe, Lightroom, Capture One, and DNG Camera
-                Profiles.<br>
-                All processing happens in your browser—your files never leave your device.
-            </p>
-            <a href="#upload" class="hero__cta button button--primary">Get Started</a>
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="container">
+            <h1>Convert Photo Presets.<br><span class="text-gradient">Instantly. Privately.</span></h1>
+            <p>Transform your photo editing presets between Nikon, Adobe Lightroom, Capture One, and DNG Camera
+                Profiles. All processing happens locally in your browser.</p>
+            <div class="hero-actions">
+                <a href="#upload" class="btn btn-primary">Start Converting</a>
+                <a href="#how-it-works" class="btn btn-secondary">How it Works</a>
+            </div>
         </div>
     </header>
 
-    <!-- Format Badges Section (Story 10-1, AC-2) -->
-    <section class="formats" id="formats-badges" aria-labelledby="formats-title">
-        <div class="formats__container">
-            <h2 class="formats__title" id="formats-title">Supported Formats</h2>
-            <div class="formats__badges">
-                <span class="badge badge--np3" role="img" aria-label="NP3 format - Nikon Picture Control">NP3</span>
-                <span class="badge badge--xmp" role="img" aria-label="XMP format - Adobe Camera Raw">XMP</span>
-                <span class="badge badge--lrtemplate" role="img"
-                    aria-label="lrtemplate format - Lightroom Template">lrtemplate</span>
-                <span class="badge badge--costyle" role="img"
-                    aria-label="costyle format - Capture One Style">.costyle</span>
-                <span class="badge badge--dcp" role="img" aria-label="DCP format - DNG Camera Profile">DCP</span>
+    <!-- Main Application Interface -->
+    <main id="main-content" class="container app-interface">
+        <div class="glass-card" id="upload">
+            <!-- Dropzone -->
+            <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload presets">
+                <svg class="upload-icon" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                        d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+                </svg>
+                <h2>Drag & Drop Presets</h2>
+                <p>Supports .np3, .xmp, .lrtemplate, .costyle, .dcp</p>
+                <button id="browse-button" class="btn btn-primary">Select Files</button>
+                <input type="file" id="file-input" multiple hidden accept=".np3,.xmp,.lrtemplate,.costyle,.dcp">
+
+                <!-- Status Indicators -->
+                <div id="status" class="status-indicator" style="margin-top: 1rem;">Initializing Engine...</div>
+                <div id="upload-error" class="status-error hidden" role="alert"></div>
+            </div>
+
+            <!-- Workspace (Hidden initially) -->
+            <div id="workspace" class="workspace hidden">
+                <div class="batch-controls">
+                    <select id="target-format" aria-label="Target Format">
+                        <option value="">Convert all to...</option>
+                        <option value="np3">Nikon NP3</option>
+                        <option value="xmp">Adobe XMP</option>
+                        <option value="lrtemplate">Lightroom Template</option>
+                        <option value="costyle">Capture One Style</option>
+                        <option value="dcp">DNG Profile</option>
+                    </select>
+                    <button id="convert-all-button" class="btn btn-primary" disabled>Convert All</button>
+                </div>
+
+                <!-- Batch Progress -->
+                <div id="batch-progress" class="hidden">
+                    <!-- Progress bar implementation would go here -->
+                </div>
+
+                <div id="file-list" class="file-list">
+                    <!-- Files injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Supported Formats -->
+    <section class="section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Supported Formats</h2>
+                <p class="section-subtitle">Bidirectional conversion between all major professional formats.</p>
+            </div>
+
+            <div class="formats-grid">
+                <div class="format-card">
+                    <div class="format-dot"
+                        style="background: var(--color-np3); box-shadow: 0 0 15px var(--color-np3);"></div>
+                    <div class="format-name">NP3</div>
+                    <div class="format-desc">Nikon Picture Control</div>
+                </div>
+                <div class="format-card">
+                    <div class="format-dot"
+                        style="background: var(--color-xmp); box-shadow: 0 0 15px var(--color-xmp);"></div>
+                    <div class="format-name">XMP</div>
+                    <div class="format-desc">Adobe Lightroom CC</div>
+                </div>
+                <div class="format-card">
+                    <div class="format-dot"
+                        style="background: var(--color-lrtemplate); box-shadow: 0 0 15px var(--color-lrtemplate);">
+                    </div>
+                    <div class="format-name">lrtemplate</div>
+                    <div class="format-desc">Lightroom Classic</div>
+                </div>
+                <div class="format-card">
+                    <div class="format-dot"
+                        style="background: var(--color-costyle); box-shadow: 0 0 15px var(--color-costyle);"></div>
+                    <div class="format-name">costyle</div>
+                    <div class="format-desc">Capture One Style</div>
+                </div>
+                <div class="format-card">
+                    <div class="format-dot"
+                        style="background: var(--color-dcp); box-shadow: 0 0 15px var(--color-dcp);"></div>
+                    <div class="format-name">DCP</div>
+                    <div class="format-desc">DNG Camera Profile</div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Batch Upload Section (Story 10-2) -->
-    <main id="main-content" role="main">
-        <section class="upload" id="upload" aria-labelledby="upload-title">
-            <h2 id="upload-title" class="sr-only">Upload Your Presets</h2>
-            <div class="upload__container">
-                <!-- Drop Zone (AC-1, AC-2) - Story 10-7: Added keyboard accessibility -->
-                <div class="upload__dropzone" id="dropzone" role="button" tabindex="0"
-                    aria-label="Drag and drop files or click to browse for preset files">
-                    <svg class="upload__icon" width="64" height="64" viewBox="0 0 24 24" fill="none"
-                        xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Upload icon">
-                        <path
-                            d="M7 18C4.79086 18 3 16.2091 3 14C3 11.7909 4.79086 10 7 10C7.33526 10 7.66155 10.0355 7.97674 10.1023C8.69206 7.17135 11.1575 5 14.1 5C17.6451 5 20.52 7.87485 20.52 11.42C20.52 11.5863 20.5137 11.7509 20.5013 11.9136C21.8682 12.5693 22.8 13.9598 22.8 15.6C22.8 17.9196 20.9196 19.8 18.6 19.8H12M12 13V21M12 13L9 16M12 13L15 16"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                    <h3>Drag & drop preset files here</h3>
-                    <p>or click to browse</p>
-                    <button class="button button--secondary" id="browse-button"
-                        aria-label="Browse for preset files">Browse Files</button>
+    <!-- How It Works -->
+    <section id="how-it-works" class="section" style="background: rgba(255,255,255,0.02);">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-subtitle">Simple, fast, and secure conversion workflow.</p>
+            </div>
+
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Upload</h3>
+                    <p>Drag & drop your preset files or click to browse. We support single files or bulk upload.</p>
                 </div>
-
-                <!-- Hidden File Input (AC-2) -->
-                <input type="file" id="file-input" multiple accept=".np3,.xmp,.lrtemplate,.costyle,.dcp" hidden
-                    aria-label="Select preset files to upload">
-
-                <!-- Error Display (AC-3) -->
-                <div class="upload__error" id="upload-error" role="alert" hidden></div>
-
-                <!-- Batch Conversion Controls (Story 10-3) -->
-                <div class="batch-controls" id="batch-controls" hidden>
-                    <label for="target-format" class="batch-controls__label">Convert all files to:</label>
-                    <select id="target-format" class="batch-controls__select"
-                        aria-label="Select target format for batch conversion">
-                        <option value="">-- Select Format --</option>
-                        <option value="np3">NP3 (Nikon)</option>
-                        <option value="xmp">XMP (Lightroom CC)</option>
-                        <option value="lrtemplate">lrtemplate (Lightroom Classic)</option>
-                        <option value="costyle">Capture One Style</option>
-                        <option value="dcp">DNG Camera Profile</option>
-                    </select>
-                    <button id="convert-all-button" class="button button--primary batch-controls__button" disabled
-                        aria-label="Convert all uploaded files to selected format">Convert All</button>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Convert</h3>
+                    <p>Select your target format. Our WASM engine processes everything locally on your device.</p>
                 </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Download</h3>
+                    <p>Get your converted presets instantly. No server uploads, no waiting, no data usage.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-                <!-- Batch Progress Indicator (Story 10-3, AC-1) -->
-                <div class="batch-progress" id="batch-progress" hidden role="status" aria-live="polite">
-                    <div class="batch-progress__header">
-                        <h3 class="batch-progress__title" id="batch-progress-title">Converting 0 of 0...</h3>
-                        <button class="batch-progress__cancel button button--secondary" id="cancel-batch"
-                            aria-label="Cancel all conversions">Cancel All</button>
+    <!-- FAQ & Legal -->
+    <section class="section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">FAQ & Privacy</h2>
+            </div>
+
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        Is my data private?
+                        <span>+</span>
                     </div>
-                    <div class="batch-progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
-                        aria-valuenow="0" aria-label="Batch conversion progress">
-                        <div class="batch-progress__fill" id="batch-progress-fill" style="width: 0%;"></div>
+                    <div class="faq-answer">
+                        <strong>Yes, 100%.</strong> Recipe processes all files locally in your browser using
+                        WebAssembly. Your files never leave your device, and we don't collect any analytics or data.
                     </div>
                 </div>
-
-                <!-- File Cards Grid (AC-4, AC-5, AC-6, AC-7) -->
-                <ul class="upload__files" id="file-grid" role="list" aria-label="Uploaded files"></ul>
-            </div>
-        </section>
-    </main>
-
-    <!-- Landing Page Content (Story 7-1) -->
-    <div class="landing-content">
-        <!-- What is Recipe Section (AC-1) -->
-        <section id="description" class="content-section">
-            <h2>What is Recipe?</h2>
-            <p>
-                Recipe lets Nikon Z-series photographers use the thousands of Lightroom presets
-                available online directly on their cameras. Convert .xmp or .lrtemplate files to
-                Nikon's .np3 Picture Control format in seconds—no installation, no uploads,
-                100% private.
-            </p>
-            <p>
-                Perfect for photographers who want in-camera color grading for instant results,
-                access to Lightroom's vast preset library on Nikon cameras, and privacy-first
-                conversion where files never leave your device.
-            </p>
-        </section>
-
-        <!-- How to Use Section (AC-2) -->
-        <section id="how-to-use" class="content-section">
-            <h2>How to Use</h2>
-            <ol class="steps">
-                <li>
-                    <span class="step-number">1</span>
-                    <div class="step-content">
-                        <strong>Upload</strong> — Drag your preset file or click to browse (.np3, .xmp, .lrtemplate)
+                <div class="faq-item">
+                    <div class="faq-question">
+                        Is Recipe legal?
+                        <span>+</span>
                     </div>
-                </li>
-                <li>
-                    <span class="step-number">2</span>
-                    <div class="step-content">
-                        <strong>Convert</strong> — Select target format and click Convert
+                    <div class="faq-answer">
+                        Recipe uses reverse-engineered file formats for interoperability purposes, which is generally
+                        protected under fair use. We recommend private use only. Not affiliated with Nikon or Adobe.
                     </div>
-                </li>
-                <li>
-                    <span class="step-number">3</span>
-                    <div class="step-content">
-                        <strong>Download</strong> — Save converted file to your device
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        Why don't some parameters convert?
+                        <span>+</span>
                     </div>
-                </li>
-            </ol>
-        </section>
-
-        <!-- Privacy First Section (AC-3) -->
-        <section id="privacy" class="content-section privacy-section">
-            <h2>🔒 Privacy First</h2>
-            <p class="privacy-headline"><strong>Your files never leave your device.</strong></p>
-            <p>
-                Recipe processes all conversions locally in your browser using WebAssembly.
-                No server uploads, no tracking, no data collection. Your presets stay private.
-            </p>
-            <ul class="privacy-checklist">
-                <li>✅ Verified across Chrome, Firefox, and Safari</li>
-                <li>✅ Zero network requests during conversion</li>
-                <li>✅ No analytics or tracking scripts</li>
-            </ul>
-            <p class="privacy-link">
-                <a href="docs/browser-compatibility.md">Learn more about our privacy architecture →</a>
-            </p>
-        </section>
-
-        <!-- Supported Formats Section (AC-4) -->
-        <section id="formats" class="content-section">
-            <h2>Supported Formats</h2>
-            <p>Recipe converts between three photo preset formats:</p>
-            <div class="format-table-wrapper">
-                <table class="format-table">
-                    <thead>
-                        <tr>
-                            <th>Format</th>
-                            <th>Type</th>
-                            <th>Used In</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>.np3</code></td>
-                            <td>Nikon Picture Control</td>
-                            <td>Nikon Z cameras</td>
-                        </tr>
-                        <tr>
-                            <td><code>.xmp</code></td>
-                            <td>Lightroom CC Preset</td>
-                            <td>Adobe Lightroom CC</td>
-                        </tr>
-                        <tr>
-                            <td><code>.lrtemplate</code></td>
-                            <td>Lightroom Classic</td>
-                            <td>Adobe Lightroom Classic</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <div class="faq-answer">
+                        Different formats support different features. For example, Lightroom's Grain effect doesn't
+                        exist in Nikon's NP3 format. Recipe approximates where possible.
+                    </div>
+                </div>
             </div>
-            <p><strong>Bidirectional Conversion:</strong> Convert any format to any other format (6 conversion paths)
-            </p>
-            <p><strong>Accuracy:</strong> 98%+ parameter mapping (Phase 2: November 2025 - exact offset mapping for 48
-                NP3 parameters including Highlights, Shadows, Whites, Blacks, Clarity, Color Grading)</p>
-            <p>
-                <a href="docs/format-compatibility-matrix.md" class="btn-secondary">View Detailed Compatibility Matrix
-                    →</a>
-            </p>
-        </section>
-
-        <!-- FAQ Section (AC-5) -->
-        <section id="faq-preview" class="content-section">
-            <h2>Frequently Asked Questions</h2>
-
-            <div class="faq-item-landing">
-                <h3>Is Recipe legal?</h3>
-                <p>
-                    Recipe uses reverse-engineered file formats for interoperability purposes,
-                    which is generally protected under fair use. We recommend private use until
-                    a full legal assessment is complete. No affiliation with Nikon or Adobe.
-                </p>
-            </div>
-
-            <div class="faq-item-landing">
-                <h3>Is my data private?</h3>
-                <p>
-                    <strong>Yes!</strong> Recipe processes all files locally in your browser via WebAssembly.
-                    Zero server uploads, zero tracking, zero data collection. Your presets stay private.
-                </p>
-            </div>
-
-            <div class="faq-item-landing">
-                <h3>Why don't some parameters convert?</h3>
-                <p>
-                    Different formats support different features. For example, Lightroom's Grain
-                    effect doesn't exist in Nikon's NP3 format. Recipe warns you when parameters
-                    can't be mapped and approximates where possible.
-                </p>
-            </div>
-
-            <div class="faq-item-landing">
-                <h3>How accurate is conversion?</h3>
-                <p>
-                    Recipe achieves 98%+ accuracy (Phase 2: November 2025) with exact offset mapping for 48 NP3
-                    parameters
-                    including Exposure, Contrast, Highlights, Shadows, Whites, Blacks, Clarity, Saturation, HSL (24
-                    params),
-                    and Color Grading (11 params). Visual similarity is validated against 1,531 real-world preset files
-                    with 100% roundtrip success rate.
-                </p>
-            </div>
-
-            <p class="faq-link">
-                <a href="docs/faq.md">View complete FAQ →</a>
-            </p>
-        </section>
-
-        <!-- Try Recipe Now -->
-        <section id="try-now" class="content-section try-now-section">
-            <h2>Try Recipe Now</h2>
-            <p>Start converting presets instantly—no account required.</p>
-        </section>
-
-        <!-- Legal Disclaimer (Story 7-4) -->
-        <section id="legal-disclaimer" class="content-section legal-section">
-            <h2>Legal Disclaimer</h2>
-
-            <div class="legal-summary">
-                <p>
-                    <strong>Recipe is provided "AS IS" without warranty for research and interoperability purposes.
-                        We recommend private use only until a full legal assessment is completed.</strong>
-                </p>
-            </div>
-
-            <div class="legal-subsection">
-                <h3>Reverse Engineering Disclosure</h3>
-                <p>
-                    Recipe uses reverse-engineered file formats to enable interoperability between
-                    photo preset systems. Specifically, the Nikon Picture Control (.np3) format was
-                    reverse-engineered through clean-room analysis of publicly available sample files.
-                </p>
-                <p>
-                    <strong>Legal Basis:</strong> Reverse engineering for interoperability purposes is
-                    generally protected under fair use principles and research exemptions in copyright law,
-                    including DMCA Section 1201(f) (reverse engineering for interoperability) and Section
-                    1201(j) (security research). No proprietary software was decompiled or disassembled
-                    in creating Recipe.
-                </p>
-                <p>
-                    <strong>No Vendor Affiliation:</strong> Recipe is an independent project with no
-                    affiliation to Nikon Corporation, Adobe Inc., or any other camera/software manufacturer.
-                    Recipe does not distribute, modify, or incorporate any proprietary software, copyrighted
-                    presets, or vendor intellectual property.
-                </p>
-            </div>
-
-            <div class="legal-subsection">
-                <h3>No Warranty</h3>
-                <p class="legal-caps">
-                    RECIPE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-                    INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-                    PARTICULAR PURPOSE AND NONINFRINGEMENT.
-                </p>
-                <p class="legal-caps">
-                    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
-                    OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-                    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-                </p>
-                <p>
-                    Recipe makes no guarantees about conversion accuracy, compatibility, or results.
-                    Parameter mapping between different preset formats involves approximations and may
-                    not produce identical visual results. Users are responsible for validating converted
-                    presets before use.
-                </p>
-            </div>
-
-            <div class="legal-subsection">
-                <h3>Recommended Use</h3>
-                <p>
-                    We recommend using Recipe for <strong>private and personal use only</strong> until
-                    a comprehensive legal assessment is completed by qualified legal counsel.
-                </p>
-                <p>
-                    <strong>Commercial Use:</strong> If you intend to use Recipe for commercial purposes
-                    (e.g., selling converted presets, using in a business workflow, or distributing to
-                    clients), you should consult with an attorney knowledgeable in intellectual property
-                    law to assess potential legal risks in your jurisdiction.
-                </p>
-                <p>
-                    <strong>User Responsibility:</strong> By using Recipe, you acknowledge that you are
-                    solely responsible for ensuring your use complies with applicable laws and regulations.
-                    You assume all risks associated with using reverse-engineered file formats.
-                </p>
-            </div>
-
-            <div class="legal-meta">
-                <h3>About This Disclaimer</h3>
-                <p>
-                    This disclaimer is based on the MIT License warranty language and standard open-source
-                    legal templates. It has not been reviewed by legal counsel. Recipe is an experimental
-                    project created for research and educational purposes.
-                </p>
-                <p>
-                    <strong>Open Source:</strong> Recipe's source code is publicly available on
-                    <a href="https://github.com/justin/recipe" target="_blank" rel="noopener">GitHub</a>
-                    under the MIT License. You are free to review, modify, and redistribute the code
-                    according to the license terms.
-                </p>
-                <p>
-                    <em>Last updated: 2025-11-06</em>
-                </p>
-            </div>
-        </section>
-    </div>
-
-    <!-- Error Container (Story 2-8) - Fixed position at top -->
-    <div id="errorContainer" style="display: none;"></div>
-
-    <!-- Privacy Status (Story 2-9, AC-2) - Shows after file upload -->
-    <div id="privacyStatus" class="status privacy" style="display: none;" role="status" aria-live="polite"></div>
-
-    <!-- Status Banner (WASM loading, etc.) -->
-    <div id="status" class="status loading" role="status" aria-live="polite">
-        Loading converter...
-    </div>
+        </div>
+    </section>
 
     <!-- Footer -->
-    <footer role="contentinfo">
-        <div class="footer-links">
-            <p>
-                Recipe v<span id="version">Loading...</span> |
-                <a href="https://github.com/justin/recipe" target="_blank" rel="noopener">📂 Open Source - View on
-                    GitHub</a> |
-                <a href="#legal-disclaimer">⚖️ Legal Disclaimer</a>
-            </p>
-        </div>
-
-        <!-- For Developers Section (Story 7-1, AC-7) -->
-        <div class="developer-links">
-            <h3>For Developers</h3>
-            <p>Recipe is open-source and built with privacy-first architecture.</p>
-            <ul>
-                <li><a href="https://github.com/justin/recipe" target="_blank" rel="noopener">GitHub Repository</a> —
-                    Source code and CLI</li>
-                <li><a href="docs/architecture.md">Architecture Documentation</a> — System design and WASM
-                    implementation</li>
-                <li><a href="docs/cli-patterns-and-file-formats.md">Format Specifications</a> — NP3, XMP, lrtemplate
-                    details</li>
-                <li><a href="docs/browser-compatibility.md">Browser Compatibility</a> — Testing and privacy validation
-                </li>
-            </ul>
-            <p class="tech-stack">Built with Go 1.25+, vanilla JavaScript, and WebAssembly.</p>
-        </div>
-
-        <!-- Privacy FAQ Section (Story 2-9, AC-4, AC-5, AC-6) -->
-        <div class="privacy-faq" id="privacyFAQ">
-            <button id="privacyFAQToggle" class="faq-toggle" aria-expanded="false">Privacy FAQ ▼</button>
-
-            <div id="privacyFAQContent" class="faq-content" style="display: none;">
-                <h3>Frequently Asked Questions About Privacy</h3>
-
-                <div class="faq-item">
-                    <h4>Are my files uploaded to a server?</h4>
-                    <p><strong>No.</strong> All processing happens in your browser using WebAssembly. Your files never
-                        leave your device.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h4>Does Recipe store or track my files?</h4>
-                    <p><strong>No.</strong> Recipe doesn't store any files, and we don't track what you convert. There
-                        are no servers, databases, or accounts.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h4>How does Recipe convert files without a server?</h4>
-                    <p>Recipe uses <strong>WebAssembly (WASM)</strong> to run the conversion engine directly in your
-                        browser. Think of it like a mini-application running entirely on your computer. <a
-                            href="https://webassembly.org/" target="_blank" rel="noopener">Learn more about
-                            WebAssembly</a>.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h4>Can I verify Recipe is private?</h4>
-                    <p><strong>Yes!</strong> Recipe is open source. You can review the entire codebase on <a
-                            href="https://github.com/justin/recipe" target="_blank" rel="noopener">GitHub</a> to confirm
-                        no data is sent anywhere.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h4>What about analytics or tracking?</h4>
-                    <p>Recipe doesn't use tracking or analytics. No cookies, no telemetry, no fingerprinting. You can
-                        verify this by inspecting network requests in your browser's developer tools.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h4>Is my browser safe running WebAssembly?</h4>
-                    <p><strong>Yes.</strong> WebAssembly runs in a sandboxed environment with the same security as
-                        JavaScript. It cannot access your file system, network, or other browser tabs without explicit
-                        permission.</p>
-                </div>
+    <footer class="app-footer">
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <h4>Recipe</h4>
+                <p style="color: var(--text-muted);">Pro Preset Converter</p>
+            </div>
+            <div class="footer-links">
+                <a href="https://github.com/justin/recipe" target="_blank">GitHub</a>
+                <a href="docs/privacy.md">Privacy</a>
+                <a href="#legal-modal" id="legal-trigger">Legal Disclaimer</a>
+            </div>
+            <div style="color: var(--text-muted);">
+                v<span id="version">1.0.0</span>
             </div>
         </div>
-
-        <p class="disclaimer">
-            Files processed locally via WebAssembly. No server uploads. No data stored.
-        </p>
     </footer>
 
-    <!-- Story 11-1: Preview Modal (Placeholder for Story 11.3) -->
-    <div id="preview-modal" class="preview-modal" hidden>
-        <div class="preview-modal__overlay"></div>
-        <div class="preview-modal__content">
-            <button class="preview-modal__close" aria-label="Close preview modal">✕</button>
-
-            <!-- Preview Image with CSS filter (Story 11-1, AC-3) -->
-            <img id="preview-image" class="preview-image" src="images/preview-placeholder.svg"
-                alt="Reference image with preset preview" aria-describedby="preview-disclaimer">
-
-            <!-- Accuracy Disclaimer (Story 11-1, AC-4) -->
-            <div class="preview-disclaimer" id="preview-disclaimer">
-                <span class="preview-disclaimer__label">
-                    Approximate preview using CSS filters
-                </span>
-                <button class="preview-disclaimer__help" aria-label="Learn about CSS filter preview limitations"
-                    title="This preview uses CSS filters for instant feedback. Actual conversion results may differ.">
-                    ℹ️
-                </button>
-            </div>
-
-            <div class="preview-controls">
-                <!-- Slider, tabs will be added in Stories 11.3, 11.4 -->
-            </div>
+    <!-- Legal Modal -->
+    <div id="legal-modal" class="modal-overlay">
+        <div class="modal-content glass-card">
+            <button class="modal-close" id="legal-close">&times;</button>
+            <h2>Legal Disclaimer</h2>
+            <p><strong>Recipe is provided "AS IS" without warranty.</strong></p>
+            <p>Files are processed locally via WebAssembly. No server uploads. No data stored.</p>
+            <hr style="border-color: var(--glass-border); margin: 1rem 0;">
+            <h3>Reverse Engineering</h3>
+            <p>Recipe uses reverse-engineered file formats for interoperability. Not affiliated with Nikon, Adobe, or
+                Phase One.</p>
         </div>
     </div>
 
-    <!-- Story 10-6: Load JavaScript with defer to avoid render-blocking -->
-    <script src="wasm_exec.js" defer></script>
-    <script src="main.js" type="module" defer></script>
+    <!-- Scripts -->
+    <script src="static/wasm_exec.js" defer></script>
+    <script src="static/main.js" type="module" defer></script>
+    <script src="static/ui.js" defer></script>
+
+    <!-- Simple FAQ Toggle Script -->
+    <script>
+        document.querySelectorAll('.faq-question').forEach(item => {
+            item.addEventListener('click', event => {
+                const parent = item.parentElement;
+                parent.classList.toggle('active');
+                const span = item.querySelector('span');
+                span.textContent = parent.classList.contains('active') ? '−' : '+';
+            });
+        });
+    </script>
 </body>
 
 </html>
