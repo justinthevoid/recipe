@@ -150,15 +150,22 @@ export class UploadManager {
             status: 'queued'
         });
 
-        // Create HTML
+        // Create HTML (Glass Card Design)
         const cardHTML = `
-            <div class="file-item" id="file-${fileId}">
+            <div class="file-card" id="file-${fileId}">
                 <div class="file-info">
-                    <strong>${truncatedName}</strong>
-                    <span class="format-tag">${format.toUpperCase()}</span>
+                    <div class="file-details">
+                        <div class="file-name">${truncatedName}</div>
+                        <div class="file-meta">${fileSize}</div>
+                    </div>
                 </div>
-                <div class="file-actions">
-                    <button class="btn-icon remove-btn" data-id="${fileId}">✕</button>
+                <div class="file-actions" style="display: flex; align-items: center; gap: 1rem;">
+                    <span class="format-badge">${format.toUpperCase()}</span>
+                    <button class="btn-icon remove-btn" data-id="${fileId}" aria-label="Remove file">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
         `;
