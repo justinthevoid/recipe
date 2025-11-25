@@ -1,5 +1,210 @@
 <script>
     import { previewFile } from "../stores";
+    import {
+        extractPresetParameters,
+        groupParameters,
+        formatParameterValue,
+    } from "../parameter-extractor";
+    import { detectFormatFromExtension } from "../format-detector";
+    import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
+
+    let isOpen = false;
+    let file = null;
+    let parameters = null;
+    let groupedParams = null;
+    let loading = false;
+    let error = null;
+
+    // Slider state
+    let sliderPosition = 50;
+
+    // Filter values
+    let colorMatrix = "";
+    let transferTable = "";
+
+    // Subscribe to store
+    previewFile.subscribe(async (f) => {
+        file = f;
+        isOpen = !!f;
+        if (f) {
+            await loadPreview(f);
+        } else {
+            reset();
+        }
+    });
+
+    function close() {
+        previewFile.set(null);
+    }
+
+    function reset() {
+        parameters = {};
+        groupedParams = null;
+        error = null;
+        sliderPosition = 50;
+        colorMatrix = "";
+        transferTable = "";
+    }
+
+    async function loadPreview(f) {
+        loading = true;
+        error = null;
+        try {
+            // Read file
+            const buffer = await f.arrayBuffer();
+            const bytes = new Uint8Array(buffer);
+            const format = detectFormatFromExtension(f.name);
+
+            // Extract parameters
+            parameters = await extractPresetParameters(bytes, format);
+            groupedParams = groupParameters(parameters);
+
+            // Calculate filters
+            updateFilters();
+        } catch (e) {
+            console.error(e);
+            error = e.message;
+        } finally {
+            loading = false;
+        }
+    }
+
+    function getVal(key, alias) {
+        if (!parameters) return 0;
+        if (parameters[key] != null && typeof parameters[key] === "number")
+            return parameters[key];
+        if (
+            alias &&
+            parameters[alias] != null &&
+            typeof parameters[alias] === "number"
+        )
+            return parameters[alias];
+        return 0;
+    }
+
+    function updateFilters() {
+        if (!parameters) return;
+
+        const temp = getVal("Temperature");
+        const tint = getVal("Tint");
+        const saturation = getVal("Saturation");
+        const exposure = getVal("Exposure", "Exposure2012");
+        const contrast = getVal("Contrast", "Contrast2012");
+
+        console.log("Updating filters:", {
+            temp,
+            tint,
+            saturation,
+            exposure,
+            contrast,
+        });
+
+        colorMatrix = calculateColorMatrix(temp, tint, saturation);
+        transferTable = calculateTransferTable(exposure, contrast);
+
+        console.log("Matrix:", colorMatrix);
+        console.log("Table:", transferTable);
+    }
+</script>
+
+{#if isOpen}
+    <div
+        class="modal-overlay active"
+        on:click={close}
+        role="button"
+        tabindex="0"
+        on:keydown={(e) => e.key === "Escape" && close()}
+    >
+        <div
+            class="modal-content glass-card preview-modal"
+            on:click|stopPropagation
+            role="document"
+            tabindex="0"
+        >
+            <button class="modal-close" on:click={close}>&times;</button>
+
+            <!-- Inline SVG Filters -->
+            <svg
+                style="position: absolute; width: 0; height: 0; overflow: hidden;"
+                aria-hidden="true"
+            >
+                <defs>
+                    <filter
+                        id="preview-filter"
+                        color-interpolation-filters="sRGB"
+                    >
+                        <feColorMatrix
+                            type="matrix"
+                            values={colorMatrix}
+                            result="colored"
+                        />
+                        <feComponentTransfer in="colored" result="final">
+                            <feFuncR type="table" tableValues={transferTable} />
+                            <feFuncG type="table" tableValues={transferTable} />
+                            <feFuncB type="table" tableValues={transferTable} />
+                        </feComponentTransfer>
+                    </filter>
+                </defs>
+            </svg>
+
+            <div class="preview-layout">
+                <!-- Left: Image Preview -->
+                <div class="preview-image-section">
+                    <h3>Instant Preview</h3>
+
+                    <div class="image-container">
+                        <!-- Before Image (Background) -->
+                        <img
+                            src="/images/portrait-original.jpg"
+                            alt="Before"
+                            class="preview-img before"
+                        />
+
+                        <!-- After Image (Foreground, Clipped) -->
+                        <img
+                            src="/images/portrait-original.jpg"
+                            alt="After"
+                            style="filter: url(#preview-filter); clip-path: inset(0 0 0 {sliderPosition}%); -webkit-filter: url(#preview-filter);"
+                            class="preview-img after"
+                        />
+
+                        <!-- Slider Handle -->
+                        <div
+                            class="slider-handle"
+                            style="left: {sliderPosition}%"
+                        >
+                            <div class="slider-line"></div>
+                            <div class="slider-button">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        d="M18 8L22 12L18 16"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                    <path
+                                        d="M6 8L2 12L6 16"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Range Input (Invisible Control) -->
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            bind:value={sliderPosition}
+                            class="slider-input"
+                            aria-label="Comparison slider"
                         />
 
                         <!-- Labels -->
