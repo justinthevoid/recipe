@@ -128,6 +128,20 @@ export function calculateTransferTable(exposure, contrast) {
     // Pre-calculate exposure multiplier (2^exposure)
     const exposureMult = Math.pow(2, exp);
 
+    // Logistic Sigmoid Parameters
+    // f(x) = 1 / (1 + exp(-k * (x - 0.5)))
+    // k determines the steepness (contrast).
+    // At k=4, slope at 0.5 is 1.0 (Neutral).
+    // We want to map contrast -1..1 to a reasonable k range.
+    // Low Contrast (-100) -> k ~ 2 (Slope 0.5)
+    // High Contrast (+100) -> k ~ 8 (Slope 2.0)
+    // This provides a max slope of 2.0, which is punchy but not destructive.
+
+    // Base k = 4
+    // Factor = 2^(contrast) -> 0.5 to 2.0
+    const slopeFactor = Math.pow(2, cont);
+    const k = 4 * slopeFactor;
+
     for (let i = 0; i <= steps; i++) {
         let x = i / steps; // 0.0 to 1.0 (sRGB signal)
 
@@ -140,39 +154,22 @@ export function calculateTransferTable(exposure, contrast) {
         // 3. Convert back to sRGB (Gamma Correct)
         let res = linearToSRGB(lin);
 
-        // 4. Apply Contrast (in Perceptual/Gamma Space)
-        // Using a Cosine S-Curve for smoother results than linear stretch
+        // 4. Apply Contrast (Logistic Sigmoid)
         if (cont !== 0) {
-            // S-Curve function: y = 0.5 - 0.5 * cos(x * PI)
-            // We blend between Linear (x) and S-Curve (y) based on contrast strength?
-            // Or we use the S-Curve to expand/compress.
+            // Logistic function centered at 0.5
+            // y = 1 / (1 + e^(-k * (x - 0.5)))
 
-            // Let's use a safe approach:
-            // High Contrast: Push values away from 0.5
-            // Low Contrast: Pull values towards 0.5
+            // Note: The logistic function doesn't pass exactly through (0,0) and (1,1)
+            // It has asymptotes at 0 and 1.
+            // To make it map 0->0 and 1->1 exactly, we need to normalize it.
+            // f(0) = 1 / (1 + exp(0.5k))
+            // f(1) = 1 / (1 + exp(-0.5k))
 
-            // Normalized centered value (-0.5 to 0.5)
-            const centered = res - 0.5;
+            const f = (val) => 1 / (1 + Math.exp(-k * (val - 0.5)));
+            const min = f(0);
+            const max = f(1);
 
-            if (cont > 0) {
-                // Expand (Contrast Increase)
-                // Use a power function that preserves sign
-                // factor 1.0 (no change) to 3.0 (strong)
-                // Avoid extreme factors like 4.0 or 10.0 which cause clipping
-                const factor = 1 + (cont * 1.5); // Max 2.5x expansion
-
-                // Apply expansion with soft clamping (tanh-like behavior would be ideal but complex)
-                // Simple linear expansion with clamp is robust enough if factor isn't too high
-                res = 0.5 + (centered * factor);
-
-                // Optional: Add S-curve shape?
-                // For now, linear expansion from center is predictable.
-            } else {
-                // Compress (Contrast Decrease)
-                // factor 1.0 to 0.0
-                const factor = 1 + cont; // cont is negative, so 1 - 0.5 = 0.5
-                res = 0.5 + (centered * factor);
-            }
+            res = (f(res) - min) / (max - min);
         }
 
         // Clamp
