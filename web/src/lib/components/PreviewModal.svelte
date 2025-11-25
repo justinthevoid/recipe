@@ -5,14 +5,13 @@
         groupParameters,
         formatParameterValue,
     } from "../parameter-extractor";
-    import { recipeToCSSFilters } from "../preview-logic";
     import { detectFormatFromExtension } from "../format-detector";
+    import SVGFilters from "./SVGFilters.svelte";
 
     let isOpen = false;
     let file = null;
     let parameters = null;
     let groupedParams = null;
-    let cssFilter = "none";
     let loading = false;
     let error = null;
 
@@ -35,9 +34,8 @@
     }
 
     function reset() {
-        parameters = null;
+        parameters = {};
         groupedParams = null;
-        cssFilter = "none";
         error = null;
         sliderPosition = 50;
     }
@@ -54,9 +52,6 @@
             // Extract parameters
             parameters = await extractPresetParameters(bytes, format);
             groupedParams = groupParameters(parameters);
-
-            // Generate CSS filter
-            cssFilter = recipeToCSSFilters(parameters);
         } catch (e) {
             console.error(e);
             error = e.message;
@@ -82,6 +77,9 @@
         >
             <button class="modal-close" on:click={close}>&times;</button>
 
+            <!-- SVG Filters Definition -->
+            <SVGFilters {parameters} />
+
             <div class="preview-layout">
                 <!-- Left: Image Preview -->
                 <div class="preview-image-section">
@@ -99,7 +97,7 @@
                         <img
                             src="/images/portrait-original.jpg"
                             alt="After"
-                            style="filter: {cssFilter}; clip-path: inset(0 0 0 {sliderPosition}%);"
+                            style="filter: url(#preview-filter); clip-path: inset(0 0 0 {sliderPosition}%);"
                             class="preview-img after"
                         />
 
@@ -162,7 +160,7 @@
                     </div>
 
                     <p class="disclaimer">
-                        * Approximation using CSS filters. Actual conversion may
+                        * Approximation using SVG filters. Actual conversion may
                         vary.
                     </p>
                 </div>
@@ -338,39 +336,44 @@
         justify-content: space-between;
         padding: 0.25rem 0;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        font-size: 0.9rem;
     }
 
     .param-name {
         color: var(--text-secondary);
+        font-size: 0.9rem;
     }
 
     .param-value {
-        font-family: monospace;
         color: var(--text-primary);
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+
+    .error-msg {
+        color: #ff3b30;
+        padding: 1rem;
+        background: rgba(255, 59, 48, 0.1);
+        border-radius: 8px;
+    }
+
+    .loader-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        z-index: 30;
     }
 
     .disclaimer {
         margin-top: 1rem;
         font-size: 0.8rem;
-        color: var(--text-muted);
+        color: var(--text-secondary);
         font-style: italic;
-    }
-
-    .modal-close {
-        top: 1rem;
-        right: 1rem;
-        z-index: 10;
-    }
-
-    @media (max-width: 768px) {
-        .preview-layout {
-            grid-template-columns: 1fr;
-            overflow-y: auto;
-        }
-        .preview-image-section {
-            border-right: none;
-            border-bottom: 1px solid var(--glass-border);
-        }
     }
 </style>
