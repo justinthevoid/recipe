@@ -22,6 +22,18 @@
     let colorMatrix = "";
     let transferTable = "";
 
+    // Image State
+    const defaultImages = [
+        "/images/portrait-original.jpg",
+        "/images/landscape-original.jpg",
+        "/images/product-original.jpg",
+    ];
+    let currentImageIndex = 0;
+    let customImage = null;
+    let fileInput;
+
+    $: currentImageSrc = customImage || defaultImages[currentImageIndex];
+
     // Subscribe to store
     previewFile.subscribe(async (f) => {
         file = f;
@@ -44,6 +56,7 @@
         sliderPosition = 50;
         colorMatrix = "";
         transferTable = "";
+        // Don't reset custom image or index so user preference persists during session
     }
 
     async function loadPreview(f) {
@@ -105,6 +118,34 @@
         console.log("Matrix:", colorMatrix);
         console.log("Table:", transferTable);
     }
+
+    // Image Navigation
+    function nextImage() {
+        customImage = null; // Clear custom image when navigating
+        currentImageIndex = (currentImageIndex + 1) % defaultImages.length;
+    }
+
+    function prevImage() {
+        customImage = null;
+        currentImageIndex =
+            (currentImageIndex - 1 + defaultImages.length) %
+            defaultImages.length;
+    }
+
+    function triggerUpload() {
+        fileInput.click();
+    }
+
+    function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                customImage = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
 </script>
 
 {#if isOpen}
@@ -155,14 +196,14 @@
                     <div class="image-container">
                         <!-- Before Image (Background) -->
                         <img
-                            src="/images/portrait-original.jpg"
+                            src={currentImageSrc}
                             alt="Before"
                             class="preview-img before"
                         />
 
                         <!-- After Image (Foreground, Clipped) -->
                         <img
-                            src="/images/portrait-original.jpg"
+                            src={currentImageSrc}
                             alt="After"
                             style="filter: url(#preview-filter); clip-path: inset(0 0 0 {sliderPosition}%); -webkit-filter: url(#preview-filter);"
                             class="preview-img after"
@@ -207,6 +248,48 @@
                             aria-label="Comparison slider"
                         />
 
+                        <!-- Navigation Controls -->
+                        <button
+                            class="nav-btn prev"
+                            on:click|stopPropagation={prevImage}
+                            title="Previous Image"
+                        >
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M15 18l-6-6 6-6"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </button>
+                        <button
+                            class="nav-btn next"
+                            on:click|stopPropagation={nextImage}
+                            title="Next Image"
+                        >
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M9 18l6-6-6-6"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </button>
+
                         <!-- Labels -->
                         <div
                             class="label label-before"
@@ -224,6 +307,46 @@
                         {#if loading}
                             <div class="loader-overlay">Loading...</div>
                         {/if}
+                    </div>
+
+                    <div class="image-toolbar">
+                        <button class="btn-text" on:click={triggerUpload}>
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                                <polyline
+                                    points="17 8 12 3 7 8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                                <line
+                                    x1="12"
+                                    y1="3"
+                                    x2="12"
+                                    y2="15"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                            Upload Sample Image
+                        </button>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            bind:this={fileInput}
+                            on:change={handleImageUpload}
+                            style="display: none;"
+                        />
                     </div>
 
                     <p class="disclaimer">
@@ -359,6 +482,60 @@
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
+    /* Navigation Buttons */
+    .nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 25; /* Above slider input */
+        transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+        background: rgba(0, 0, 0, 0.8);
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    .nav-btn.prev {
+        left: 1rem;
+    }
+    .nav-btn.next {
+        right: 1rem;
+    }
+
+    /* Image Toolbar */
+    .image-toolbar {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .btn-text {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: color 0.2s;
+    }
+
+    .btn-text:hover {
+        color: var(--color-primary);
+    }
+
     .label {
         position: absolute;
         top: 1rem;
@@ -438,7 +615,7 @@
     }
 
     .disclaimer {
-        margin-top: 1rem;
+        margin-top: 0.5rem;
         font-size: 0.8rem;
         color: var(--text-secondary);
         font-style: italic;
