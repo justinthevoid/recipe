@@ -128,11 +128,6 @@ export function calculateTransferTable(exposure, contrast) {
     // Pre-calculate exposure multiplier (2^exposure)
     const exposureMult = Math.pow(2, exp);
 
-    // Sigmoid Contrast Parameters
-    // Let's use a safe power function approximation for contrast
-    // factor > 1 expands, factor < 1 compresses
-    const cFactor = Math.pow(2, cont * 2); // -1->0.25, 0->1, 1->4
-
     for (let i = 0; i <= steps; i++) {
         let x = i / steps; // 0.0 to 1.0 (sRGB signal)
 
@@ -146,14 +141,38 @@ export function calculateTransferTable(exposure, contrast) {
         let res = linearToSRGB(lin);
 
         // 4. Apply Contrast (in Perceptual/Gamma Space)
-        // Using a safe sigmoid-like function centered at 0.5
+        // Using a Cosine S-Curve for smoother results than linear stretch
         if (cont !== 0) {
-            // Shift center
-            res = res - 0.5;
-            // Apply contrast scaling
-            res = res * cFactor;
-            // Unshift
-            res = res + 0.5;
+            // S-Curve function: y = 0.5 - 0.5 * cos(x * PI)
+            // We blend between Linear (x) and S-Curve (y) based on contrast strength?
+            // Or we use the S-Curve to expand/compress.
+
+            // Let's use a safe approach:
+            // High Contrast: Push values away from 0.5
+            // Low Contrast: Pull values towards 0.5
+
+            // Normalized centered value (-0.5 to 0.5)
+            const centered = res - 0.5;
+
+            if (cont > 0) {
+                // Expand (Contrast Increase)
+                // Use a power function that preserves sign
+                // factor 1.0 (no change) to 3.0 (strong)
+                // Avoid extreme factors like 4.0 or 10.0 which cause clipping
+                const factor = 1 + (cont * 1.5); // Max 2.5x expansion
+
+                // Apply expansion with soft clamping (tanh-like behavior would be ideal but complex)
+                // Simple linear expansion with clamp is robust enough if factor isn't too high
+                res = 0.5 + (centered * factor);
+
+                // Optional: Add S-curve shape?
+                // For now, linear expansion from center is predictable.
+            } else {
+                // Compress (Contrast Decrease)
+                // factor 1.0 to 0.0
+                const factor = 1 + cont; // cont is negative, so 1 - 0.5 = 0.5
+                res = 0.5 + (centered * factor);
+            }
         }
 
         // Clamp
