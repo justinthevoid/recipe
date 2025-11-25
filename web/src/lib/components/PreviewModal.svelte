@@ -7,6 +7,8 @@
     } from "../parameter-extractor";
     import { detectFormatFromExtension } from "../format-detector";
     import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
+    import { analyzeImage, calculateAutoExposure } from "../image-analysis";
+    import Histogram from "./Histogram.svelte";
 
     let isOpen = false;
     let file = null;
@@ -31,6 +33,12 @@
     let currentImageIndex = 0;
     let customImage = null;
     let fileInput;
+    let imgElement; // Reference to the "Before" image for analysis
+
+    // Analysis State
+    let histogramData = { r: [], g: [], b: [] };
+    let imageStats = null;
+    let isAnalyzing = false;
 
     $: currentImageSrc = customImage || defaultImages[currentImageIndex];
 
@@ -56,6 +64,7 @@
         sliderPosition = 50;
         colorMatrix = "";
         transferTable = "";
+        histogramData = { r: [], g: [], b: [] };
         // Don't reset custom image or index so user preference persists during session
     }
 
@@ -95,6 +104,21 @@
         return 0;
     }
 
+    function setVal(key, value) {
+        if (!parameters) return;
+        // Update parameter if it exists, or add it
+        // We need to handle aliases (Exposure vs Exposure2012)
+        if (parameters["Exposure2012"] !== undefined)
+            parameters["Exposure2012"] = value;
+        else if (parameters["Exposure"] !== undefined)
+            parameters["Exposure"] = value;
+        else parameters[key] = value; // Default to key if neither exists
+
+        // Re-group and update
+        groupedParams = groupParameters(parameters);
+        updateFilters();
+    }
+
     function updateFilters() {
         if (!parameters) return;
 
@@ -104,19 +128,38 @@
         const exposure = getVal("Exposure", "Exposure2012");
         const contrast = getVal("Contrast", "Contrast2012");
 
-        console.log("Updating filters:", {
-            temp,
-            tint,
-            saturation,
-            exposure,
-            contrast,
-        });
-
         colorMatrix = calculateColorMatrix(temp, tint, saturation);
         transferTable = calculateTransferTable(exposure, contrast);
+    }
 
-        console.log("Matrix:", colorMatrix);
-        console.log("Table:", transferTable);
+    // Image Analysis Trigger
+    async function handleImageLoad() {
+        if (!imgElement) return;
+        isAnalyzing = true;
+        try {
+            const result = await analyzeImage(imgElement);
+            histogramData = result.histogram;
+            imageStats = result;
+        } catch (e) {
+            console.error("Analysis failed", e);
+        } finally {
+            isAnalyzing = false;
+        }
+    }
+
+    function autoTone() {
+        if (!histogramData || !imageStats) return;
+
+        const evShift = calculateAutoExposure(
+            histogramData.l,
+            imageStats.totalPixels,
+        );
+
+        // Apply shift to current exposure
+        const currentExp = getVal("Exposure", "Exposure2012");
+        const newExp = currentExp + evShift;
+
+        setVal("Exposure", parseFloat(newExp.toFixed(2)));
     }
 
     // Image Navigation
@@ -196,9 +239,12 @@
                     <div class="image-container">
                         <!-- Before Image (Background) -->
                         <img
+                            bind:this={imgElement}
                             src={currentImageSrc}
                             alt="Before"
                             class="preview-img before"
+                            on:load={handleImageLoad}
+                            crossorigin="anonymous"
                         />
 
                         <!-- After Image (Foreground, Clipped) -->
@@ -304,8 +350,12 @@
                             After
                         </div>
 
-                        {#if loading}
-                            <div class="loader-overlay">Loading...</div>
+                        {#if loading || isAnalyzing}
+                            <div class="loader-overlay">
+                                {loading
+                                    ? "Loading Preset..."
+                                    : "Analyzing Image..."}
+                            </div>
                         {/if}
                     </div>
 
@@ -358,6 +408,34 @@
                 <!-- Right: Parameters -->
                 <div class="preview-params-section">
                     <h3>Parameters</h3>
+
+                    <!-- Histogram -->
+                    <div class="histogram-section">
+                        <Histogram data={histogramData} />
+                        <button
+                            class="btn-auto"
+                            on:click={autoTone}
+                            title="Auto-correct Exposure"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M12 2v20M2 12h20"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                                <circle cx="12" cy="12" r="4" />
+                            </svg>
+                            Auto Tone
+                        </button>
+                    </div>
+
                     {#if error}
                         <div class="error-msg">{error}</div>
                     {:else if groupedParams}
@@ -561,6 +639,32 @@
         padding: 2rem;
         overflow-y: auto;
         background: rgba(255, 255, 255, 0.02);
+    }
+
+    .histogram-section {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-auto {
+        width: 100%;
+        padding: 0.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .btn-auto:hover {
+        background: rgba(255, 255, 255, 0.2);
     }
 
     .param-group {
