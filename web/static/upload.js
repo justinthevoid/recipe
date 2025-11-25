@@ -2,7 +2,6 @@
 // Handles drag-drop, file validation, file cards, and empty state
 
 import { convertFile } from './converter.js';
-import { announceStatus, announceError, moveFocusToFirstFileCard } from './main.js';
 import { applyPreviewFilter } from './preview.js';
 
 /**
