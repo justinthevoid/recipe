@@ -13,36 +13,61 @@ export function recipeToCSSFilters(recipe) {
 
     const filters = [];
 
-    // Exposure → brightness (range: -2.0 to +2.0 → 0% to 200%)
-    if (recipe.exposure != null && recipe.exposure !== 0 && typeof recipe.exposure === 'number') {
-        const brightness = clamp((1.0 + recipe.exposure) * 100, 0, 200);
+    // Helper to get value from multiple possible keys
+    const getVal = (...keys) => {
+        for (const key of keys) {
+            if (recipe[key] != null && typeof recipe[key] === 'number') {
+                return recipe[key];
+            }
+        }
+        return 0;
+    };
+
+    // Exposure → brightness (range: -5.0 to +5.0, typically -2 to +2)
+    // Map: 0 -> 100%, +1 -> 150%, -1 -> 50%
+    const exposure = getVal('Exposure', 'Exposure2012');
+    if (exposure !== 0) {
+        const brightness = clamp((1.0 + exposure) * 100, 0, 200);
         filters.push(`brightness(${brightness}%)`);
     }
 
-    // Contrast → contrast (range: -1.0 to +1.0 → 0% to 200%)
-    if (recipe.contrast != null && recipe.contrast !== 0 && typeof recipe.contrast === 'number') {
-        const contrast = clamp((1.0 + recipe.contrast) * 100, 0, 200);
-        filters.push(`contrast(${contrast}%)`);
+    // Contrast → contrast (range: -100 to +100)
+    // Map: 0 -> 100%, +100 -> 200%, -100 -> 0%
+    // Note: Lightroom Contrast is often -100 to 100, legacy might be -1.0 to 1.0
+    // We'll assume -100 to 100 for 2012 process, normalize to -1.0 to 1.0
+    let contrast = getVal('Contrast', 'Contrast2012');
+    if (Math.abs(contrast) > 1.0) contrast /= 100; // Normalize if > 1
+
+    if (contrast !== 0) {
+        const contrastVal = clamp((1.0 + contrast) * 100, 0, 200);
+        filters.push(`contrast(${contrastVal}%)`);
     }
 
-    // Saturation → saturate (range: -1.0 to +1.0 → 0% to 200%)
-    if (recipe.saturation != null && recipe.saturation !== 0 && typeof recipe.saturation === 'number') {
-        const saturate = clamp((1.0 + recipe.saturation) * 100, 0, 200);
+    // Saturation → saturate (range: -100 to +100)
+    // Map: 0 -> 100%, +100 -> 200%, -100 -> 0%
+    let saturation = getVal('Saturation');
+    if (Math.abs(saturation) > 1.0) saturation /= 100; // Normalize if > 1
+
+    if (saturation !== 0) {
+        const saturate = clamp((1.0 + saturation) * 100, 0, 200);
         filters.push(`saturate(${saturate}%)`);
     }
 
-    // Hue → hue-rotate (range: -180 to +180 degrees)
-    if (recipe.hue != null && recipe.hue !== 0 && typeof recipe.hue === 'number') {
-        const hue = clamp(recipe.hue, -180, 180);
-        filters.push(`hue-rotate(${hue}deg)`);
+    // Hue (rarely used in basic panel, but supported)
+    const hue = getVal('Hue');
+    if (hue !== 0) {
+        const hueRotate = clamp(hue, -180, 180);
+        filters.push(`hue-rotate(${hueRotate}deg)`);
     }
 
     // Temperature → sepia + hue-rotate (approximation)
-    if (recipe.temperature != null && recipe.temperature !== 0 && typeof recipe.temperature === 'number') {
-        const temp = clamp(recipe.temperature, -100, 100);
-        const sepia = Math.abs(temp) * 0.3;
-        const hueShift = temp * 0.5;
-        filters.push(`sepia(${sepia})`);
+    // Range: -100 to +100
+    const temperature = getVal('Temperature');
+    if (temperature !== 0) {
+        const temp = clamp(temperature, -100, 100);
+        const sepia = Math.abs(temp) * 0.005; // Scale down effect
+        const hueShift = temp * 0.2;
+        filters.push(`sepia(${sepia * 100}%)`);
         filters.push(`hue-rotate(${hueShift}deg)`);
     }
 
