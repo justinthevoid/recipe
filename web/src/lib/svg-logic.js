@@ -80,13 +80,20 @@ export function calculateColorMatrix(temp, tint, saturation) {
         b[2] = satMatrix[12] + (b[2] - 1);
     }
 
-    // Flatten to string
-    return [
+    // Flatten to string and validate
+    const matrix = [
         r.join(' '),
         g.join(' '),
         b.join(' '),
         a.join(' ')
     ].join(' ');
+
+    // Fallback if any NaN
+    if (matrix.includes('NaN')) {
+        return "1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0";
+    }
+
+    return matrix;
 }
 
 /**
