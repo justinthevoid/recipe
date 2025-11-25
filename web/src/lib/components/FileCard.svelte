@@ -17,11 +17,22 @@
     }
 </script>
 
-<div class="file-card">
+<div class="file-card {file.status}">
     <div class="file-info">
         <div class="file-details">
             <div class="file-name">{file.name}</div>
-            <div class="file-meta">{formatSize(file.size)}</div>
+            <div class="file-meta">
+                {formatSize(file.size)}
+                {#if file.status === "processing"}
+                    <span class="status-text processing">Converting...</span>
+                {:else if file.status === "complete"}
+                    <span class="status-text success">Converted</span>
+                {:else if file.status === "error"}
+                    <span class="status-text error"
+                        >{file.error || "Error"}</span
+                    >
+                {/if}
+            </div>
         </div>
     </div>
     <div
@@ -29,6 +40,30 @@
         style="display: flex; align-items: center; gap: 1rem;"
     >
         <span class="format-badge">{format.toUpperCase()}</span>
+
+        {#if file.status === "complete"}
+            <a
+                href={file.outputUrl}
+                download={file.outputName}
+                class="btn-icon download-btn"
+                title="Download"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    ></path>
+                </svg>
+            </a>
+        {/if}
 
         <!-- Preview Button -->
         <button
@@ -82,3 +117,27 @@
         </button>
     </div>
 </div>
+
+<style>
+    .status-text {
+        margin-left: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    .status-text.processing {
+        color: var(--color-secondary);
+    }
+    .status-text.success {
+        color: #4cd964;
+    }
+    .status-text.error {
+        color: #ff3b30;
+    }
+
+    .download-btn {
+        color: #4cd964;
+    }
+    .download-btn:hover {
+        background: rgba(76, 217, 100, 0.1);
+    }
+</style>

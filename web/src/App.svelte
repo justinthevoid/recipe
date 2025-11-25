@@ -9,6 +9,7 @@
   import Modal from "./lib/components/Modal.svelte";
   import UploadZone from "./lib/components/UploadZone.svelte";
   import FileList from "./lib/components/FileList.svelte";
+  import ActionPanel from "./lib/components/ActionPanel.svelte";
   import PreviewModal from "./lib/components/PreviewModal.svelte";
 
   let showLegalModal = false;
@@ -26,6 +27,7 @@
     <div class="glass-card-wrapper">
       <UploadZone />
       <FileList />
+      <ActionPanel />
     </div>
   </div>
 
