@@ -23,13 +23,19 @@ export async function initializeWASM() {
                 go.importObject
             );
 
+            // Setup listener promise BEFORE running to catch the event
+            // The Go program emits 'wasmReady' when it starts
+            const readyPromise = new Promise(resolve => {
+                window.addEventListener('wasmReady', resolve, { once: true });
+            });
+
             // Run the Go program
+            // This might be synchronous or asynchronous depending on the Go runtime wrapper,
+            // but we must have the listener ready before this executes.
             go.run(result.instance);
 
             // Wait for wasmReady event
-            await new Promise(resolve => {
-                window.addEventListener('wasmReady', resolve, { once: true });
-            });
+            await readyPromise;
 
             wasmInitialized = true;
 
