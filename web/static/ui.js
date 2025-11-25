@@ -1,83 +1,99 @@
 /**
- * Recipe UI Enhancements
- * Handles collapsible menus and scroll animations
+ * Recipe UI - Creative Pro
+ * Handles interactions for the new app-like interface.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    initCollapsibles();
-    initScrollAnimations();
+    initModals();
+    initDragDrop();
+    initWorkspace();
 });
 
-/**
- * Initialize collapsible menus (accordions)
- */
-function initCollapsibles() {
-    const triggers = document.querySelectorAll('.faq-toggle, .collapsible-trigger');
+function initModals() {
+    const modal = document.getElementById('legal-modal');
+    const trigger = document.getElementById('legal-trigger');
+    const close = document.getElementById('legal-close');
 
-    triggers.forEach(trigger => {
-        trigger.addEventListener('click', () => {
-            const isExpanded = trigger.getAttribute('aria-expanded') === 'true';
-            const contentId = trigger.getAttribute('aria-controls') ||
-                trigger.nextElementSibling?.id;
+    if (trigger && modal && close) {
+        trigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            modal.classList.add('active');
+        });
 
-            if (!contentId) return;
+        close.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
 
-            const content = document.getElementById(contentId) || trigger.nextElementSibling;
-
-            // Toggle state
-            trigger.setAttribute('aria-expanded', !isExpanded);
-
-            if (content) {
-                if (!isExpanded) {
-                    content.style.display = 'block';
-                    // Small delay to allow display:block to apply before opacity transition
-                    requestAnimationFrame(() => {
-                        content.classList.add('expanded');
-                    });
-                } else {
-                    content.classList.remove('expanded');
-                    // Wait for transition to finish before hiding
-                    content.addEventListener('transitionend', function handler() {
-                        if (!content.classList.contains('expanded')) {
-                            content.style.display = 'none';
-                        }
-                        content.removeEventListener('transitionend', handler);
-                    }, { once: true });
-                }
-            }
-
-            // Rotate icon if present
-            const icon = trigger.querySelector('.icon-arrow');
-            if (icon) {
-                icon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
             }
         });
-    });
+    }
 }
 
-/**
- * Initialize scroll animations using Intersection Observer
- */
-function initScrollAnimations() {
-    const animatedElements = document.querySelectorAll('[data-aos]');
+function initDragDrop() {
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-button');
 
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1
+    // Browse Button
+    if (browseBtn && fileInput) {
+        browseBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent bubbling to dropzone
+            fileInput.click();
+        });
+    }
+
+    // Drag Effects
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('drag-over');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('drag-over');
+            }, false);
+        });
+
+        // Click to browse (if clicking on the box itself, not button)
+        dropzone.addEventListener('click', () => {
+            fileInput.click();
+        });
+    }
+}
+
+function initWorkspace() {
+    // Logic to switch from "Empty State" to "Workspace State"
+    // This will be triggered by main.js when files are added, 
+    // but we can set up the listeners here if needed.
+
+    // For now, we'll expose a global helper for main.js to call
+    window.showWorkspace = () => {
+        const dropzone = document.getElementById('dropzone');
+        const workspace = document.getElementById('workspace');
+
+        // Simplify dropzone to just be a top bar or smaller area?
+        // For now, let's just reveal the workspace below.
+        if (workspace) {
+            workspace.classList.remove('hidden');
+            workspace.style.display = 'block'; // Ensure it's visible
+        }
     };
-
-    const observer = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('aos-animate');
-                // Optional: Stop observing once animated
-                // observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
-
-    animatedElements.forEach(el => {
-        observer.observe(el);
-    });
 }
+
+// Global Status Helper (used by main.js)
+window.updateStatus = (msg, type = 'info') => {
+    const el = document.getElementById('status');
+    if (el) {
+        el.textContent = msg;
+        el.className = `status-indicator status-${type}`;
+    }
+};
