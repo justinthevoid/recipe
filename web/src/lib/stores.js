@@ -16,6 +16,9 @@ export const settings = writable({
     targetFormat: '' // np3, xmp, etc.
 });
 
+// Preview State
+export const previewFile = writable(null); // File object being previewed or null
+
 // Helper to add a file
 let fileIdCounter = 0;
 export function addFile(file) {
