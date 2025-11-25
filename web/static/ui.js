@@ -5,7 +5,6 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     initModals();
-    initDragDrop();
     initWorkspace();
 });
 
@@ -28,44 +27,6 @@ function initModals() {
             if (e.target === modal) {
                 modal.classList.remove('active');
             }
-        });
-    }
-}
-
-function initDragDrop() {
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('file-input');
-    const browseBtn = document.getElementById('browse-button');
-
-    // Browse Button
-    if (browseBtn && fileInput) {
-        browseBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent bubbling to dropzone
-            fileInput.click();
-        });
-    }
-
-    // Drag Effects
-    if (dropzone) {
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropzone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dropzone.classList.add('drag-over');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropzone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dropzone.classList.remove('drag-over');
-            }, false);
-        });
-
-        // Click to browse (if clicking on the box itself, not button)
-        dropzone.addEventListener('click', () => {
-            fileInput.click();
         });
     }
 }
