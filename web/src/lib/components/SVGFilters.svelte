@@ -29,7 +29,7 @@
     $: transferTable = calculateTransferTable(exposure, contrast);
 </script>
 
-<svg style="display: none;">
+<svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
     <defs>
         <filter id="preview-filter" color-interpolation-filters="sRGB">
             <!-- 1. Color Matrix (Temp, Tint, Saturation) -->
