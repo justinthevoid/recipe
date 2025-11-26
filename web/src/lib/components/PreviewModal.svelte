@@ -82,30 +82,30 @@
         try {
             if (f.isNew) {
                 const defaultRecipe = {
-                    Name: "New Preset",
-                    Exposure: 0,
-                    Contrast: 0,
-                    Highlights: 0,
-                    Shadows: 0,
-                    Whites: 0,
-                    Blacks: 0,
-                    Clarity: 0,
-                    Dehaze: 0,
-                    Vibrance: 0,
-                    Saturation: 0,
-                    Temperature: 0,
-                    Tint: 0,
-                    ColorGrading: {
-                        Highlights: { Hue: 0, Chroma: 0, Brightness: 0 },
-                        Midtone: { Hue: 0, Chroma: 0, Brightness: 0 },
-                        Shadows: { Hue: 0, Chroma: 0, Brightness: 0 },
-                        Blending: 50,
-                        Balance: 0,
+                    name: "New Preset",
+                    exposure: 0,
+                    contrast: 0,
+                    highlights: 0,
+                    shadows: 0,
+                    whites: 0,
+                    blacks: 0,
+                    clarity: 0,
+                    dehaze: 0,
+                    vibrance: 0,
+                    saturation: 0,
+                    temperature: 0,
+                    tint: 0,
+                    colorGrading: {
+                        highlights: { hue: 0, chroma: 0, brightness: 0 },
+                        midtone: { hue: 0, chroma: 0, brightness: 0 },
+                        shadows: { hue: 0, chroma: 0, brightness: 0 },
+                        blending: 50,
+                        balance: 0,
                     },
-                    ToneCurveHighlights: 0,
-                    ToneCurveLights: 0,
-                    ToneCurveDarks: 0,
-                    ToneCurveShadows: 0,
+                    toneCurveHighlights: 0,
+                    toneCurveLights: 0,
+                    toneCurveDarks: 0,
+                    toneCurveShadows: 0,
                 };
                 currentRecipe.set(defaultRecipe);
                 loading = false;
@@ -119,6 +119,7 @@
 
             // Extract full recipe
             const recipe = await extractFullRecipe(bytes, format);
+            console.log("Loaded Recipe:", recipe);
             currentRecipe.set(recipe);
         } catch (e) {
             console.error(e);
@@ -130,11 +131,39 @@
 
     function updateFilters(recipe) {
         if (!recipe) return;
+        console.log("Updating Filters with:", recipe);
 
         // Extract values for SVG filters
-        const temp = recipe.Temperature || 0;
-        const tint = recipe.Tint || 0;
-        const saturation = recipe.Saturation || 0;
+        const temp = recipe.temperature || 0;
+        const tint = recipe.tint || 0;
+        const saturation = recipe.saturation || 0;
+        const exposure = recipe.exposure || 0;
+        const contrast = recipe.contrast || 0;
+        const highlights = recipe.highlights || 0;
+        const shadows = recipe.shadows || 0;
+        const whites = recipe.whites || 0;
+        const blacks = recipe.blacks || 0;
+
+        const curveHighlights = recipe.toneCurveHighlights || 0;
+        const curveLights = recipe.toneCurveLights || 0;
+        const curveDarks = recipe.toneCurveDarks || 0;
+        const curveShadows = recipe.toneCurveShadows || 0;
+
+        colorMatrix = calculateColorMatrix(temp, tint, saturation);
+        transferTable = calculateTransferTable(
+            exposure,
+            contrast,
+            highlights,
+            shadows,
+            whites,
+            blacks,
+            curveHighlights,
+            curveLights,
+            curveDarks,
+            curveShadows,
+        );
+
+        console.log("Transfer Table:", transferTable);
     }
 
     // Image Analysis Trigger
@@ -162,9 +191,9 @@
 
         // Apply shift to current exposure
         currentRecipe.update((r) => {
-            const currentExp = r.Exposure || 0;
+            const currentExp = r.exposure || 0;
             const newExp = currentExp + evShift;
-            return { ...r, Exposure: parseFloat(newExp.toFixed(2)) };
+            return { ...r, exposure: parseFloat(newExp.toFixed(2)) };
         });
     }
 
@@ -185,7 +214,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = (recipe.Name || "preset") + ".np3";
+            a.download = (recipe.name || "preset") + ".np3";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -523,10 +552,10 @@
                                             min="-5"
                                             max="5"
                                             step="0.05"
-                                            bind:value={$currentRecipe.Exposure}
+                                            bind:value={$currentRecipe.exposure}
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Exposure}</span
+                                            >{$currentRecipe.exposure}</span
                                         >
                                     </label>
 
@@ -537,10 +566,10 @@
                                             min="-100"
                                             max="100"
                                             step="1"
-                                            bind:value={$currentRecipe.Contrast}
+                                            bind:value={$currentRecipe.contrast}
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Contrast}</span
+                                            >{$currentRecipe.contrast}</span
                                         >
                                     </label>
 
@@ -552,11 +581,11 @@
                                             max="100"
                                             step="1"
                                             bind:value={
-                                                $currentRecipe.Highlights
+                                                $currentRecipe.highlights
                                             }
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Highlights}</span
+                                            >{$currentRecipe.highlights}</span
                                         >
                                     </label>
 
@@ -567,10 +596,10 @@
                                             min="-100"
                                             max="100"
                                             step="1"
-                                            bind:value={$currentRecipe.Shadows}
+                                            bind:value={$currentRecipe.shadows}
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Shadows}</span
+                                            >{$currentRecipe.shadows}</span
                                         >
                                     </label>
 
@@ -581,10 +610,10 @@
                                             min="-100"
                                             max="100"
                                             step="1"
-                                            bind:value={$currentRecipe.Whites}
+                                            bind:value={$currentRecipe.whites}
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Whites}</span
+                                            >{$currentRecipe.whites}</span
                                         >
                                     </label>
 
@@ -595,10 +624,10 @@
                                             min="-100"
                                             max="100"
                                             step="1"
-                                            bind:value={$currentRecipe.Blacks}
+                                            bind:value={$currentRecipe.blacks}
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Blacks}</span
+                                            >{$currentRecipe.blacks}</span
                                         >
                                     </label>
                                 </div>
@@ -613,10 +642,10 @@
                                             min="-100"
                                             max="100"
                                             step="1"
-                                            bind:value={$currentRecipe.Clarity}
+                                            bind:value={$currentRecipe.clarity}
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Clarity}</span
+                                            >{$currentRecipe.clarity}</span
                                         >
                                     </label>
 
@@ -627,10 +656,10 @@
                                             min="-100"
                                             max="100"
                                             step="1"
-                                            bind:value={$currentRecipe.Dehaze}
+                                            bind:value={$currentRecipe.dehaze}
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Dehaze}</span
+                                            >{$currentRecipe.dehaze}</span
                                         >
                                     </label>
 
@@ -641,10 +670,10 @@
                                             min="-100"
                                             max="100"
                                             step="1"
-                                            bind:value={$currentRecipe.Vibrance}
+                                            bind:value={$currentRecipe.vibrance}
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Vibrance}</span
+                                            >{$currentRecipe.vibrance}</span
                                         >
                                     </label>
 
@@ -656,11 +685,11 @@
                                             max="100"
                                             step="1"
                                             bind:value={
-                                                $currentRecipe.Saturation
+                                                $currentRecipe.saturation
                                             }
                                         />
                                         <span class="value"
-                                            >{$currentRecipe.Saturation}</span
+                                            >{$currentRecipe.saturation}</span
                                         >
                                     </label>
                                 </div>
@@ -900,14 +929,16 @@
         background: rgba(255, 255, 255, 0.2);
     }
 
-    .control-group {
-        margin-bottom: 2rem;
+    h3 {
+        margin-bottom: 1.5rem;
+        font-size: 1.2rem;
+        color: white;
     }
 
-    .control-group h4 {
+    h4 {
+        font-size: 0.9rem;
         color: var(--color-primary);
         margin-bottom: 1rem;
-        font-size: 0.9rem;
         text-transform: uppercase;
         letter-spacing: 1px;
     }
