@@ -711,17 +711,22 @@
                             {/if}
                         </div>
 
-                        <!-- Save Button -->
-                        <button
-                            class="btn-save"
-                            on:click={savePreset}
-                            disabled={isSaving}
-                        >
-                            {isSaving ? "Saving..." : "Save as NP3"}
-                        </button>
+                        <!-- Spacer to prevent content from being hidden behind sticky button -->
+                        <div class="spacer"></div>
                     {:else if !loading}
                         <p>No parameters found.</p>
                     {/if}
+                </div>
+
+                <!-- Sticky Save Button Area -->
+                <div class="save-section">
+                    <button
+                        class="btn-save"
+                        on:click={savePreset}
+                        disabled={isSaving}
+                    >
+                        {isSaving ? "Saving..." : "Save as NP3"}
+                    </button>
                 </div>
             </div>
         </div>
@@ -744,6 +749,7 @@
         grid-template-columns: 1fr 350px;
         height: 100%;
         overflow: hidden;
+        position: relative;
     }
 
     .preview-image-section {
@@ -899,8 +905,28 @@
 
     .preview-params-section {
         padding: 2rem;
+        padding-bottom: 100px; /* Space for sticky button */
         overflow-y: auto;
         background: rgba(255, 255, 255, 0.02);
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    .save-section {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 350px;
+        padding: 1.5rem;
+        background: rgba(18, 18, 24, 0.95); /* Match modal bg */
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        z-index: 20;
+        box-sizing: border-box;
+    }
+
+    .spacer {
+        height: 100px;
     }
 
     .histogram-section {
@@ -964,7 +990,7 @@
 
     /* Custom Scrollbar for Params */
     .preview-params-section::-webkit-scrollbar {
-        width: 8px;
+        width: 6px; /* Thinner */
     }
 
     .preview-params-section::-webkit-scrollbar-track {
@@ -995,27 +1021,28 @@
 
     input[type="range"]::-webkit-slider-runnable-track {
         width: 100%;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 2px;
+        height: 6px; /* Thicker track */
+        background: rgba(255, 255, 255, 0.15); /* More visible */
+        border-radius: 3px;
         cursor: pointer;
         transition: background 0.2s;
     }
 
     input[type="range"]:hover::-webkit-slider-runnable-track {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.25);
     }
 
     input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        height: 16px;
-        width: 16px;
+        height: 20px; /* Larger thumb */
+        width: 20px;
         border-radius: 50%;
         background: var(--color-primary);
-        margin-top: -6px; /* Center thumb on track */
+        border: 2px solid white; /* Add border for visibility */
+        margin-top: -7px; /* Center thumb on track */
         cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
         transition:
             transform 0.1s,
             background 0.2s;
@@ -1060,10 +1087,12 @@
         color: white;
         border: none;
         border-radius: 8px;
-        font-weight: 600;
+        font-weight: 700; /* Bolder */
+        font-size: 1.1rem; /* Larger */
         cursor: pointer;
         transition: all 0.2s;
-        margin-top: 2rem;
+        margin-top: 0; /* Reset margin */
+        box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3); /* Glow */
     }
 
     .btn-save:hover {

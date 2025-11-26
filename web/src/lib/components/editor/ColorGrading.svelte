@@ -164,10 +164,11 @@
     }
 
     .global-controls h4 {
-        font-size: 0.8rem;
-        color: var(--text-secondary);
+        font-size: 0.9rem;
+        color: var(--color-primary);
         margin-bottom: 1rem;
         text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
     label {
