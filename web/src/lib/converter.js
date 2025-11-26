@@ -1,4 +1,5 @@
 // converter.js - WASM conversion wrapper
+/* global convert, generate, extractFullRecipe */
 // Epic 2, Story 2-6: WASM Conversion Execution
 // Handles file conversion using WASM module with error handling and validation
 
@@ -60,6 +61,54 @@ export async function convertFile(fileData, sourceFormat, targetFormat, original
     } catch (error) {
         isConverting = false;
         console.error('Conversion failed:', error);
+        throw new ConversionError(error.message || error);
+    }
+}
+
+/**
+ * Generate NP3 preset from recipe JSON
+ * @param {Object} recipe - UniversalRecipe object
+ * @returns {Promise<Uint8Array>} Generated NP3 file data
+ */
+export async function generatePreset(recipe) {
+    if (!recipe) {
+        throw new Error('Missing recipe data');
+    }
+
+    if (typeof generate !== 'function') {
+        throw new Error('WASM module not loaded');
+    }
+
+    try {
+        const jsonString = JSON.stringify(recipe);
+        const outputData = await generate(jsonString);
+        return outputData;
+    } catch (error) {
+        console.error('Generation failed:', error);
+        throw new ConversionError(error.message || error);
+    }
+}
+
+/**
+ * Extract full recipe from file data
+ * @param {Uint8Array} fileData - Source file data
+ * @param {string} format - Source format
+ * @returns {Promise<Object>} Full UniversalRecipe object
+ */
+export async function extractFullRecipe(fileData, format) {
+    if (!fileData || !format) {
+        throw new Error('Missing required parameters');
+    }
+
+    if (typeof extractFullRecipe !== 'function') {
+        throw new Error('WASM module not loaded');
+    }
+
+    try {
+        const jsonString = await window.extractFullRecipe(fileData, format);
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.error('Extraction failed:', error);
         throw new ConversionError(error.message || error);
     }
 }

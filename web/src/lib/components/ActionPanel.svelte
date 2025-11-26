@@ -1,5 +1,11 @@
 <script>
-    import { files, settings, updateFileStatus } from "../stores";
+    import {
+        files,
+        settings,
+        updateFileStatus,
+        previewFile,
+        currentRecipe,
+    } from "../stores";
     import { convertFile } from "../converter";
     import { detectFormatFromExtension } from "../format-detector";
 
@@ -92,6 +98,45 @@
             }
         });
     }
+
+    function createNewPreset() {
+        const defaultRecipe = {
+            Name: "New Preset",
+            Exposure: 0,
+            Contrast: 0,
+            Highlights: 0,
+            Shadows: 0,
+            Whites: 0,
+            Blacks: 0,
+            Clarity: 0,
+            Dehaze: 0,
+            Vibrance: 0,
+            Saturation: 0,
+            Temperature: 0,
+            Tint: 0,
+            ColorGrading: {
+                Highlights: { Hue: 0, Chroma: 0, Brightness: 0 },
+                Midtone: { Hue: 0, Chroma: 0, Brightness: 0 },
+                Shadows: { Hue: 0, Chroma: 0, Brightness: 0 },
+                Blending: 50,
+                Balance: 0,
+            },
+            ToneCurveHighlights: 0,
+            ToneCurveLights: 0,
+            ToneCurveDarks: 0,
+            ToneCurveShadows: 0,
+        };
+
+        // Create a mock file object
+        const newFile = {
+            name: "New Preset.np3",
+            isNew: true,
+            arrayBuffer: async () => new ArrayBuffer(0),
+        };
+
+        previewFile.set(newFile);
+        // currentRecipe will be set by PreviewModal based on isNew flag
+    }
 </script>
 
 <div class="action-panel glass-card">
@@ -129,6 +174,26 @@
                     Download All
                 </button>
             {/if}
+        </div>
+
+        <div class="create-action">
+            <button class="btn-create" on:click={createNewPreset}>
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M12 5v14M5 12h14"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+                Create New Preset
+            </button>
         </div>
     </div>
 
@@ -283,8 +348,37 @@
         }
 
         .btn-primary,
-        .btn-secondary {
+        .btn-secondary,
+        .btn-create {
             width: 100%;
         }
+    }
+
+    .create-action {
+        width: 100%;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 1.5rem;
+    }
+
+    .btn-create {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px dashed rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+        color: var(--text-primary);
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .btn-create:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
     }
 </style>
