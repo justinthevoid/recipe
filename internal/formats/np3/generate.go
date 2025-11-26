@@ -88,6 +88,19 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 		params.clarity = -5.0
 	}
 
+	// Grain Amount: Universal (0-100) → NP3 (0-31.75)
+	params.grainAmount = float64(recipe.GrainAmount) * 31.75 / 100.0
+
+	// Grain Size: Universal (0-100) → NP3 Enum
+	// 1=Large, 2=Small, 127=Off
+	if recipe.GrainSize >= 60 {
+		params.grainSize = 1 // Large
+	} else if recipe.GrainSize > 0 {
+		params.grainSize = 2 // Small
+	} else {
+		params.grainSize = 127 // Off (0xFF)
+	}
+
 	// === Advanced Adjustments (7 parameters) ===
 
 	// Mid-Range Sharpening: Direct mapping (-5.0 to +5.0)
@@ -232,9 +245,9 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 // npChunk represents a TLV (Type-Length-Value) chunk in the NP3 format.
 // Each chunk is 10 bytes: [ID:1][Pad:3][Length:2BE][Value:2][Pad:2]
 type npChunk struct {
-	id     byte    // Chunk ID (0x03-0x1F)
-	length uint16  // Length in big-endian (typically 2, but 0x1F has length 28)
-	value  []byte  // Value bytes (2 bytes typically, more for extended chunks)
+	id     byte   // Chunk ID (0x03-0x1F)
+	length uint16 // Length in big-endian (typically 2, but 0x1F has length 28)
+	value  []byte // Value bytes (2 bytes typically, more for extended chunks)
 }
 
 // constantChunks defines constant TLV chunks that appear in all NP3 files.
@@ -325,10 +338,13 @@ func writeChunks(data []byte, params *np3Parameters) {
 	offset = writeChunk(data, offset, npChunk{id: 0x07, length: 2, value: []byte{clarityValue, 0x04}})
 
 	// Chunks 0x08-0x13: Constants
-	offset = writeChunk(data, offset, npChunk{id: 0x08, length: 2, value: []byte{0xff, 0x04}})
-	offset = writeChunk(data, offset, npChunk{id: 0x09, length: 2, value: []byte{0xff, 0x04}})
-	offset = writeChunk(data, offset, npChunk{id: 0x0a, length: 2, value: []byte{0xff, 0x04}})
-	offset = writeChunk(data, offset, npChunk{id: 0x0b, length: 2, value: []byte{0xff, 0x04}})
+	// Chunks 0x08-0x0B: Grain Amount (and related?)
+	// We write the same value to all 4 chunks as observed in Junk.NP3
+	grainAmountValue := EncodeScaled4(params.grainAmount)
+	offset = writeChunk(data, offset, npChunk{id: 0x08, length: 2, value: []byte{grainAmountValue, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x09, length: 2, value: []byte{grainAmountValue, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0a, length: 2, value: []byte{grainAmountValue, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0b, length: 2, value: []byte{grainAmountValue, 0x04}})
 	offset = writeChunk(data, offset, npChunk{id: 0x0c, length: 2, value: []byte{0xff, 0x00}})
 	offset = writeChunk(data, offset, npChunk{id: 0x0d, length: 2, value: []byte{0xff, 0x00}})
 	offset = writeChunk(data, offset, npChunk{id: 0x0e, length: 2, value: []byte{0xff, 0x04}})
@@ -339,7 +355,9 @@ func writeChunks(data []byte, params *np3Parameters) {
 	offset = writeChunk(data, offset, npChunk{id: 0x13, length: 2, value: []byte{0xff, 0x01}})
 
 	// Chunk 0x14: Constant
-	offset = writeChunk(data, offset, npChunk{id: 0x14, length: 2, value: []byte{0xff, 0x01}})
+	// Chunk 0x14: Grain Size
+	// Value is Signed8 Enum: 1=Large, 2=Small, 127=Off
+	offset = writeChunk(data, offset, npChunk{id: 0x14, length: 2, value: []byte{EncodeSigned8(params.grainSize), 0x01}})
 
 	// Chunk 0x15: Constant
 	offset = writeChunk(data, offset, npChunk{id: 0x15, length: 2, value: []byte{0xff, 0x0a}})
@@ -379,7 +397,7 @@ func writeChunks(data []byte, params *np3Parameters) {
 	data[offset+31] = 0x01 // Type indicator
 	data[offset+32] = 0x01 // Type indicator
 	data[offset+33] = 0x00 // Padding
-	offset += 34 // Move past chunk 0x1F (6 header + 28 value)
+	offset += 34           // Move past chunk 0x1F (6 header + 28 value)
 
 	// Add 2 bytes padding before chunk 0x20 (required by NP3 format)
 	data[offset] = 0x00
@@ -460,14 +478,14 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 		// Offsets 7-10: Reserved (already zeros)
 
 		// Write format header at offsets 11-19
-		data[11] = 0x04                                      // Format flag
-		copy(data[12:16], []byte{'0', '3', '1', '0'})       // Format version string "0310"
+		data[11] = 0x04                               // Format flag
+		copy(data[12:16], []byte{'0', '3', '1', '0'}) // Format version string "0310"
 		// Offsets 16-17: Reserved (already zeros)
-		data[18] = 0x02                                      // Unknown flag
+		data[18] = 0x02 // Unknown flag
 		// Offset 19: Reserved (already zero)
 
 		// Write name length header at offsets 20-23
-		copy(data[20:24], []byte{0x00, 0x00, 0x00, 0x14})    // Name length = 20 (0x14)
+		copy(data[20:24], []byte{0x00, 0x00, 0x00, 0x14}) // Name length = 20 (0x14)
 	}
 
 	// Only write legacy data structures if we don't have raw data
@@ -512,6 +530,8 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	// Write exact offset data regardless of whether we have rawData, to ensure
 	// current parameter values are written to the correct locations
 	writeBasicAdjustments(data, params)
+	writeEffects(data, params)
+	writeAdvancedAdjustments(data, params)
 	writeAdvancedAdjustments(data, params)
 	writeColorBlender(data, params)
 	writeColorGrading(data, params)
@@ -556,7 +576,13 @@ func writeRawParameterBytes(data []byte, params *np3Parameters) {
 	// Parser: params.brightness = float64(avgBrightness) / 128.0
 	// Generator reverse: adjusted = brightness * 128.0
 	brightnessAdjusted := int(params.brightness * 128.0)
-	brightnessRaw := byte(brightnessAdjusted + 128)
+	brightnessVal := brightnessAdjusted + 128
+	if brightnessVal > 255 {
+		brightnessVal = 255
+	} else if brightnessVal < 0 {
+		brightnessVal = 0
+	}
+	brightnessRaw := byte(brightnessVal)
 
 	// Write same value to all 5 bytes (71-75) for consistency
 	for i := 71; i <= 75; i++ {
@@ -579,13 +605,15 @@ func writeRawParameterBytes(data []byte, params *np3Parameters) {
 // that will be heuristically analyzed by the parser to determine saturation.
 //
 // Parser strategy (parse.go:200-219):
-//   colorIntensity := len(colorData) / 15
-//   params.saturation = colorIntensity - 1
-//   (clamped to -3 to +3)
+//
+//	colorIntensity := len(colorData) / 15
+//	params.saturation = colorIntensity - 1
+//	(clamped to -3 to +3)
 //
 // Generator reverse strategy:
-//   To achieve saturation value S, we need (S + 1) * 15 significant RGB triplets
-//   We generate triplets with at least one channel > 10
+//
+//	To achieve saturation value S, we need (S + 1) * 15 significant RGB triplets
+//	We generate triplets with at least one channel > 10
 //
 // Returns the offset where color data ends
 func generateColorData(data []byte, saturation int) int {
@@ -614,22 +642,24 @@ func generateColorData(data []byte, saturation int) int {
 		offset += 3
 	}
 
-	return offset  // Return where color data ends
+	return offset // Return where color data ends
 }
 
 // generateToneCurveData generates paired byte values at offsets 150-499
 // that will be heuristically analyzed by the parser to determine contrast.
 //
 // Parser strategy (parse.go:221-237):
-//   Reads pairs from offset 150-500
-//   curveComplexity := len(toneCurve) / 20
-//   params.contrast = curveComplexity - 2
-//   (clamped to -3 to +3)
+//
+//	Reads pairs from offset 150-500
+//	curveComplexity := len(toneCurve) / 20
+//	params.contrast = curveComplexity - 2
+//	(clamped to -3 to +3)
 //
 // Generator reverse strategy:
-//   To achieve contrast value C, we need (C + 2) * 20 non-zero tone curve points
-//   If color data extends into tone curve region (150+), those bytes will be
-//   counted as tone curve pairs. Adjust our count to compensate.
+//
+//	To achieve contrast value C, we need (C + 2) * 20 non-zero tone curve points
+//	If color data extends into tone curve region (150+), those bytes will be
+//	counted as tone curve pairs. Adjust our count to compensate.
 func generateToneCurveData(data []byte, contrast int, colorEndOffset int) {
 	// Calculate how many tone curve pairs we need total
 	// Parser: contrast = (len(toneCurve) / 20) - 2
@@ -697,6 +727,19 @@ func writeBasicAdjustments(data []byte, params *np3Parameters) {
 	// Clarity (offset 92)
 	if len(data) > OffsetClarity {
 		data[OffsetClarity] = EncodeScaled4(params.clarity)
+	}
+}
+
+// writeEffects writes film grain parameters to exact offsets.
+func writeEffects(data []byte, params *np3Parameters) {
+	// Grain Amount (offset 102)
+	if len(data) > OffsetGrainAmount {
+		data[OffsetGrainAmount] = EncodeScaled4(params.grainAmount)
+	}
+
+	// Grain Size (offset 222)
+	if len(data) > OffsetGrainSize {
+		data[OffsetGrainSize] = EncodeSigned8(params.grainSize)
 	}
 }
 
@@ -884,7 +927,7 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 	if len(params.toneCurveRaw) == 257 && len(data) >= OffsetToneCurveRaw+514 {
 		for i := 0; i < 257; i++ {
 			offset := OffsetToneCurveRaw + (i * 2)
-			data[offset] = uint8(params.toneCurveRaw[i] >> 8)   // High byte
+			data[offset] = uint8(params.toneCurveRaw[i] >> 8)     // High byte
 			data[offset+1] = uint8(params.toneCurveRaw[i] & 0xFF) // Low byte
 		}
 	}

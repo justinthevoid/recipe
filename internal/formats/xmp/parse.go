@@ -92,6 +92,11 @@ type Description struct {
 	Temperature string `xml:"Temperature,attr"`
 	Tint        string `xml:"Tint,attr"`
 
+	// Grain
+	GrainAmount    string `xml:"GrainAmount,attr"`
+	GrainSize      string `xml:"GrainSize,attr"`
+	GrainFrequency string `xml:"GrainFrequency,attr"` // Roughness
+
 	// HSL Adjustments - Red
 	HueRed        string `xml:"HueRed,attr"`
 	SaturationRed string `xml:"SaturationRed,attr"`
@@ -276,6 +281,11 @@ type xmpParameters struct {
 	temperature int
 	tint        int
 
+	// Grain
+	grainAmount    int
+	grainSize      int
+	grainRoughness int
+
 	// HSL Adjustments
 	red     models.ColorAdjustment
 	orange  models.ColorAdjustment
@@ -368,6 +378,22 @@ func extractParameters(desc *Description) (*xmpParameters, error) {
 
 	params.tint, err = parseInt(desc.Tint, "Tint")
 	if err != nil && desc.Tint != "" {
+		return nil, err
+	}
+
+	// Extract Grain
+	params.grainAmount, err = parseInt(desc.GrainAmount, "GrainAmount")
+	if err != nil && desc.GrainAmount != "" {
+		return nil, err
+	}
+
+	params.grainSize, err = parseInt(desc.GrainSize, "GrainSize")
+	if err != nil && desc.GrainSize != "" {
+		return nil, err
+	}
+
+	params.grainRoughness, err = parseInt(desc.GrainFrequency, "GrainFrequency")
+	if err != nil && desc.GrainFrequency != "" {
 		return nil, err
 	}
 
@@ -691,6 +717,32 @@ func validateParameters(params *xmpParameters) error {
 		}
 	}
 
+	// Validate Grain
+	if params.grainAmount < 0 || params.grainAmount > 100 {
+		return &ConversionError{
+			Operation: "validate",
+			Format:    "xmp",
+			Field:     "GrainAmount",
+			Cause:     fmt.Errorf("value %d out of range (expected 0 to 100)", params.grainAmount),
+		}
+	}
+	if params.grainSize < 0 || params.grainSize > 100 {
+		return &ConversionError{
+			Operation: "validate",
+			Format:    "xmp",
+			Field:     "GrainSize",
+			Cause:     fmt.Errorf("value %d out of range (expected 0 to 100)", params.grainSize),
+		}
+	}
+	if params.grainRoughness < 0 || params.grainRoughness > 100 {
+		return &ConversionError{
+			Operation: "validate",
+			Format:    "xmp",
+			Field:     "GrainFrequency",
+			Cause:     fmt.Errorf("value %d out of range (expected 0 to 100)", params.grainRoughness),
+		}
+	}
+
 	// Validate HSL Adjustments
 	if err := validateColorRange(params.red, "Red"); err != nil {
 		return err
@@ -826,6 +878,9 @@ func buildRecipe(params *xmpParameters) (*models.UniversalRecipe, error) {
 	builder.WithSharpness(params.sharpness)
 	builder.WithTemperature(params.temperature)
 	builder.WithTint(params.tint)
+
+	// Set Grain
+	builder.WithGrain(params.grainAmount, params.grainSize, params.grainRoughness)
 
 	// Set HSL Adjustments
 	builder.WithRedHSL(params.red.Hue, params.red.Saturation, params.red.Luminance)

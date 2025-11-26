@@ -44,12 +44,12 @@ type ColorGrading struct {
 
 // CameraProfile represents camera calibration settings.
 type CameraProfile struct {
-	RedHue         int `json:"redHue,omitempty" xml:"redHue,omitempty"`               // Red hue adjustment
-	RedSaturation  int `json:"redSaturation,omitempty" xml:"redSaturation,omitempty"` // Red saturation adjustment
-	GreenHue       int `json:"greenHue,omitempty" xml:"greenHue,omitempty"`           // Green hue adjustment
+	RedHue          int `json:"redHue,omitempty" xml:"redHue,omitempty"`                   // Red hue adjustment
+	RedSaturation   int `json:"redSaturation,omitempty" xml:"redSaturation,omitempty"`     // Red saturation adjustment
+	GreenHue        int `json:"greenHue,omitempty" xml:"greenHue,omitempty"`               // Green hue adjustment
 	GreenSaturation int `json:"greenSaturation,omitempty" xml:"greenSaturation,omitempty"` // Green saturation adjustment
-	BlueHue        int `json:"blueHue,omitempty" xml:"blueHue,omitempty"`             // Blue hue adjustment
-	BlueSaturation int `json:"blueSaturation,omitempty" xml:"blueSaturation,omitempty"` // Blue saturation adjustment
+	BlueHue         int `json:"blueHue,omitempty" xml:"blueHue,omitempty"`                 // Blue hue adjustment
+	BlueSaturation  int `json:"blueSaturation,omitempty" xml:"blueSaturation,omitempty"`   // Blue saturation adjustment
 }
 
 // UniversalRecipe is the universal data structure that represents all photo editing parameters
@@ -60,7 +60,7 @@ type CameraProfile struct {
 // All generators convert: UniversalRecipe → Format
 type UniversalRecipe struct {
 	// Metadata
-	Name         string `json:"name,omitempty" xml:"name,omitempty"`               // Recipe name
+	Name         string `json:"name,omitempty" xml:"name,omitempty"`                 // Recipe name
 	SourceFormat string `json:"sourceFormat,omitempty" xml:"sourceFormat,omitempty"` // Origin format: "np3", "xmp", "lrtemplate"
 
 	// Basic Adjustments
@@ -72,10 +72,10 @@ type UniversalRecipe struct {
 	Blacks     int     `json:"blacks,omitempty" xml:"blacks,omitempty"`         // Blacks: -100 to +100
 
 	// Presence
-	Texture  int `json:"texture,omitempty" xml:"texture,omitempty"`   // Texture: -100 to +100
-	Clarity  int `json:"clarity,omitempty" xml:"clarity,omitempty"`   // Clarity: -100 to +100
-	Dehaze   int `json:"dehaze,omitempty" xml:"dehaze,omitempty"`     // Dehaze: -100 to +100
-	Vibrance int `json:"vibrance,omitempty" xml:"vibrance,omitempty"` // Vibrance: -100 to +100
+	Texture    int `json:"texture,omitempty" xml:"texture,omitempty"`       // Texture: -100 to +100
+	Clarity    int `json:"clarity,omitempty" xml:"clarity,omitempty"`       // Clarity: -100 to +100
+	Dehaze     int `json:"dehaze,omitempty" xml:"dehaze,omitempty"`         // Dehaze: -100 to +100
+	Vibrance   int `json:"vibrance,omitempty" xml:"vibrance,omitempty"`     // Vibrance: -100 to +100
 	Saturation int `json:"saturation,omitempty" xml:"saturation,omitempty"` // Saturation: -100 to +100
 
 	// Sharpening
@@ -104,12 +104,12 @@ type UniversalRecipe struct {
 	ColorGrading *ColorGrading `json:"colorGrading,omitempty" xml:"colorGrading,omitempty"` // Nikon Flexible Color Picture Control color grading
 
 	// Tone Curve (Parametric)
-	ToneCurveShadows      int `json:"toneCurveShadows,omitempty" xml:"toneCurveShadows,omitempty"`           // Tone curve shadows: -100 to +100
-	ToneCurveDarks        int `json:"toneCurveDarks,omitempty" xml:"toneCurveDarks,omitempty"`               // Tone curve darks: -100 to +100
-	ToneCurveLights       int `json:"toneCurveLights,omitempty" xml:"toneCurveLights,omitempty"`             // Tone curve lights: -100 to +100
-	ToneCurveHighlights   int `json:"toneCurveHighlights,omitempty" xml:"toneCurveHighlights,omitempty"`     // Tone curve highlights: -100 to +100
-	ToneCurveShadowSplit  int `json:"toneCurveShadowSplit,omitempty" xml:"toneCurveShadowSplit,omitempty"`   // Shadow split point: 0-100
-	ToneCurveMidtoneSplit int `json:"toneCurveMidtoneSplit,omitempty" xml:"toneCurveMidtoneSplit,omitempty"` // Midtone split point: 0-100
+	ToneCurveShadows        int `json:"toneCurveShadows,omitempty" xml:"toneCurveShadows,omitempty"`               // Tone curve shadows: -100 to +100
+	ToneCurveDarks          int `json:"toneCurveDarks,omitempty" xml:"toneCurveDarks,omitempty"`                   // Tone curve darks: -100 to +100
+	ToneCurveLights         int `json:"toneCurveLights,omitempty" xml:"toneCurveLights,omitempty"`                 // Tone curve lights: -100 to +100
+	ToneCurveHighlights     int `json:"toneCurveHighlights,omitempty" xml:"toneCurveHighlights,omitempty"`         // Tone curve highlights: -100 to +100
+	ToneCurveShadowSplit    int `json:"toneCurveShadowSplit,omitempty" xml:"toneCurveShadowSplit,omitempty"`       // Shadow split point: 0-100
+	ToneCurveMidtoneSplit   int `json:"toneCurveMidtoneSplit,omitempty" xml:"toneCurveMidtoneSplit,omitempty"`     // Midtone split point: 0-100
 	ToneCurveHighlightSplit int `json:"toneCurveHighlightSplit,omitempty" xml:"toneCurveHighlightSplit,omitempty"` // Highlight split point: 0-100
 
 	// Point Curve (RGB)
@@ -119,14 +119,15 @@ type UniversalRecipe struct {
 	PointCurveBlue  []ToneCurvePoint `json:"pointCurveBlue,omitempty" xml:"pointCurveBlue,omitempty"`   // Blue channel curve points
 
 	// Split Toning / Color Grading
-	SplitShadowHue        int `json:"splitShadowHue,omitempty" xml:"splitShadowHue,omitempty"`               // Shadow hue: 0-360
-	SplitShadowSaturation int `json:"splitShadowSaturation,omitempty" xml:"splitShadowSaturation,omitempty"` // Shadow saturation: 0-100
-	SplitHighlightHue     int `json:"splitHighlightHue,omitempty" xml:"splitHighlightHue,omitempty"`         // Highlight hue: 0-360
+	SplitShadowHue           int `json:"splitShadowHue,omitempty" xml:"splitShadowHue,omitempty"`                     // Shadow hue: 0-360
+	SplitShadowSaturation    int `json:"splitShadowSaturation,omitempty" xml:"splitShadowSaturation,omitempty"`       // Shadow saturation: 0-100
+	SplitHighlightHue        int `json:"splitHighlightHue,omitempty" xml:"splitHighlightHue,omitempty"`               // Highlight hue: 0-360
 	SplitHighlightSaturation int `json:"splitHighlightSaturation,omitempty" xml:"splitHighlightSaturation,omitempty"` // Highlight saturation: 0-100
-	SplitBalance          int `json:"splitBalance,omitempty" xml:"splitBalance,omitempty"`                   // Split balance: -100 to +100
+	SplitBalance             int `json:"splitBalance,omitempty" xml:"splitBalance,omitempty"`                         // Split balance: -100 to +100
 
 	// Camera Calibration
-	CameraProfile CameraProfile `json:"cameraProfile,omitempty" xml:"cameraProfile,omitempty"` // Camera calibration settings
+	CameraProfileName string        `json:"cameraProfileName,omitempty" xml:"cameraProfileName,omitempty"` // Camera profile name (e.g., "Camera Standard")
+	CameraProfile     CameraProfile `json:"cameraProfile,omitempty" xml:"cameraProfile,omitempty"`         // Camera calibration settings
 
 	// Effects
 	GrainAmount    int `json:"grainAmount,omitempty" xml:"grainAmount,omitempty"`       // Grain amount: 0-100
@@ -134,10 +135,10 @@ type UniversalRecipe struct {
 	GrainRoughness int `json:"grainRoughness,omitempty" xml:"grainRoughness,omitempty"` // Grain roughness: 0-100
 
 	// Vignette
-	VignetteAmount   int `json:"vignetteAmount,omitempty" xml:"vignetteAmount,omitempty"`     // Vignette amount: -100 to +100
-	VignetteMidpoint int `json:"vignetteMidpoint,omitempty" xml:"vignetteMidpoint,omitempty"` // Vignette midpoint: 0-100
+	VignetteAmount    int `json:"vignetteAmount,omitempty" xml:"vignetteAmount,omitempty"`       // Vignette amount: -100 to +100
+	VignetteMidpoint  int `json:"vignetteMidpoint,omitempty" xml:"vignetteMidpoint,omitempty"`   // Vignette midpoint: 0-100
 	VignetteRoundness int `json:"vignetteRoundness,omitempty" xml:"vignetteRoundness,omitempty"` // Vignette roundness: -100 to +100
-	VignetteFeather  int `json:"vignetteFeather,omitempty" xml:"vignetteFeather,omitempty"`   // Vignette feather: 0-100
+	VignetteFeather   int `json:"vignetteFeather,omitempty" xml:"vignetteFeather,omitempty"`     // Vignette feather: 0-100
 
 	// Format-specific data (preserved for round-trip conversions)
 	NP3ColorData    []map[string]interface{} `json:"np3ColorData,omitempty" xml:"np3ColorData,omitempty"`       // NP3 color data (raw)

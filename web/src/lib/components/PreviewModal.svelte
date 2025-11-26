@@ -1,21 +1,22 @@
 <script>
-    import { previewFile } from "../stores";
-    import {
-        extractPresetParameters,
-        groupParameters,
-        formatParameterValue,
-    } from "../parameter-extractor";
+    import { previewFile, currentRecipe } from "../stores";
+    import { extractFullRecipe, generatePreset } from "../converter";
     import { detectFormatFromExtension } from "../format-detector";
     import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
     import { analyzeImage, calculateAutoExposure } from "../image-analysis";
     import Histogram from "./Histogram.svelte";
+    import ColorBlender from "./editor/ColorBlender.svelte";
+    import ColorGrading from "./editor/ColorGrading.svelte";
+    import ToneCurve from "./editor/ToneCurve.svelte";
 
     let isOpen = false;
     let file = null;
-    let parameters = null;
-    let groupedParams = null;
     let loading = false;
     let error = null;
+    let isSaving = false;
+
+    // Editor Tabs
+    let activeTab = "basic"; // basic, color, grading, curves
 
     // Slider state
     let sliderPosition = 50;
@@ -53,13 +54,20 @@
         }
     });
 
+    // React to recipe changes
+    currentRecipe.subscribe((recipe) => {
+        if (recipe) {
+            updateFilters(recipe);
+        }
+    });
+
     function close() {
         previewFile.set(null);
+        currentRecipe.set(null);
     }
 
     function reset() {
-        parameters = {};
-        groupedParams = null;
+        loading = false;
         error = null;
         sliderPosition = 50;
         colorMatrix = "";
@@ -72,17 +80,46 @@
         loading = true;
         error = null;
         try {
+            if (f.isNew) {
+                const defaultRecipe = {
+                    Name: "New Preset",
+                    Exposure: 0,
+                    Contrast: 0,
+                    Highlights: 0,
+                    Shadows: 0,
+                    Whites: 0,
+                    Blacks: 0,
+                    Clarity: 0,
+                    Dehaze: 0,
+                    Vibrance: 0,
+                    Saturation: 0,
+                    Temperature: 0,
+                    Tint: 0,
+                    ColorGrading: {
+                        Highlights: { Hue: 0, Chroma: 0, Brightness: 0 },
+                        Midtone: { Hue: 0, Chroma: 0, Brightness: 0 },
+                        Shadows: { Hue: 0, Chroma: 0, Brightness: 0 },
+                        Blending: 50,
+                        Balance: 0,
+                    },
+                    ToneCurveHighlights: 0,
+                    ToneCurveLights: 0,
+                    ToneCurveDarks: 0,
+                    ToneCurveShadows: 0,
+                };
+                currentRecipe.set(defaultRecipe);
+                loading = false;
+                return;
+            }
+
             // Read file
             const buffer = await f.arrayBuffer();
             const bytes = new Uint8Array(buffer);
             const format = detectFormatFromExtension(f.name);
 
-            // Extract parameters
-            parameters = await extractPresetParameters(bytes, format);
-            groupedParams = groupParameters(parameters);
-
-            // Calculate filters
-            updateFilters();
+            // Extract full recipe
+            const recipe = await extractFullRecipe(bytes, format);
+            currentRecipe.set(recipe);
         } catch (e) {
             console.error(e);
             error = e.message;
@@ -91,42 +128,15 @@
         }
     }
 
-    function getVal(key, alias) {
-        if (!parameters) return 0;
-        if (parameters[key] != null && typeof parameters[key] === "number")
-            return parameters[key];
-        if (
-            alias &&
-            parameters[alias] != null &&
-            typeof parameters[alias] === "number"
-        )
-            return parameters[alias];
-        return 0;
-    }
+    function updateFilters(recipe) {
+        if (!recipe) return;
 
-    function setVal(key, value) {
-        if (!parameters) return;
-        // Update parameter if it exists, or add it
-        // We need to handle aliases (Exposure vs Exposure2012)
-        if (parameters["Exposure2012"] !== undefined)
-            parameters["Exposure2012"] = value;
-        else if (parameters["Exposure"] !== undefined)
-            parameters["Exposure"] = value;
-        else parameters[key] = value; // Default to key if neither exists
-
-        // Re-group and update
-        groupedParams = groupParameters(parameters);
-        updateFilters();
-    }
-
-    function updateFilters() {
-        if (!parameters) return;
-
-        const temp = getVal("Temperature");
-        const tint = getVal("Tint");
-        const saturation = getVal("Saturation");
-        const exposure = getVal("Exposure", "Exposure2012");
-        const contrast = getVal("Contrast", "Contrast2012");
+        // Extract values for SVG filters
+        const temp = recipe.Temperature || 0;
+        const tint = recipe.Tint || 0;
+        const saturation = recipe.Saturation || 0;
+        const exposure = recipe.Exposure || 0;
+        const contrast = recipe.Contrast || 0;
 
         colorMatrix = calculateColorMatrix(temp, tint, saturation);
         transferTable = calculateTransferTable(exposure, contrast);
@@ -156,10 +166,41 @@
         );
 
         // Apply shift to current exposure
-        const currentExp = getVal("Exposure", "Exposure2012");
-        const newExp = currentExp + evShift;
+        currentRecipe.update((r) => {
+            const currentExp = r.Exposure || 0;
+            const newExp = currentExp + evShift;
+            return { ...r, Exposure: parseFloat(newExp.toFixed(2)) };
+        });
+    }
 
-        setVal("Exposure", parseFloat(newExp.toFixed(2)));
+    async function savePreset() {
+        isSaving = true;
+        try {
+            let recipe;
+            currentRecipe.subscribe((r) => (recipe = r))();
+
+            if (!recipe) return;
+
+            const np3Data = await generatePreset(recipe);
+
+            // Create blob and download
+            const blob = new Blob([np3Data], {
+                type: "application/octet-stream",
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = (recipe.Name || "preset") + ".np3";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error("Save failed", e);
+            error = "Failed to save preset: " + e.message;
+        } finally {
+            isSaving = false;
+        }
     }
 
     // Image Navigation
@@ -407,57 +448,253 @@
 
                 <!-- Right: Parameters -->
                 <div class="preview-params-section">
-                    <h3>Parameters</h3>
+                    <h3>Editor</h3>
 
-                    <!-- Histogram -->
-                    <div class="histogram-section">
-                        <Histogram data={histogramData} />
-                        <button
-                            class="btn-auto"
-                            on:click={autoTone}
-                            title="Auto-correct Exposure"
-                        >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
+                    {#if $currentRecipe}
+                        <!-- Histogram -->
+                        <div class="histogram-section">
+                            <Histogram data={histogramData} />
+                            <button
+                                class="btn-auto"
+                                on:click={autoTone}
+                                title="Auto-correct Exposure"
                             >
-                                <path
-                                    d="M12 2v20M2 12h20"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                                <circle cx="12" cy="12" r="4" />
-                            </svg>
-                            Auto Tone
-                        </button>
-                    </div>
-
-                    {#if error}
-                        <div class="error-msg">{error}</div>
-                    {:else if groupedParams}
-                        <div class="params-list">
-                            {#each Object.entries(groupedParams) as [category, params]}
-                                <div class="param-group">
-                                    <h4>{category}</h4>
-                                    {#each Object.entries(params) as [name, value]}
-                                        <div class="param-row">
-                                            <span class="param-name"
-                                                >{name}</span
-                                            >
-                                            <span class="param-value"
-                                                >{formatParameterValue(
-                                                    value,
-                                                )}</span
-                                            >
-                                        </div>
-                                    {/each}
-                                </div>
-                            {/each}
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        d="M12 2v20M2 12h20"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                    <circle cx="12" cy="12" r="4" />
+                                </svg>
+                                Auto Tone
+                            </button>
                         </div>
+
+                        <!-- Tabs -->
+                        <div class="editor-tabs">
+                            <button
+                                class="tab-btn {activeTab === 'basic'
+                                    ? 'active'
+                                    : ''}"
+                                on:click={() => (activeTab = "basic")}
+                            >
+                                Basic
+                            </button>
+                            <button
+                                class="tab-btn {activeTab === 'curves'
+                                    ? 'active'
+                                    : ''}"
+                                on:click={() => (activeTab = "curves")}
+                            >
+                                Curves
+                            </button>
+                            <button
+                                class="tab-btn {activeTab === 'color'
+                                    ? 'active'
+                                    : ''}"
+                                on:click={() => (activeTab = "color")}
+                            >
+                                Color
+                            </button>
+                            <button
+                                class="tab-btn {activeTab === 'grading'
+                                    ? 'active'
+                                    : ''}"
+                                on:click={() => (activeTab = "grading")}
+                            >
+                                Grading
+                            </button>
+                        </div>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content">
+                            {#if activeTab === "basic"}
+                                <!-- Basic Controls -->
+                                <div class="control-group">
+                                    <h4>Light</h4>
+
+                                    <label>
+                                        <span>Exposure</span>
+                                        <input
+                                            type="range"
+                                            min="-5"
+                                            max="5"
+                                            step="0.05"
+                                            bind:value={$currentRecipe.Exposure}
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Exposure}</span
+                                        >
+                                    </label>
+
+                                    <label>
+                                        <span>Contrast</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={$currentRecipe.Contrast}
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Contrast}</span
+                                        >
+                                    </label>
+
+                                    <label>
+                                        <span>Highlights</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={
+                                                $currentRecipe.Highlights
+                                            }
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Highlights}</span
+                                        >
+                                    </label>
+
+                                    <label>
+                                        <span>Shadows</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={$currentRecipe.Shadows}
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Shadows}</span
+                                        >
+                                    </label>
+
+                                    <label>
+                                        <span>Whites</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={$currentRecipe.Whites}
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Whites}</span
+                                        >
+                                    </label>
+
+                                    <label>
+                                        <span>Blacks</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={$currentRecipe.Blacks}
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Blacks}</span
+                                        >
+                                    </label>
+                                </div>
+
+                                <div class="control-group">
+                                    <h4>Presence</h4>
+
+                                    <label>
+                                        <span>Clarity</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={$currentRecipe.Clarity}
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Clarity}</span
+                                        >
+                                    </label>
+
+                                    <label>
+                                        <span>Dehaze</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={$currentRecipe.Dehaze}
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Dehaze}</span
+                                        >
+                                    </label>
+
+                                    <label>
+                                        <span>Vibrance</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={$currentRecipe.Vibrance}
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Vibrance}</span
+                                        >
+                                    </label>
+
+                                    <label>
+                                        <span>Saturation</span>
+                                        <input
+                                            type="range"
+                                            min="-100"
+                                            max="100"
+                                            step="1"
+                                            bind:value={
+                                                $currentRecipe.Saturation
+                                            }
+                                        />
+                                        <span class="value"
+                                            >{$currentRecipe.Saturation}</span
+                                        >
+                                    </label>
+                                </div>
+                            {:else if activeTab === "curves"}
+                                <div class="control-group">
+                                    <h4>Tone Curve</h4>
+                                    <ToneCurve />
+                                </div>
+                            {:else if activeTab === "color"}
+                                <div class="control-group">
+                                    <h4>Color Mixer</h4>
+                                    <ColorBlender />
+                                </div>
+                            {:else if activeTab === "grading"}
+                                <div class="control-group">
+                                    <h4>Color Grading</h4>
+                                    <ColorGrading />
+                                </div>
+                            {/if}
+                        </div>
+
+                        <!-- Save Button -->
+                        <button
+                            class="btn-save"
+                            on:click={savePreset}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? "Saving..." : "Save as NP3"}
+                        </button>
                     {:else if !loading}
                         <p>No parameters found.</p>
                     {/if}
@@ -667,34 +904,113 @@
         background: rgba(255, 255, 255, 0.2);
     }
 
-    .param-group {
-        margin-bottom: 1.5rem;
+    .control-group {
+        margin-bottom: 2rem;
     }
 
-    .param-group h4 {
+    .control-group h4 {
         color: var(--color-primary);
-        margin-bottom: 0.5rem;
+        margin-bottom: 1rem;
         font-size: 0.9rem;
         text-transform: uppercase;
         letter-spacing: 1px;
     }
 
-    .param-row {
+    .control-group label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .control-group span {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
         display: flex;
         justify-content: space-between;
-        padding: 0.25rem 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .param-name {
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-    }
-
-    .param-value {
+    .control-group .value {
         color: var(--text-primary);
         font-family: monospace;
+    }
+
+    input[type="range"] {
+        width: 100%;
+        background: transparent;
+        -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: var(--color-primary);
+        margin-top: -6px;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-save {
+        width: 100%;
+        padding: 1rem;
+        background: var(--color-primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 2rem;
+    }
+
+    .btn-save:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+    }
+
+    .btn-save:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .editor-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.5rem;
+    }
+
+    .tab-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        padding: 0.5rem 1rem;
+        cursor: pointer;
         font-size: 0.9rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+        color: var(--color-primary);
+        background: rgba(255, 255, 255, 0.1);
+        font-weight: 600;
     }
 
     .error-msg {

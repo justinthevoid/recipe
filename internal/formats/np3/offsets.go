@@ -37,6 +37,17 @@ const (
 	// Maps to: UniversalRecipe.Clarity (scaled to -100 to +100)
 	// Note: This is stored in chunk 0x07 value bytes
 	OffsetClarity = 0x5C // 92 decimal
+
+	// OffsetGrainAmount is the film grain amount parameter.
+	// Formula: (byte - 0x80) / 4.0 (Type 0x04)
+	// Range: 0 to ~32
+	// Maps to: UniversalRecipe.GrainAmount
+	OffsetGrainAmount = 0x66 // 102 decimal
+
+	// OffsetGrainSize is the film grain size parameter.
+	// Enum: 1=Large, 2=Small
+	// Maps to: UniversalRecipe.GrainSize
+	OffsetGrainSize = 0xDE // 222 decimal
 )
 
 // Advanced Adjustments Offsets

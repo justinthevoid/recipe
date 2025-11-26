@@ -15,10 +15,10 @@ type RecipeBuilder struct {
 func NewRecipeBuilder() *RecipeBuilder {
 	return &RecipeBuilder{
 		recipe: UniversalRecipe{
-			SharpnessRadius: 1.0, // Default sharpness radius
-			ToneCurveShadowSplit: 25, // Default shadow split
-			ToneCurveMidtoneSplit: 50, // Default midtone split
-			ToneCurveHighlightSplit: 75, // Default highlight split
+			SharpnessRadius:         1.0, // Default sharpness radius
+			ToneCurveShadowSplit:    25,  // Default shadow split
+			ToneCurveMidtoneSplit:   50,  // Default midtone split
+			ToneCurveHighlightSplit: 75,  // Default highlight split
 		},
 		errors: []error{},
 	}
@@ -428,6 +428,12 @@ func (b *RecipeBuilder) WithCameraProfile(profile CameraProfile) *RecipeBuilder 
 	return b
 }
 
+// WithCameraProfileName sets the camera profile name.
+func (b *RecipeBuilder) WithCameraProfileName(name string) *RecipeBuilder {
+	b.recipe.CameraProfileName = name
+	return b
+}
+
 // WithGrain sets grain effect parameters with validation.
 func (b *RecipeBuilder) WithGrain(amount, size, roughness int) *RecipeBuilder {
 	if err := ValidatePositivePercentage(amount, "grain amount"); err != nil {
@@ -448,6 +454,36 @@ func (b *RecipeBuilder) WithGrain(amount, size, roughness int) *RecipeBuilder {
 		b.recipe.GrainRoughness = roughness
 	}
 
+	return b
+}
+
+// WithGrainAmount sets the grain amount.
+func (b *RecipeBuilder) WithGrainAmount(value int) *RecipeBuilder {
+	if err := ValidatePositivePercentage(value, "grain amount"); err != nil {
+		b.errors = append(b.errors, err)
+	} else {
+		b.recipe.GrainAmount = value
+	}
+	return b
+}
+
+// WithGrainSize sets the grain size.
+func (b *RecipeBuilder) WithGrainSize(value int) *RecipeBuilder {
+	if err := ValidatePositivePercentage(value, "grain size"); err != nil {
+		b.errors = append(b.errors, err)
+	} else {
+		b.recipe.GrainSize = value
+	}
+	return b
+}
+
+// WithGrainRoughness sets the grain roughness.
+func (b *RecipeBuilder) WithGrainRoughness(value int) *RecipeBuilder {
+	if err := ValidatePositivePercentage(value, "grain roughness"); err != nil {
+		b.errors = append(b.errors, err)
+	} else {
+		b.recipe.GrainRoughness = value
+	}
 	return b
 }
 

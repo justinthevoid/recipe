@@ -1,3 +1,4 @@
+//go:build js && wasm
 // +build js,wasm
 
 package main
@@ -11,12 +12,14 @@ import (
 	"github.com/justin/recipe/internal/formats/lrtemplate"
 	"github.com/justin/recipe/internal/formats/np3"
 	"github.com/justin/recipe/internal/formats/xmp"
+	"github.com/justin/recipe/internal/models"
 )
 
 // convert exposes the converter.Convert function to JavaScript.
 //
 // JavaScript signature:
-//   convert(inputBytes: Uint8Array, fromFormat: string, toFormat: string) -> Promise<Uint8Array>
+//
+//	convert(inputBytes: Uint8Array, fromFormat: string, toFormat: string) -> Promise<Uint8Array>
 //
 // Parameters:
 //   - inputBytes: Uint8Array containing the source file data
@@ -28,8 +31,9 @@ import (
 //   - Promise that rejects with error message string on failure
 //
 // Example JavaScript usage:
-//   const inputData = new Uint8Array(fileBuffer);
-//   const outputData = await convert(inputData, "xmp", "np3");
+//
+//	const inputData = new Uint8Array(fileBuffer);
+//	const outputData = await convert(inputData, "xmp", "np3");
 func convertWrapper(this js.Value, args []js.Value) interface{} {
 	// Return a Promise to JavaScript
 	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
@@ -80,7 +84,8 @@ func convertWrapper(this js.Value, args []js.Value) interface{} {
 // detectFormat exposes the converter.DetectFormat function to JavaScript.
 //
 // JavaScript signature:
-//   detectFormat(inputBytes: Uint8Array) -> Promise<string>
+//
+//	detectFormat(inputBytes: Uint8Array) -> Promise<string>
 //
 // Parameters:
 //   - inputBytes: Uint8Array containing the file data
@@ -90,9 +95,10 @@ func convertWrapper(this js.Value, args []js.Value) interface{} {
 //   - Promise that rejects with error message string if format cannot be detected
 //
 // Example JavaScript usage:
-//   const inputData = new Uint8Array(fileBuffer);
-//   const format = await detectFormat(inputData);
-//   console.log("Detected format:", format);
+//
+//	const inputData = new Uint8Array(fileBuffer);
+//	const format = await detectFormat(inputData);
+//	console.log("Detected format:", format);
 func detectFormatWrapper(this js.Value, args []js.Value) interface{} {
 	// Return a Promise to JavaScript
 	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
@@ -135,11 +141,13 @@ func detectFormatWrapper(this js.Value, args []js.Value) interface{} {
 // getVersion returns the Recipe version string.
 //
 // JavaScript signature:
-//   getVersion() -> string
+//
+//	getVersion() -> string
 //
 // Example JavaScript usage:
-//   const version = getVersion();
-//   console.log("Recipe WASM version:", version);
+//
+//	const version = getVersion();
+//	console.log("Recipe WASM version:", version);
 func getVersionWrapper(this js.Value, args []js.Value) interface{} {
 	return "1.0.0-wasm"
 }
@@ -147,7 +155,8 @@ func getVersionWrapper(this js.Value, args []js.Value) interface{} {
 // extractParameters exposes parameter extraction to JavaScript.
 //
 // JavaScript signature:
-//   extractParameters(inputBytes: Uint8Array, format: string) -> Promise<string>
+//
+//	extractParameters(inputBytes: Uint8Array, format: string) -> Promise<string>
 //
 // Parameters:
 //   - inputBytes: Uint8Array containing the file data
@@ -158,10 +167,11 @@ func getVersionWrapper(this js.Value, args []js.Value) interface{} {
 //   - Promise that rejects with error message string if extraction fails
 //
 // Example JavaScript usage:
-//   const inputData = new Uint8Array(fileBuffer);
-//   const jsonString = await extractParameters(inputData, "np3");
-//   const params = JSON.parse(jsonString);
-//   console.log("Exposure:", params.Exposure);
+//
+//	const inputData = new Uint8Array(fileBuffer);
+//	const jsonString = await extractParameters(inputData, "np3");
+//	const params = JSON.parse(jsonString);
+//	console.log("Exposure:", params.Exposure);
 func extractParametersWrapper(this js.Value, args []js.Value) interface{} {
 	// Return a Promise to JavaScript
 	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
@@ -318,6 +328,140 @@ func extractLRTemplateParameters(data []byte) (map[string]interface{}, error) {
 	return params, nil
 }
 
+// generate exposes the np3.Generate function to JavaScript.
+//
+// JavaScript signature:
+//
+//	generate(recipeJSON: string) -> Promise<Uint8Array>
+//
+// Parameters:
+//   - recipeJSON: JSON string representing the UniversalRecipe
+//
+// Returns:
+//   - Promise that resolves to Uint8Array (generated NP3 file data)
+//   - Promise that rejects with error message string on failure
+func generateWrapper(this js.Value, args []js.Value) interface{} {
+	// Return a Promise to JavaScript
+	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
+		resolve := promiseArgs[0]
+		reject := promiseArgs[1]
+
+		// Run generation in a goroutine
+		go func() {
+			// Validate arguments
+			if len(args) < 1 {
+				reject.Invoke("generate requires 1 argument: recipeJSON")
+				return
+			}
+
+			// Extract JSON string
+			recipeJSON := args[0].String()
+
+			// Unmarshal JSON to UniversalRecipe
+			var recipe models.UniversalRecipe
+			if err := json.Unmarshal([]byte(recipeJSON), &recipe); err != nil {
+				reject.Invoke(fmt.Sprintf("JSON decode failed: %v", err))
+				return
+			}
+
+			// Generate NP3 file
+			outputBytes, err := np3.Generate(&recipe)
+			if err != nil {
+				reject.Invoke(fmt.Sprintf("NP3 generation failed: %v", err))
+				return
+			}
+
+			// Convert output to Uint8Array
+			outputJS := js.Global().Get("Uint8Array").New(len(outputBytes))
+			js.CopyBytesToJS(outputJS, outputBytes)
+
+			// Resolve promise with output
+			resolve.Invoke(outputJS)
+		}()
+
+		return nil
+	})
+
+	// Create and return Promise
+	promiseConstructor := js.Global().Get("Promise")
+	return promiseConstructor.New(handler)
+}
+
+// extractFullRecipe exposes full recipe extraction to JavaScript.
+//
+// JavaScript signature:
+//
+//	extractFullRecipe(inputBytes: Uint8Array, format: string) -> Promise<string>
+//
+// Parameters:
+//   - inputBytes: Uint8Array containing the file data
+//   - format: File format ("np3", "xmp", or "lrtemplate")
+//
+// Returns:
+//   - Promise that resolves to JSON string containing the full UniversalRecipe
+func extractFullRecipeWrapper(this js.Value, args []js.Value) interface{} {
+	// Return a Promise to JavaScript
+	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
+		resolve := promiseArgs[0]
+		reject := promiseArgs[1]
+
+		// Run extraction in a goroutine
+		go func() {
+			// Validate arguments
+			if len(args) < 2 {
+				reject.Invoke("extractFullRecipe requires 2 arguments: inputBytes, format")
+				return
+			}
+
+			// Extract input bytes
+			inputJS := args[0]
+			inputLen := inputJS.Get("length").Int()
+			inputBytes := make([]byte, inputLen)
+			js.CopyBytesToGo(inputBytes, inputJS)
+
+			// Extract format string
+			format := args[1].String()
+
+			// Parse based on format
+			var recipe *models.UniversalRecipe
+			var err error
+
+			switch format {
+			case "np3":
+				recipe, err = np3.Parse(inputBytes)
+			case "xmp":
+				recipe, err = xmp.Parse(inputBytes)
+			case "lrtemplate":
+				recipe, err = lrtemplate.Parse(inputBytes)
+			default:
+				reject.Invoke(fmt.Sprintf("unknown format: %s", format))
+				return
+			}
+
+			if err != nil {
+				reject.Invoke(fmt.Sprintf("parse failed: %v", err))
+				return
+			}
+
+			// Marshal full recipe to JSON
+			jsonBytes, err := json.Marshal(recipe)
+			if err != nil {
+				reject.Invoke(fmt.Sprintf("JSON encode failed: %v", err))
+				return
+			}
+
+			// Resolve promise with JSON string
+			resolve.Invoke(string(jsonBytes))
+		}()
+
+		return nil
+	})
+
+	// Create and return Promise
+	promiseConstructor := js.Global().Get("Promise")
+	return promiseConstructor.New(handler)
+}
+
 func main() {
 	// Set up a channel to prevent the program from exiting
 	c := make(chan struct{}, 0)
@@ -326,13 +470,15 @@ func main() {
 	js.Global().Set("convert", js.FuncOf(convertWrapper))
 	js.Global().Set("detectFormat", js.FuncOf(detectFormatWrapper))
 	js.Global().Set("extractParameters", js.FuncOf(extractParametersWrapper))
+	js.Global().Set("extractFullRecipe", js.FuncOf(extractFullRecipeWrapper))
+	js.Global().Set("generate", js.FuncOf(generateWrapper))
 	js.Global().Set("getVersion", js.FuncOf(getVersionWrapper))
 
 	// Signal that WASM is ready
 	js.Global().Call("dispatchEvent", js.Global().Get("Event").New("wasmReady"))
 
 	println("Recipe WASM module loaded successfully")
-	println("Available functions: convert(), detectFormat(), extractParameters(), getVersion()")
+	println("Available functions: convert(), detectFormat(), extractParameters(), extractFullRecipe(), generate(), getVersion()")
 
 	// Keep the program running
 	<-c

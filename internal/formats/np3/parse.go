@@ -31,6 +31,7 @@ package np3
 import (
 	"encoding/binary"
 	"fmt"
+	"strings"
 
 	"github.com/justin/recipe/internal/models"
 )
@@ -139,10 +140,12 @@ type np3Parameters struct {
 	name string
 
 	// Basic Adjustments (exact offset extraction)
-	sharpening float64 // Offset 82, Scaled4 encoding: -3.0 to +9.0
-	clarity    float64 // Offset 92, Scaled4 encoding: -5.0 to +5.0
+	sharpening  float64 // Offset 82, Scaled4 encoding: -3.0 to +9.0
+	clarity     float64 // Offset 92, Scaled4 encoding: -5.0 to +5.0
+	grainAmount float64 // Offset 102, Scaled4 encoding: 0-32 (approx)
 
 	// Advanced Adjustments (exact offset extraction)
+	grainSize          int     // Offset 222, Signed8 encoding: 0-2 (enum)
 	midRangeSharpening float64 // Offset 242, Scaled4 encoding: -5.0 to +5.0
 	contrast           int     // Offset 272, Signed8 encoding: -100 to +100
 	highlights         int     // Offset 282, Signed8 encoding: -100 to +100
@@ -194,9 +197,9 @@ type np3Parameters struct {
 	balance        int                     // Offset 386, Signed8 encoding: -100 to +100
 
 	// Tone Curve (exact offset extraction)
-	toneCurvePointCount int               // Offset 404, direct value: 0-255
-	toneCurvePoints     []toneCurvePoint  // Offset 405, 2 bytes per point
-	toneCurveRaw        []uint16          // Offset 460, 257 × 16-bit big-endian
+	toneCurvePointCount int              // Offset 404, direct value: 0-255
+	toneCurvePoints     []toneCurvePoint // Offset 405, 2 bytes per point
+	toneCurveRaw        []uint16         // Offset 460, 257 × 16-bit big-endian
 
 	// Legacy fields (deprecated, kept for fallback compatibility)
 	brightness float64 // DEPRECATED: From heuristic analysis, use exposure calculation
@@ -208,13 +211,13 @@ type np3Parameters struct {
 
 // colorDataPoint represents an RGB triplet extracted from the color section
 type colorDataPoint struct {
-	offset int
+	offset  int
 	r, g, b byte
 }
 
 // toneCurvePoint represents a paired value from the tone curve section
 type toneCurvePoint struct {
-	position int
+	position       int
 	value1, value2 byte
 }
 
@@ -344,6 +347,8 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	// NEW: Exact offset-based extraction (Phase 2 enhancement)
 	// Try exact extraction first for all parameters with known offsets
 	extractBasicAdjustments(data, params)
+	extractBasicAdjustments(data, params)
+	extractEffects(data, params)
 	extractAdvancedAdjustments(data, params)
 	extractColorBlender(data, params)
 	extractColorGrading(data, params)
@@ -443,7 +448,7 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	extractHeuristicParameters(params, rawParams)
 
 	// Fall back to full heuristics if exact extraction failed
-	if needsFallback || (params.sharpening == 0 && params.contrast == 0 && params.saturation == 0) {
+	if needsFallback {
 		// Reset all extracted parameters that might be invalid
 		if needsFallback {
 			// Reset Color Blender parameters
@@ -667,6 +672,19 @@ func extractBasicAdjustments(data []byte, params *np3Parameters) {
 	}
 }
 
+// extractEffects reads film grain parameters.
+func extractEffects(data []byte, params *np3Parameters) {
+	// Grain Amount (offset 102, Scaled4)
+	if ValidateOffset(OffsetGrainAmount) && len(data) > OffsetGrainAmount {
+		params.grainAmount = DecodeScaled4(data[OffsetGrainAmount])
+	}
+
+	// Grain Size (offset 222, Signed8)
+	if ValidateOffset(OffsetGrainSize) && len(data) > OffsetGrainSize {
+		params.grainSize = DecodeSigned8(data[OffsetGrainSize])
+	}
+}
+
 // extractAdvancedAdjustments reads all 7 advanced adjustment parameters using exact byte offsets.
 // These parameters use two encoding patterns:
 //   - Mid-Range Sharpening: Scaled4 encoding (byte - 0x80) / 4.0
@@ -841,8 +859,8 @@ func extractColorGrading(data []byte, params *np3Parameters) {
 
 // extractToneCurve reads tone curve parameters using exact byte offsets.
 // The tone curve has two representations:
-//   1. Control Points: Variable count (0-127) of (x, y) coordinate pairs
-//   2. Raw Curve: 257 16-bit big-endian values (full luminosity curve)
+//  1. Control Points: Variable count (0-127) of (x, y) coordinate pairs
+//  2. Raw Curve: 257 16-bit big-endian values (full luminosity curve)
 //
 // Note: Standard 480-byte NP3 files cannot contain the full 514-byte raw curve
 // (460 + 514 = 974 bytes). The raw curve is only present in extended format files.
@@ -957,6 +975,31 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 		builder.WithName(params.name)
 	}
 
+	// Heuristic: Determine Camera Profile from preset name
+	// Since NP3 doesn't store the Base Picture Control ID in a standard location,
+	// we use the preset name to guess the intended starting point.
+	// Default to "Camera Standard" (better match than Adobe Color)
+	cameraProfile := "Camera Standard"
+	nameLower := strings.ToLower(params.name)
+
+	if strings.Contains(nameLower, "neutral") {
+		cameraProfile = "Camera Neutral"
+	} else if strings.Contains(nameLower, "flat") {
+		cameraProfile = "Camera Flat"
+	} else if strings.Contains(nameLower, "monochrome") || strings.Contains(nameLower, "mono") {
+		cameraProfile = "Camera Monochrome"
+	} else if strings.Contains(nameLower, "portrait") {
+		cameraProfile = "Camera Portrait"
+	} else if strings.Contains(nameLower, "landscape") {
+		cameraProfile = "Camera Landscape"
+	} else if strings.Contains(nameLower, "vivid") {
+		cameraProfile = "Camera Vivid"
+	}
+
+	builder.WithCameraProfileName(cameraProfile)
+
+	builder.WithCameraProfileName(cameraProfile)
+
 	// Set extracted parameters using builder's fluent API
 	// Map NP3 proprietary ranges to UniversalRecipe normalized ranges
 
@@ -967,6 +1010,43 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 	// Clarity: Map -5.0 to +5.0 → -100 to +100
 	// Phase 2: Always set since we use exact offsets (0 is a valid neutral value)
 	builder.WithClarity(int(params.clarity * 20))
+
+	// Grain Amount: Map 0-31.75 → 0-100 (UniversalRecipe)
+	// Scaling factor: 100 / 31.75 ≈ 3.15
+	// But let's check if 127 (0xFF) is actually "Max" in a linear way.
+	// If 0xFF is max, and 0x80 is 0.
+	// Let's assume linear mapping for now.
+	grainAmount := int(params.grainAmount * 3.15)
+	if grainAmount < 0 {
+		grainAmount = 0
+	}
+	if grainAmount > 100 {
+		grainAmount = 100
+	}
+	builder.WithGrainAmount(grainAmount)
+
+	// Grain Size: Map enum
+	// 1 = Large, 2 = Small
+	// UniversalRecipe uses 1=Large, 2=Small? No, UniversalRecipe usually uses 0-100.
+	// But recipe.go says "GrainSize int".
+	// Implementation Plan said: "XMP > 60 -> Large (1), XMP < 40 -> Small (2)".
+	// So UniversalRecipe should probably store the enum value 1 or 2 if we want to preserve it exactly,
+	// OR store a representative value like 80 (Large) and 20 (Small).
+	// The `recipe.go` comment says "Grain size: 0-100".
+	// So I should map:
+	// NP3 1 (Large) -> 80
+	// NP3 2 (Small) -> 20
+	// NP3 0 (Off/Default) -> 0
+	// Wait, "Grain Test.NP3" (Large) had value 1. "Grain Test v3.NP3" (Small) had value 2.
+	// So 1=Large, 2=Small.
+	// I'll map 1 -> 75 (Large), 2 -> 25 (Small).
+	if params.grainSize == 1 {
+		builder.WithGrainSize(75) // Large
+	} else if params.grainSize == 2 {
+		builder.WithGrainSize(25) // Small
+	} else {
+		builder.WithGrainSize(0)
+	}
 
 	// Mid-Range Sharpening: Direct mapping
 	// Phase 2: Always set since we use exact offsets (0 is a valid neutral value)
@@ -1030,7 +1110,7 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 
 	// Legacy exposure mapping from heuristic brightness
 	if params.brightness != 0 {
-		builder.WithExposure(params.brightness)  // Map -1.0/+1.0 to Exposure (-5.0/+5.0 range)
+		builder.WithExposure(params.brightness) // Map -1.0/+1.0 to Exposure (-5.0/+5.0 range)
 	}
 
 	// Note: NP3 global hue adjustment (-9 to +9) has no direct equivalent in UniversalRecipe

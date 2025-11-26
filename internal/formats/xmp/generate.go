@@ -136,6 +136,17 @@ func validateRecipe(recipe *models.UniversalRecipe) error {
 		return err
 	}
 
+	// Validate Grain
+	if err := validateRange(recipe.GrainAmount, 0, 100, "GrainAmount"); err != nil {
+		return err
+	}
+	if err := validateRange(recipe.GrainSize, 0, 100, "GrainSize"); err != nil {
+		return err
+	}
+	if err := validateRange(recipe.GrainRoughness, 0, 100, "GrainRoughness"); err != nil {
+		return err
+	}
+
 	// Validate Temperature (nullable) - XMP uses integer Kelvin values
 	if recipe.Temperature != nil {
 		if *recipe.Temperature < 2000 || *recipe.Temperature > 50000 {
@@ -220,6 +231,9 @@ func buildXMPDocument(recipe *models.UniversalRecipe) *xmpDocWrapper {
 	desc := descriptionWrapper{
 		XMLNS: nsCameraRaw,
 
+		// Camera Profile
+		CameraProfile: recipe.CameraProfileName,
+
 		// Basic Adjustments (formatted with appropriate precision)
 		Exposure2012:   formatFloat(recipe.Exposure),
 		Contrast2012:   formatInt(recipe.Contrast),
@@ -234,6 +248,11 @@ func buildXMPDocument(recipe *models.UniversalRecipe) *xmpDocWrapper {
 		Clarity2012: formatInt(recipe.Clarity),
 		Sharpness:   formatInt(recipe.Sharpness),
 		Tint:        formatInt(recipe.Tint),
+
+		// Grain
+		GrainAmount:    formatInt(recipe.GrainAmount),
+		GrainSize:      formatInt(recipe.GrainSize),
+		GrainFrequency: formatInt(recipe.GrainRoughness),
 
 		// Temperature (nullable - handle nil)
 		Temperature: formatTemperature(recipe.Temperature),
@@ -490,7 +509,7 @@ func buildProfileXMPDocument(recipe *models.UniversalRecipe, baseCameraProfile, 
 		ConvertToGrayscale:         "False",
 
 		// Camera profile specification (KEY: Use Nikon's color science as base)
-		CameraProfile: baseCameraProfile,
+		CameraProfile: recipe.CameraProfileName,
 
 		// Temperature compensation for baseline profile difference
 		Temperature: formatTemperature(finalTemp),
@@ -581,6 +600,11 @@ type descriptionWrapper struct {
 	Sharpness   string `xml:"crs:Sharpness,attr,omitempty"`
 	Temperature string `xml:"crs:Temperature,attr,omitempty"`
 	Tint        string `xml:"crs:Tint,attr,omitempty"`
+
+	// Grain
+	GrainAmount    string `xml:"crs:GrainAmount,attr,omitempty"`
+	GrainSize      string `xml:"crs:GrainSize,attr,omitempty"`
+	GrainFrequency string `xml:"crs:GrainFrequency,attr,omitempty"` // Roughness
 
 	// HSL Adjustments - Red
 	HueRed        string `xml:"crs:HueRed,attr,omitempty"`
@@ -714,9 +738,11 @@ func formatColorGradingZoneHue(cg *models.ColorGrading, zone string) string {
 // formatColorGradingZoneChroma formats the Chroma (Saturation) value for a specific color grading zone.
 // NP3's Balance parameter appears to modulate the intensity of color grading zones.
 // Balance range: -100 to +100, where:
-//   -100 = zones at minimum intensity (0%)
-//      0 = zones at medium intensity (50%)
-//   +100 = zones at maximum intensity (100%)
+//
+//	-100 = zones at minimum intensity (0%)
+//	   0 = zones at medium intensity (50%)
+//	+100 = zones at maximum intensity (100%)
+//
 // This function applies Balance as a multiplier to achieve universal preset compatibility.
 // Returns empty string if ColorGrading is nil.
 func formatColorGradingZoneChroma(cg *models.ColorGrading, zone string) string {

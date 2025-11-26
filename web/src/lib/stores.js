@@ -19,6 +19,9 @@ export const settings = writable({
 // Preview State
 export const previewFile = writable(null); // File object being previewed or null
 
+// Editor State
+export const currentRecipe = writable(null); // Full UniversalRecipe object for editing
+
 // Helper to add a file
 let fileIdCounter = 0;
 export function addFile(file) {

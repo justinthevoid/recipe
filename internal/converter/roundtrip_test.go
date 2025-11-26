@@ -480,8 +480,20 @@ func compareRecipesNP3Limited(t *testing.T, orig, final *models.UniversalRecipe,
 
 	// Compare floats with small tolerance
 	// Note: NP3 uses 8-bit encoding which introduces precision loss
-	if diff := math.Abs(orig.Exposure - final.Exposure); diff > 0.02 {
-		t.Errorf("Exposure mismatch: orig=%.2f, final=%.2f (diff=%.2f)", orig.Exposure, final.Exposure, diff)
+	// NP3 Brightness range is approx -1.0 to +1.0. Values outside are clamped.
+	if orig.Exposure >= -1.0 && orig.Exposure <= 1.0 {
+		if diff := math.Abs(orig.Exposure - final.Exposure); diff > 0.02 {
+			t.Errorf("Exposure mismatch: orig=%.2f, final=%.2f (diff=%.2f)", orig.Exposure, final.Exposure, diff)
+		}
+	} else {
+		// Outside range, check if clamped correctly
+		expected := 1.0
+		if orig.Exposure < -1.0 {
+			expected = -1.0
+		}
+		if diff := math.Abs(expected - final.Exposure); diff > 0.02 {
+			t.Errorf("Exposure clamping mismatch: orig=%.2f, expected=%.2f, final=%.2f", orig.Exposure, expected, final.Exposure)
+		}
 	}
 
 	// Compare integers with tolerance
@@ -518,7 +530,15 @@ func compareRecipesNP3Limited(t *testing.T, orig, final *models.UniversalRecipe,
 	// Clarity: Limited range in NP3, maps to sharpening (see known-conversion-limitations.md)
 	// Extreme values (>±70) may be clipped
 	if orig.Clarity >= -70 && orig.Clarity <= 70 {
-		compareInt("Clarity", orig.Clarity, final.Clarity)
+		// Use tolerance 3 for Clarity due to quantization (step size ~5)
+		diff := orig.Clarity - final.Clarity
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff > 3 {
+			t.Errorf("Clarity mismatch: orig=%d, final=%d (diff=%d, tolerance=3)",
+				orig.Clarity, final.Clarity, diff)
+		}
 	} else {
 		t.Logf("Clarity outside typical range: orig=%d (expected loss, see docs/known-conversion-limitations.md)", orig.Clarity)
 	}
@@ -537,7 +557,10 @@ func compareRecipesNP3Limited(t *testing.T, orig, final *models.UniversalRecipe,
 			orig.Sharpness, final.Sharpness)
 	}
 
-	compareInt("Tint", orig.Tint, final.Tint)
+	// Tint: Not supported in NP3 (maps to 0)
+	if orig.Tint != 0 {
+		t.Logf("Tint: orig=%d (expected loss: NP3 doesn't support this parameter)", orig.Tint)
+	}
 
 	// Parameters that NP3 does NOT support (skip comparison):
 	// - Highlights, Shadows, Whites, Blacks (logged but not failed)
@@ -562,10 +585,9 @@ func compareRecipesNP3Limited(t *testing.T, orig, final *models.UniversalRecipe,
 	}
 
 	// Compare Temperature (nullable)
-	if orig.Temperature != nil && final.Temperature != nil {
-		compareInt("Temperature", *orig.Temperature, *final.Temperature)
-	} else if (orig.Temperature == nil) != (final.Temperature == nil) {
-		t.Logf("Temperature nullability difference: orig=%v, final=%v (may be expected)", orig.Temperature, final.Temperature)
+	// NP3 doesn't support Temperature (WB is usually camera-specific or As Shot)
+	if orig.Temperature != nil {
+		t.Logf("Temperature: orig=%d (expected loss: NP3 doesn't support this parameter)", *orig.Temperature)
 	}
 
 	// Compare HSL color adjustments (NP3 supports these)
