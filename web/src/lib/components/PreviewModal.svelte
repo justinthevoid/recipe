@@ -135,11 +135,6 @@
         const temp = recipe.Temperature || 0;
         const tint = recipe.Tint || 0;
         const saturation = recipe.Saturation || 0;
-        const exposure = recipe.Exposure || 0;
-        const contrast = recipe.Contrast || 0;
-
-        colorMatrix = calculateColorMatrix(temp, tint, saturation);
-        transferTable = calculateTransferTable(exposure, contrast);
     }
 
     // Image Analysis Trigger
@@ -717,7 +712,7 @@
 
     .preview-layout {
         display: grid;
-        grid-template-columns: 1fr 300px;
+        grid-template-columns: 1fr 350px;
         height: 100%;
         overflow: hidden;
     }
@@ -768,6 +763,7 @@
         cursor: col-resize;
         z-index: 20;
         margin: 0;
+        appearance: none; /* Ensure standard property is set */
     }
 
     .slider-handle {
@@ -935,10 +931,35 @@
         font-family: monospace;
     }
 
+    /* Custom Scrollbar for Params */
+    .preview-params-section::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .preview-params-section::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .preview-params-section::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+    .preview-params-section::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Range Input Styling */
     input[type="range"] {
         width: 100%;
         background: transparent;
         -webkit-appearance: none;
+        appearance: none;
+        margin: 0.5rem 0;
+    }
+
+    input[type="range"]:focus {
+        outline: none;
     }
 
     input[type="range"]::-webkit-slider-runnable-track {
@@ -946,17 +967,59 @@
         height: 4px;
         background: rgba(255, 255, 255, 0.1);
         border-radius: 2px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    input[type="range"]:hover::-webkit-slider-runnable-track {
+        background: rgba(255, 255, 255, 0.2);
     }
 
     input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
+        appearance: none;
         height: 16px;
         width: 16px;
         border-radius: 50%;
         background: var(--color-primary);
-        margin-top: -6px;
+        margin-top: -6px; /* Center thumb on track */
         cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        transition:
+            transform 0.1s,
+            background 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+        background: #fff;
+    }
+
+    /* Firefox styles */
+    input[type="range"]::-moz-range-track {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        height: 16px;
+        width: 16px;
+        border: none;
+        border-radius: 50%;
+        background: var(--color-primary);
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        transition:
+            transform 0.1s,
+            background 0.2s;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+        transform: scale(1.1);
+        background: #fff;
     }
 
     .btn-save {
