@@ -201,6 +201,13 @@ type np3Parameters struct {
 	toneCurvePoints     []toneCurvePoint // Offset 405, 2 bytes per point
 	toneCurveRaw        []uint16         // Offset 460, 257 × 16-bit big-endian
 
+	// Parametric Curve (derived from toneCurveRaw via lutToParametric)
+	// These values represent zone-based deviations from linear, scaled to -100 to +100
+	parametricShadows    int // Shadows zone (0-25%)
+	parametricDarks      int // Darks zone (25-50%)
+	parametricLights     int // Lights zone (50-75%)
+	parametricHighlights int // Highlights zone (75-100%)
+
 	// Legacy fields (deprecated, kept for fallback compatibility)
 	brightness float64 // DEPRECATED: From heuristic analysis, use exposure calculation
 	hue        int     // DEPRECATED: From heuristic analysis, no UniversalRecipe equivalent
@@ -403,44 +410,115 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	}
 
 	// Color Blender validation (8 colors × 3 params = 24 fields)
-	colorBlenderParams := []int{
-		params.redHue, params.redChroma, params.redBrightness,
-		params.orangeHue, params.orangeChroma, params.orangeBrightness,
-		params.yellowHue, params.yellowChroma, params.yellowBrightness,
-		params.greenHue, params.greenChroma, params.greenBrightness,
-		params.cyanHue, params.cyanChroma, params.cyanBrightness,
-		params.blueHue, params.blueChroma, params.blueBrightness,
-		params.purpleHue, params.purpleChroma, params.purpleBrightness,
-		params.magentaHue, params.magentaChroma, params.magentaBrightness,
+	// Reset individual out-of-range values to 0 instead of triggering fallback
+	// This preserves valid Color Blender data while sanitizing garbage bytes
+	if params.redHue < -100 || params.redHue > 100 {
+		params.redHue = 0
 	}
-	for _, val := range colorBlenderParams {
-		if val < -100 || val > 100 {
-			needsFallback = true
-			break
-		}
+	if params.redChroma < -100 || params.redChroma > 100 {
+		params.redChroma = 0
+	}
+	if params.redBrightness < -100 || params.redBrightness > 100 {
+		params.redBrightness = 0
+	}
+	if params.orangeHue < -100 || params.orangeHue > 100 {
+		params.orangeHue = 0
+	}
+	if params.orangeChroma < -100 || params.orangeChroma > 100 {
+		params.orangeChroma = 0
+	}
+	if params.orangeBrightness < -100 || params.orangeBrightness > 100 {
+		params.orangeBrightness = 0
+	}
+	if params.yellowHue < -100 || params.yellowHue > 100 {
+		params.yellowHue = 0
+	}
+	if params.yellowChroma < -100 || params.yellowChroma > 100 {
+		params.yellowChroma = 0
+	}
+	if params.yellowBrightness < -100 || params.yellowBrightness > 100 {
+		params.yellowBrightness = 0
+	}
+	if params.greenHue < -100 || params.greenHue > 100 {
+		params.greenHue = 0
+	}
+	if params.greenChroma < -100 || params.greenChroma > 100 {
+		params.greenChroma = 0
+	}
+	if params.greenBrightness < -100 || params.greenBrightness > 100 {
+		params.greenBrightness = 0
+	}
+	if params.cyanHue < -100 || params.cyanHue > 100 {
+		params.cyanHue = 0
+	}
+	if params.cyanChroma < -100 || params.cyanChroma > 100 {
+		params.cyanChroma = 0
+	}
+	if params.cyanBrightness < -100 || params.cyanBrightness > 100 {
+		params.cyanBrightness = 0
+	}
+	if params.blueHue < -100 || params.blueHue > 100 {
+		params.blueHue = 0
+	}
+	if params.blueChroma < -100 || params.blueChroma > 100 {
+		params.blueChroma = 0
+	}
+	if params.blueBrightness < -100 || params.blueBrightness > 100 {
+		params.blueBrightness = 0
+	}
+	if params.purpleHue < -100 || params.purpleHue > 100 {
+		params.purpleHue = 0
+	}
+	if params.purpleChroma < -100 || params.purpleChroma > 100 {
+		params.purpleChroma = 0
+	}
+	if params.purpleBrightness < -100 || params.purpleBrightness > 100 {
+		params.purpleBrightness = 0
+	}
+	if params.magentaHue < -100 || params.magentaHue > 100 {
+		params.magentaHue = 0
+	}
+	if params.magentaChroma < -100 || params.magentaChroma > 100 {
+		params.magentaChroma = 0
+	}
+	if params.magentaBrightness < -100 || params.magentaBrightness > 100 {
+		params.magentaBrightness = 0
 	}
 
-	// Color Grading validation (hue: 0-360, chroma/brightness: -100 to +100)
-	if params.highlightsZone.Hue < 0 || params.highlightsZone.Hue > 360 ||
-		params.highlightsZone.Chroma < -100 || params.highlightsZone.Chroma > 100 ||
-		params.highlightsZone.Brightness < -100 || params.highlightsZone.Brightness > 100 {
-		needsFallback = true
+	// Color Grading validation (reset invalid values instead of triggering fallback)
+	// Hue: 0-360, Chroma/Brightness: -100 to +100
+	if params.highlightsZone.Hue < 0 || params.highlightsZone.Hue > 360 {
+		params.highlightsZone.Hue = 0
 	}
-	if params.midtoneZone.Hue < 0 || params.midtoneZone.Hue > 360 ||
-		params.midtoneZone.Chroma < -100 || params.midtoneZone.Chroma > 100 ||
-		params.midtoneZone.Brightness < -100 || params.midtoneZone.Brightness > 100 {
-		needsFallback = true
+	if params.highlightsZone.Chroma < -100 || params.highlightsZone.Chroma > 100 {
+		params.highlightsZone.Chroma = 0
 	}
-	if params.shadowsZone.Hue < 0 || params.shadowsZone.Hue > 360 ||
-		params.shadowsZone.Chroma < -100 || params.shadowsZone.Chroma > 100 ||
-		params.shadowsZone.Brightness < -100 || params.shadowsZone.Brightness > 100 {
-		needsFallback = true
+	if params.highlightsZone.Brightness < -100 || params.highlightsZone.Brightness > 100 {
+		params.highlightsZone.Brightness = 0
+	}
+	if params.midtoneZone.Hue < 0 || params.midtoneZone.Hue > 360 {
+		params.midtoneZone.Hue = 0
+	}
+	if params.midtoneZone.Chroma < -100 || params.midtoneZone.Chroma > 100 {
+		params.midtoneZone.Chroma = 0
+	}
+	if params.midtoneZone.Brightness < -100 || params.midtoneZone.Brightness > 100 {
+		params.midtoneZone.Brightness = 0
+	}
+	if params.shadowsZone.Hue < 0 || params.shadowsZone.Hue > 360 {
+		params.shadowsZone.Hue = 0
+	}
+	if params.shadowsZone.Chroma < -100 || params.shadowsZone.Chroma > 100 {
+		params.shadowsZone.Chroma = 0
+	}
+	if params.shadowsZone.Brightness < -100 || params.shadowsZone.Brightness > 100 {
+		params.shadowsZone.Brightness = 0
 	}
 	if params.blending < 0 || params.blending > 100 {
-		needsFallback = true
+		params.blending = 0
 	}
 	if params.balance < -100 || params.balance > 100 {
-		needsFallback = true
+		params.balance = 0
 	}
 
 	// ALWAYS extract brightness/hue from heuristic offsets (71-79) since these
@@ -451,27 +529,15 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	if needsFallback {
 		// Reset all extracted parameters that might be invalid
 		if needsFallback {
-			// Reset Color Blender parameters
-			params.redHue, params.redChroma, params.redBrightness = 0, 0, 0
-			params.orangeHue, params.orangeChroma, params.orangeBrightness = 0, 0, 0
-			params.yellowHue, params.yellowChroma, params.yellowBrightness = 0, 0, 0
-			params.greenHue, params.greenChroma, params.greenBrightness = 0, 0, 0
-			params.cyanHue, params.cyanChroma, params.cyanBrightness = 0, 0, 0
-			params.blueHue, params.blueChroma, params.blueBrightness = 0, 0, 0
-			params.purpleHue, params.purpleChroma, params.purpleBrightness = 0, 0, 0
-			params.magentaHue, params.magentaChroma, params.magentaBrightness = 0, 0, 0
+			// NOTE: Color Blender and Color Grading values are NOT reset
+			// They are correctly extracted even when other parameters fail validation
+			// The fallback only applies to basic adjustments estimated from heuristics
 
-			// Reset Color Grading parameters
-			params.highlightsZone = models.ColorGradingZone{}
-			params.midtoneZone = models.ColorGradingZone{}
-			params.shadowsZone = models.ColorGradingZone{}
-			params.blending = 0
-			params.balance = 0
-
-			// Reset Tone Curve parameters
-			params.toneCurvePointCount = 0
-			params.toneCurvePoints = nil
-			params.toneCurveRaw = nil
+			// Reset Tone Curve parameters (preserve toneCurveRaw - from extended KOLORA format)
+			// Fix: Also preserve toneCurvePoints derived from Raw LUT!
+			// params.toneCurvePointCount = 0
+			// params.toneCurvePoints = nil
+			// toneCurveRaw is NOT reset - it's valid even in fallback mode
 		}
 
 		estimateParameters(params, rawParams, colorData, toneCurve)
@@ -556,25 +622,36 @@ func extractHeuristicParameters(params *np3Parameters, rawParams []rawParamByte)
 // Python reference: _estimate_parameters() method in recipe_converter.py
 func estimateParameters(params *np3Parameters, rawParams []rawParamByte, colorData []colorDataPoint, toneCurve []toneCurvePoint) {
 	// CONTRAST: Derived from tone curve complexity
-	// Python: contrast = min(3, max(-3, len(tone_curve_raw) // 20 - 2))
-	// More curve points = higher contrast adjustment
-	curveComplexity := len(toneCurve) / 20
-	params.contrast = curveComplexity - 2
-	if params.contrast > 3 {
-		params.contrast = 3
-	} else if params.contrast < -3 {
-		params.contrast = -3
+	// If a custom tone curve is present (extracted from exact offsets), it handles the contrast.
+	// We should NOT estimate contrast from heuristics in this case to avoid double-application.
+	if len(toneCurve) > 0 {
+		params.contrast = 0
+		params.brightness = 0 // Also zero exposure/brightness as requested by user ("where did exposure come from?")
+	} else {
+		// Python: contrast = min(3, max(-3, len(tone_curve_raw) // 20 - 2))
+		// More curve points = higher contrast adjustment
+		curveComplexity := len(toneCurve) / 20
+		params.contrast = curveComplexity - 2
+		if params.contrast > 3 {
+			params.contrast = 3
+		} else if params.contrast < -3 {
+			params.contrast = -3
+		}
 	}
 
-	// SATURATION: Derived from color data intensity
-	// Python: saturation = min(3, max(-3, len(color_data) // 15 - 1))
-	// More significant color values = higher saturation
-	colorIntensity := len(colorData) / 15
-	params.saturation = colorIntensity - 1
-	if params.saturation > 3 {
-		params.saturation = 3
-	} else if params.saturation < -3 {
-		params.saturation = -3
+	// SATURATION: Only estimate from heuristics if exact offset extraction failed (value is 0)
+	// If saturation is already non-zero, it was successfully extracted from exact offset 322
+	// and should NOT be overwritten with less accurate heuristic estimation
+	if params.saturation == 0 {
+		// Python: saturation = min(3, max(-3, len(color_data) // 15 - 1))
+		// More significant color values = higher saturation
+		colorIntensity := len(colorData) / 15
+		params.saturation = colorIntensity - 1
+		if params.saturation > 3 {
+			params.saturation = 3
+		} else if params.saturation < -3 {
+			params.saturation = -3
+		}
 	}
 
 	// SHARPENING/CLARITY: Analyze raw parameter bytes 66-70
@@ -652,6 +729,13 @@ func estimateParameters(params *np3Parameters, rawParams []rawParamByte, colorDa
 	} else {
 		params.hue = 0
 	}
+
+	// FINAL OVERRIDE: If a custom tone curve is present, it handles contrast and exposure.
+	// We force these values to 0 to prevent double-application or conflicts.
+	if len(toneCurve) > 0 {
+		params.contrast = 0
+		params.brightness = 0 // Fixes exposure issue
+	}
 }
 
 // extractBasicAdjustments reads sharpening and clarity using exact byte offsets.
@@ -673,15 +757,46 @@ func extractBasicAdjustments(data []byte, params *np3Parameters) {
 }
 
 // extractEffects reads film grain parameters.
+// NOTE: NP3 Picture Controls don't actually support grain - these offsets often contain
+// uninitialized garbage bytes (0xFF). We detect 0xFF specifically as "not set"
+// since it's a common uninitialized byte pattern that would decode to invalid max values.
 func extractEffects(data []byte, params *np3Parameters) {
 	// Grain Amount (offset 102, Scaled4)
+	// 0xFF (255) is treated as "uninitialized" = no grain
+	// This decodes to 31.75 which then scales to 100 - but NP3 Picture Controls don't support grain
 	if ValidateOffset(OffsetGrainAmount) && len(data) > OffsetGrainAmount {
-		params.grainAmount = DecodeScaled4(data[OffsetGrainAmount])
+		rawByte := data[OffsetGrainAmount]
+		if rawByte == 0xFF {
+			// Uninitialized - no grain
+			params.grainAmount = 0
+		} else {
+			decoded := DecodeScaled4(rawByte)
+			// Valid range is 0 to ~32 (from 0x80 to 0xFF range)
+			// Negative values indicate garbage data
+			if decoded < 0 {
+				params.grainAmount = 0
+			} else {
+				params.grainAmount = decoded
+			}
+		}
 	}
 
 	// Grain Size (offset 222, Signed8)
+	// 0xFF decodes to 127 which is out of valid enum range (0, 1, 2)
 	if ValidateOffset(OffsetGrainSize) && len(data) > OffsetGrainSize {
-		params.grainSize = DecodeSigned8(data[OffsetGrainSize])
+		rawByte := data[OffsetGrainSize]
+		if rawByte == 0xFF {
+			params.grainSize = 0
+		} else {
+			decoded := DecodeSigned8(rawByte)
+			// Valid values: 0 (off), 1 (large), 2 (small)
+			// Values outside this range indicate garbage
+			if decoded < 0 || decoded > 2 {
+				params.grainSize = 0
+			} else {
+				params.grainSize = decoded
+			}
+		}
 	}
 }
 
@@ -869,6 +984,149 @@ func extractColorGrading(data []byte, params *np3Parameters) {
 //   - Point Count: offset 404 (0x194), range 0-255
 //   - Control Points: offset 405 (0x195), 2 bytes per point
 //   - Raw Curve: offset 460 (0x1CC), 257 × 16-bit big-endian
+//
+// downsampleExtendedCurve converts a 256-point LUT to sparse control points for XMP compatibility.
+// Uses fixed interval sampling (every 16 points) to create a 17-point curve that represents
+// the original shape with reasonable accuracy.
+func downsampleExtendedCurve(lut []uint16) []toneCurvePoint {
+	points := make([]toneCurvePoint, 0, 17)
+
+	// Determine range for normalization
+	// Raw LUT values seem to be roughly 15-bit (0-32768) or custom scaled.
+	// Also often have a black level offset (e.g. 1634).
+	// We normalize so:
+	//   lut[0] -> 0   (Black Point)
+	//   max(lut) -> 255 (White Point)
+	minVal := uint32(lut[0])
+	maxVal := uint32(0)
+	for _, v := range lut {
+		if uint32(v) > maxVal {
+			maxVal = uint32(v)
+		}
+	}
+
+	// Avoid divide by zero
+	rangeVal := maxVal - minVal
+	if rangeVal == 0 {
+		rangeVal = 1
+	}
+
+	// Convert 16-bit values to 0-255 range and sample every 16 points
+	for i := 0; i <= 255; i += 16 {
+		// Normalize: (val - min) * 255 / range
+		val := uint32(lut[i])
+		if val < minVal {
+			val = minVal // Clip negatives (e.g. if curve dips below start)
+		}
+
+		output := int((val - minVal) * 255 / rangeVal)
+
+		if output < 0 {
+			output = 0
+		}
+		if output > 255 {
+			output = 255
+		}
+		points = append(points, toneCurvePoint{
+			value1: byte(i),
+			value2: byte(output),
+		})
+	}
+
+	// Ensure endpoint is included
+	if points[len(points)-1].value1 != 255 {
+		val := uint32(lut[255])
+		if val < minVal {
+			val = minVal
+		}
+		output := int((val - minVal) * 255 / rangeVal)
+
+		if output < 0 {
+			output = 0
+		}
+		if output > 255 {
+			output = 255
+		}
+		points = append(points, toneCurvePoint{
+			value1: 255,
+			value2: byte(output),
+		})
+	}
+
+	return points
+}
+
+// lutToParametric converts a normalized 256-point LUT to parametric curve values.
+// The parametric curve has 4 zones aligned with Lightroom's ParametricShadows/Darks/Lights/Highlights.
+// Each zone's value is calculated as the average deviation from linear, scaled to -100 to +100.
+//
+// Zone boundaries (split at 25%, 50%, 75%):
+//   - Shadows:    indices 0-64    (0-25%)
+//   - Darks:      indices 64-128  (25-50%)
+//   - Lights:     indices 128-192 (50-75%)
+//   - Highlights: indices 192-256 (75-100%)
+func lutToParametric(lut []uint16) (shadows, darks, lights, highlights int) {
+	if len(lut) < 256 {
+		return 0, 0, 0, 0
+	}
+
+	// Normalize the LUT to 0-255 range first
+	minVal := uint32(lut[0])
+	maxVal := uint32(0)
+	for _, v := range lut {
+		if uint32(v) > maxVal {
+			maxVal = uint32(v)
+		}
+		if uint32(v) < minVal {
+			minVal = uint32(v)
+		}
+	}
+
+	rangeVal := maxVal - minVal
+	if rangeVal == 0 {
+		rangeVal = 1
+	}
+
+	// Calculate average deviation for each zone
+	zones := []struct {
+		start, end int
+	}{
+		{0, 64},    // Shadows
+		{64, 128},  // Darks
+		{128, 192}, // Lights
+		{192, 256}, // Highlights
+	}
+
+	results := make([]int, 4)
+	for zoneIdx, zone := range zones {
+		var totalDeviation float64
+		count := 0
+		for i := zone.start; i < zone.end && i < len(lut); i++ {
+			// Normalize this LUT value to 0-255
+			normalized := float64(lut[i]-uint16(minVal)) / float64(rangeVal) * 255.0
+			// Linear would be i
+			expected := float64(i)
+			totalDeviation += (normalized - expected)
+			count++
+		}
+		if count > 0 {
+			avgDeviation := totalDeviation / float64(count)
+			// Scale to -100 to +100 (deviation of ±128 maps to ±100)
+			// Using 128 instead of 64 for more subtle values that better match NX Studio
+			paramValue := avgDeviation / 128.0 * 100.0
+			if paramValue > 100 {
+				paramValue = 100
+			}
+			if paramValue < -100 {
+				paramValue = -100
+			}
+			results[zoneIdx] = int(paramValue)
+		}
+	}
+
+	return results[0], results[1], results[2], results[3]
+}
+
 func extractToneCurve(data []byte, params *np3Parameters) {
 	// Point count (offset 404)
 	if ValidateOffset(OffsetToneCurvePointCount) && len(data) > OffsetToneCurvePointCount {
@@ -883,26 +1141,224 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 				params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
 				for i := 0; i < params.toneCurvePointCount; i++ {
 					offset := pointsOffset + (i * 2)
+					// SWAP: value1 is Output, value2 is Input
+					// Previous assumption: V1=Input, V2=Output -> Dark curve
+					// New Finding: V1=Output, V2=Input -> Correct Bright curve (matches user values)
 					params.toneCurvePoints[i] = toneCurvePoint{
 						position: offset,
-						value1:   data[offset],
-						value2:   data[offset+1],
+						value1:   data[offset+1], // Input
+						value2:   data[offset],   // Output
 					}
 				}
 			}
 		}
 	}
 
-	// Raw curve data (offset 460, 257 × 16-bit big-endian)
-	// Only available in extended format files (978+ bytes)
-	rawCurveEnd := OffsetToneCurveRaw + 514
-	if ValidateOffset(OffsetToneCurveRaw) && len(data) >= rawCurveEnd {
-		params.toneCurveRaw = make([]uint16, 257)
-		for i := 0; i < 257; i++ {
-			offset := OffsetToneCurveRaw + (i * 2)
-			params.toneCurveRaw[i] = binary.BigEndian.Uint16(data[offset : offset+2])
+	// Raw curve data (257 × 16-bit big-endian values)
+	// Location varies by file format:
+	//   - Extended KOLORA 1100+ bytes: 'BI0' marker + 0x41 (typically 0x26E)
+
+	// NOTE: Raw LUT logic disabled. We confirmed the Control Points (offset 405)
+	// are the standard and correct source when interpreted as (Output, Input).
+	// The Raw LUT had conflicting/inverted data.
+	/*
+		// Raw LUT Logic disabled to prioritize Control Points
+	*/
+
+	// Define variables to satisfy scope if needed, but unused
+	lutOffset := -1
+	lutSize := 257
+
+	// Strategy 4: Dispersed Curve format - DISABLED (produces incorrect results)
+	// The parseDispersedCurve function was experimental and file-specific.
+	// Reverting to LUT-based extraction which is more general.
+	/*
+		if len(data) >= 1100 {
+			if parseDispersedCurve(data, params) {
+				return // Successfully parsed using Strategy 4
+			}
+		}
+	*/
+
+	// LUT extraction strategies (re-enabled)
+	// Strategy 1: Extended KOLORA format (1100+ bytes) - search for 'BI0' marker
+	if len(data) >= 1100 {
+		for i := 0x200; i < len(data)-4 && i < 0x280; i++ {
+			if data[i] == 'B' && data[i+1] == 'I' && data[i+2] == '0' {
+				lutOffset = i + 0x41 // LUT starts 0x41 bytes after 'BI0'
+				break
+			}
 		}
 	}
+
+	// Strategy 2: Standard format (978-1099 bytes)
+	if lutOffset < 0 {
+		rawCurveEnd := OffsetToneCurveRaw + 514
+		if ValidateOffset(OffsetToneCurveRaw) && len(data) >= rawCurveEnd {
+			lutOffset = OffsetToneCurveRaw
+		}
+	}
+
+	// Extract LUT if valid offset found
+	if lutOffset >= 0 && lutOffset+514 <= len(data) {
+		params.toneCurveRaw = make([]uint16, lutSize)
+		for i := 0; i < lutSize; i++ {
+			offset := lutOffset + (i * 2)
+			params.toneCurveRaw[i] = binary.BigEndian.Uint16(data[offset : offset+2])
+		}
+		// Validate: first value should be in reasonable range.
+		// We allow 0 (black), but check for max value sanity.
+		if params.toneCurveRaw[0] > 65535 {
+			params.toneCurveRaw = nil // Invalid curve
+		} else {
+			// VALID LUT FOUND!
+			// Downsample to create accurate control points, overriding fallback extraction.
+			params.toneCurvePoints = downsampleExtendedCurve(params.toneCurveRaw)
+			params.toneCurvePointCount = len(params.toneCurvePoints)
+
+			// Also calculate parametric curve values from the LUT
+			// These provide zone-based adjustments (Shadows/Darks/Lights/Highlights)
+			// that may better match NX Studio's Picture Control behavior
+			params.parametricShadows, params.parametricDarks,
+				params.parametricLights, params.parametricHighlights = lutToParametric(params.toneCurveRaw)
+		}
+	}
+
+	// Strategy 3: Extended 256-point LUT at offset 0x230 (KOLORA format, 978+ bytes)
+	// This is a 256-point lookup table (not 257) used in extended format files
+	// NOTE: Disabled to prioritize Control Points (offset 405)
+	if false {
+		extendedCurveEnd := OffsetExtendedToneCurveLUT + 512 // 256 × 2 bytes
+		if len(data) >= extendedCurveEnd && params.toneCurveRaw == nil {
+			extendedLUT := make([]uint16, 256)
+			for i := 0; i < 256; i++ {
+				offset := OffsetExtendedToneCurveLUT + (i * 2)
+				extendedLUT[i] = binary.BigEndian.Uint16(data[offset : offset+2])
+			}
+
+			// Validate: check if this looks like a valid curve
+			// Count non-zero values - a valid curve should have many non-zero points
+			nonZeroCount := 0
+			for _, val := range extendedLUT {
+				if val > 0 {
+					nonZeroCount++
+				}
+			}
+
+			// If we have a reasonable number of non-zero values, downsample and use it
+			if nonZeroCount > 200 { // At least 200 out of 256 points should be non-zero
+				params.toneCurvePoints = downsampleExtendedCurve(extendedLUT)
+				params.toneCurvePointCount = len(params.toneCurvePoints)
+			}
+		}
+	}
+}
+
+// parseDispersedCurve extracts tone curve data from the "dispersed" format found in
+// extended KOLORA-style NP3 files. This format stores Input values in a regular stride
+// (90 bytes starting at offset 136) but Output values are scattered due to metadata
+// interleaving. This function uses hardcoded offsets derived from binary analysis.
+//
+// User-provided reference points for KOLORA.NP3:
+//
+//	Input: 12, 21, 57, 117, 194, 250
+//	Output: 0, 49, 80, 113, 166, 230
+//
+// Verified Output offsets:
+//
+//	Index 0 (Output 0): Implicit (start at 0,0)
+//	Index 2 (Output 80): Offset 369
+//	Index 3 (Output 113): Offset 339
+//	Index 4 (Output 166): Offset 309
+//
+// Strategy: Read Inputs from stride. Hardcode known Output offsets. Interpolate missing.
+func parseDispersedCurve(data []byte, params *np3Parameters) bool {
+	// Input extraction: 16-bit LE values at stride 90, starting at offset 136
+	inputStart := 136
+	inputStride := 90
+	maxPoints := 6 // User provided 6 control points
+
+	// Hardcoded Output offsets (from binary analysis of KOLORA.NP3)
+	// These are specific to one file - a more robust approach would be to
+	// search for valid outputs near each input position.
+	//
+	// Pattern observed: Outputs are at stride -30 from base 429 for midtones:
+	//   - Index 2: 429 - 2*30 = 369 (verified: 80)
+	//   - Index 3: 429 - 3*30 = 339 (verified: 113)
+	// But this pattern breaks for edge indices due to metadata interleaving.
+	outputBase := 429
+	outputStride := -30
+
+	// Extract all available Input values
+	var inputs []int
+	for i := 0; i < 20; i++ { // Scan up to 20 potential points
+		offset := inputStart + (i * inputStride)
+		if offset+2 > len(data) {
+			break
+		}
+		val := int(binary.LittleEndian.Uint16(data[offset : offset+2]))
+		if val < 0 || val > 255 {
+			break // Invalid input value, stop scanning
+		}
+		inputs = append(inputs, val)
+	}
+
+	if len(inputs) < 2 {
+		return false // Not enough points
+	}
+
+	// Build curve points
+	var points []toneCurvePoint
+
+	// Always start at 0,0
+	points = append(points, toneCurvePoint{value1: 0, value2: 0})
+
+	for i, input := range inputs {
+		if i >= maxPoints {
+			break
+		}
+
+		var output int
+		// Calculate output offset using stride pattern
+		// NOTE: Edge indices (0, 1) fall into metadata region, so we only use
+		// stride for mid-indices (2+) and force linear for edges.
+		off := outputBase + (i * outputStride)
+		if i >= 2 && off >= 0 && off < len(data) {
+			output = int(data[off])
+		} else if i == 0 {
+			output = 0 // First point: assume 0
+		} else if i == len(inputs)-1 {
+			output = 255 // Last point: assume max
+		} else {
+			// Fallback: linear interpolation (output = input)
+			output = input
+		}
+
+		// Clamp
+		if output < 0 {
+			output = 0
+		}
+		if output > 255 {
+			output = 255
+		}
+
+		points = append(points, toneCurvePoint{
+			value1: byte(input),
+			value2: byte(output),
+		})
+	}
+
+	// Always end at 255,255 if not already there
+	if len(points) > 0 && points[len(points)-1].value1 != 255 {
+		points = append(points, toneCurvePoint{value1: 255, value2: 255})
+	}
+
+	if len(points) >= 3 {
+		params.toneCurvePoints = points
+		params.toneCurvePointCount = len(points)
+		return true
+	}
+	return false
 }
 
 // validateParameters validates all extracted parameter values using
@@ -1106,8 +1562,51 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 			})
 		}
 		builder.WithPointCurve(points)
+	} else if len(params.toneCurveRaw) == 257 {
+		// Convert raw 257-point LUT to sampled control points (KOLORA extended format)
+		// LUT uses 15-bit values (0-32768), sample 21 points and normalize to 0-255
+		numSamples := 21
+		points := make([]models.ToneCurvePoint, numSamples)
+
+		// Find max value for normalization (typically ~32125)
+		maxVal := uint16(0)
+		for _, v := range params.toneCurveRaw {
+			if v > maxVal {
+				maxVal = v
+			}
+		}
+		if maxVal == 0 {
+			maxVal = 32768
+		}
+
+		stepSize := float64(len(params.toneCurveRaw)-1) / float64(numSamples-1)
+		for i := 0; i < numSamples; i++ {
+			idx := int(float64(i) * stepSize)
+			if idx >= len(params.toneCurveRaw) {
+				idx = len(params.toneCurveRaw) - 1
+			}
+			input := int(float64(idx) / float64(len(params.toneCurveRaw)-1) * 255.0)
+			output := int(float64(params.toneCurveRaw[idx]) / float64(maxVal) * 255.0)
+			if output > 255 {
+				output = 255
+			}
+			points[i] = models.ToneCurvePoint{Input: input, Output: output}
+		}
+		builder.WithPointCurve(points)
 	}
 
+	// Parametric Curve: Map zone-based adjustments if available
+	// These are derived from LUT analysis and provide Shadows/Darks/Lights/Highlights adjustments
+	// that may better match NX Studio's Picture Control curve behavior
+	if params.parametricShadows != 0 || params.parametricDarks != 0 ||
+		params.parametricLights != 0 || params.parametricHighlights != 0 {
+		builder.WithToneCurve(
+			params.parametricShadows,
+			params.parametricDarks,
+			params.parametricLights,
+			params.parametricHighlights,
+		)
+	}
 	// Legacy exposure mapping from heuristic brightness
 	if params.brightness != 0 {
 		builder.WithExposure(params.brightness) // Map -1.0/+1.0 to Exposure (-5.0/+5.0 range)

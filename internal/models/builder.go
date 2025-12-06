@@ -194,7 +194,15 @@ func (b *RecipeBuilder) WithMidRangeSharpening(value float64) *RecipeBuilder {
 
 // WithTemperature sets the temperature value (nullable).
 func (b *RecipeBuilder) WithTemperature(value int) *RecipeBuilder {
-	b.recipe.Temperature = &value
+	// Temperature is nullable - only set if value is non-zero (within valid range)
+	// A value of 0 means "not set" and should remain nil
+	if value != 0 {
+		if err := ValidateTemperature(value); err != nil {
+			b.errors = append(b.errors, err)
+		} else {
+			b.recipe.Temperature = &value
+		}
+	}
 	return b
 }
 

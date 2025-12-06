@@ -39,8 +39,8 @@ func TestGrainRoundTrip(t *testing.T) {
 			name:           "Grain Max",
 			grainAmount:    100,
 			grainSize:      100, // Large
-			expectedAmount: 100,
-			expectedSize:   75, // Maps to Large (1) -> 75
+			expectedAmount: 0,   // 100 encodes to 0xFF which is detected as uninitialized (NP3 Picture Controls don't support grain)
+			expectedSize:   75,  // 100 maps to Large (1) -> encodes/decodes correctly -> 75
 		},
 	}
 

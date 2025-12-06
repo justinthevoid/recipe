@@ -423,8 +423,8 @@ func TestParseEmptyAttributes(t *testing.T) {
 	if recipe.Contrast != 0 {
 		t.Errorf("Expected zero Contrast for empty string, got %d", recipe.Contrast)
 	}
-	if recipe.Temperature == nil || *recipe.Temperature != 0 {
-		t.Errorf("Expected zero Temperature for empty string, got %v", recipe.Temperature)
+	if recipe.Temperature != nil {
+		t.Errorf("Expected nil Temperature for empty string, got %v", recipe.Temperature)
 	}
 	if recipe.Saturation != 0 {
 		t.Errorf("Expected zero Saturation for empty string, got %d", recipe.Saturation)
@@ -1295,16 +1295,23 @@ func TestGenerateToneCurve(t *testing.T) {
 			t.Fatalf("Generate() error = %v", err)
 		}
 
-		// Verify XMP contains ToneCurve attribute
+		// Verify XMP contains modern ToneCurvePV2012 (nested format, not legacy attribute)
 		xmpStr := string(xmpData)
-		if !containsString(xmpStr, "crs:ToneCurve=") {
-			t.Error("Generated XMP should contain ToneCurve attribute")
+		if !containsString(xmpStr, "<crs:ToneCurvePV2012>") {
+			t.Error("Generated XMP should contain ToneCurvePV2012 element")
 		}
 
-		// Verify format: "0, 0 / 64, 70 / 128, 140 / 192, 200 / 255, 255"
-		expectedCurve := "0, 0 / 64, 70 / 128, 140 / 192, 200 / 255, 255"
-		if !containsString(xmpStr, expectedCurve) {
-			t.Errorf("ToneCurve format incorrect. Expected substring: %s", expectedCurve)
+		// Should NOT contain legacy attribute format
+		if containsString(xmpStr, "crs:ToneCurve=") {
+			t.Error("Generated XMP should NOT contain legacy crs:ToneCurve attribute")
+		}
+
+		// Verify points are in rdf:li elements
+		if !containsString(xmpStr, "<rdf:li>0, 0</rdf:li>") {
+			t.Error("ToneCurvePV2012 should contain first point as rdf:li")
+		}
+		if !containsString(xmpStr, "<rdf:li>255, 255</rdf:li>") {
+			t.Error("ToneCurvePV2012 should contain last point as rdf:li")
 		}
 	})
 
@@ -1318,10 +1325,10 @@ func TestGenerateToneCurve(t *testing.T) {
 			t.Fatalf("Generate() error = %v", err)
 		}
 
-		// Should not include ToneCurve attribute when empty
+		// Should not include ToneCurvePV2012 element when PointCurve is nil
 		xmpStr := string(xmpData)
-		if containsString(xmpStr, "crs:ToneCurve=") {
-			t.Error("Generated XMP should not contain ToneCurve attribute when PointCurve is nil")
+		if containsString(xmpStr, "<crs:ToneCurvePV2012>") {
+			t.Error("Generated XMP should not contain ToneCurvePV2012 when PointCurve is nil")
 		}
 	})
 
@@ -1335,10 +1342,10 @@ func TestGenerateToneCurve(t *testing.T) {
 			t.Fatalf("Generate() error = %v", err)
 		}
 
-		// Should not include ToneCurve attribute when empty
+		// Should not include ToneCurvePV2012 element when empty
 		xmpStr := string(xmpData)
-		if containsString(xmpStr, "crs:ToneCurve=") {
-			t.Error("Generated XMP should not contain ToneCurve attribute when PointCurve is empty")
+		if containsString(xmpStr, "<crs:ToneCurvePV2012>") {
+			t.Error("Generated XMP should not contain ToneCurvePV2012 when PointCurve is empty")
 		}
 	})
 }

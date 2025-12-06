@@ -122,6 +122,15 @@ func ValidateTint(value int) error {
 	return nil
 }
 
+// ValidateTemperature validates temperature value (nullable, in Kelvin).
+// XMP/Lightroom uses absolute Kelvin values in range [2000, 50000].
+func ValidateTemperature(value int) error {
+	if value < 2000 || value > 50000 {
+		return fmt.Errorf("temperature value %d is out of range (must be between 2000 and 50000 Kelvin)", value)
+	}
+	return nil
+}
+
 // Validate validates all parameters in a UniversalRecipe.
 // Returns the first validation error encountered, or nil if all parameters are valid.
 func (r *UniversalRecipe) Validate() error {
