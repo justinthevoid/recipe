@@ -76,7 +76,22 @@ func Generate(recipe *models.UniversalRecipe) ([]byte, error) {
 	// Step 3: Generate calibrated color matrices (tags 50721-50722)
 	// Using Nikon Z f calibration from Adobe Camera Raw
 	colorMatrix1Binary := srationalArrayToBytes(generateColorMatrix())
-	colorMatrix2Binary := srationalArrayToBytes(generateColorMatrix2())
+
+	// Use warm matrix if recipe metadata requests it
+	// This enables custom warm DCP generation as documented in FINAL_CONCLUSIONS.md
+	useWarmMatrix := false
+	if recipe.Metadata != nil {
+		if warmFlag, ok := recipe.Metadata["use_warm_matrix"].(bool); ok && warmFlag {
+			useWarmMatrix = true
+		}
+	}
+
+	var colorMatrix2Binary []byte
+	if useWarmMatrix {
+		colorMatrix2Binary = srationalArrayToBytes(generateColorMatrix2Warm())
+	} else {
+		colorMatrix2Binary = srationalArrayToBytes(generateColorMatrix2())
+	}
 
 	// Step 4: Generate calibrated forward matrices (tags 50964-50965)
 	// Forward matrices transform XYZ → camera RGB (same for both illuminants)

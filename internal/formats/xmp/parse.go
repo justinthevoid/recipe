@@ -91,51 +91,94 @@ type Description struct {
 	Sharpness   string `xml:"Sharpness,attr"`
 	Temperature string `xml:"Temperature,attr"`
 	Tint        string `xml:"Tint,attr"`
+	// Incremental white balance (relative adjustments used in professional presets)
+	IncrementalTemperature string `xml:"IncrementalTemperature,attr"`
+	IncrementalTint        string `xml:"IncrementalTint,attr"`
+
+	// Presence (Texture and Dehaze)
+	Texture string `xml:"Texture,attr"`
+	Dehaze  string `xml:"Dehaze,attr"`
+
+	// Sharpening Details (professional preset parameters)
+	SharpenRadius      string `xml:"SharpenRadius,attr"`
+	SharpenDetail      string `xml:"SharpenDetail,attr"`
+	SharpenEdgeMasking string `xml:"SharpenEdgeMasking,attr"`
+
+	// Post-Crop Vignette
+	PostCropVignetteAmount    string `xml:"PostCropVignetteAmount,attr"`
+	PostCropVignetteMidpoint  string `xml:"PostCropVignetteMidpoint,attr"`
+	PostCropVignetteFeather   string `xml:"PostCropVignetteFeather,attr"`
+	PostCropVignetteRoundness string `xml:"PostCropVignetteRoundness,attr"`
 
 	// Grain
 	GrainAmount    string `xml:"GrainAmount,attr"`
 	GrainSize      string `xml:"GrainSize,attr"`
 	GrainFrequency string `xml:"GrainFrequency,attr"` // Roughness
 
-	// HSL Adjustments - Red
+	// HSL Adjustments - Red (modern HueAdjustment* names from professional presets)
+	HueAdjustmentRed        string `xml:"HueAdjustmentRed,attr"`
+	SaturationAdjustmentRed string `xml:"SaturationAdjustmentRed,attr"`
+	LuminanceAdjustmentRed  string `xml:"LuminanceAdjustmentRed,attr"`
+	// Legacy attribute names (for backward compatibility)
 	HueRed        string `xml:"HueRed,attr"`
 	SaturationRed string `xml:"SaturationRed,attr"`
 	LuminanceRed  string `xml:"LuminanceRed,attr"`
 
 	// HSL Adjustments - Orange
-	HueOrange        string `xml:"HueOrange,attr"`
-	SaturationOrange string `xml:"SaturationOrange,attr"`
-	LuminanceOrange  string `xml:"LuminanceOrange,attr"`
+	HueAdjustmentOrange        string `xml:"HueAdjustmentOrange,attr"`
+	SaturationAdjustmentOrange string `xml:"SaturationAdjustmentOrange,attr"`
+	LuminanceAdjustmentOrange  string `xml:"LuminanceAdjustmentOrange,attr"`
+	HueOrange                  string `xml:"HueOrange,attr"`
+	SaturationOrange           string `xml:"SaturationOrange,attr"`
+	LuminanceOrange            string `xml:"LuminanceOrange,attr"`
 
 	// HSL Adjustments - Yellow
-	HueYellow        string `xml:"HueYellow,attr"`
-	SaturationYellow string `xml:"SaturationYellow,attr"`
-	LuminanceYellow  string `xml:"LuminanceYellow,attr"`
+	HueAdjustmentYellow        string `xml:"HueAdjustmentYellow,attr"`
+	SaturationAdjustmentYellow string `xml:"SaturationAdjustmentYellow,attr"`
+	LuminanceAdjustmentYellow  string `xml:"LuminanceAdjustmentYellow,attr"`
+	HueYellow                  string `xml:"HueYellow,attr"`
+	SaturationYellow           string `xml:"SaturationYellow,attr"`
+	LuminanceYellow            string `xml:"LuminanceYellow,attr"`
 
 	// HSL Adjustments - Green
-	HueGreen        string `xml:"HueGreen,attr"`
-	SaturationGreen string `xml:"SaturationGreen,attr"`
-	LuminanceGreen  string `xml:"LuminanceGreen,attr"`
+	HueAdjustmentGreen        string `xml:"HueAdjustmentGreen,attr"`
+	SaturationAdjustmentGreen string `xml:"SaturationAdjustmentGreen,attr"`
+	LuminanceAdjustmentGreen  string `xml:"LuminanceAdjustmentGreen,attr"`
+	HueGreen                  string `xml:"HueGreen,attr"`
+	SaturationGreen           string `xml:"SaturationGreen,attr"`
+	LuminanceGreen            string `xml:"LuminanceGreen,attr"`
 
 	// HSL Adjustments - Aqua
-	HueAqua        string `xml:"HueAqua,attr"`
-	SaturationAqua string `xml:"SaturationAqua,attr"`
-	LuminanceAqua  string `xml:"LuminanceAqua,attr"`
+	HueAdjustmentAqua        string `xml:"HueAdjustmentAqua,attr"`
+	SaturationAdjustmentAqua string `xml:"SaturationAdjustmentAqua,attr"`
+	LuminanceAdjustmentAqua  string `xml:"LuminanceAdjustmentAqua,attr"`
+	HueAqua                  string `xml:"HueAqua,attr"`
+	SaturationAqua           string `xml:"SaturationAqua,attr"`
+	LuminanceAqua            string `xml:"LuminanceAqua,attr"`
 
 	// HSL Adjustments - Blue
-	HueBlue        string `xml:"HueBlue,attr"`
-	SaturationBlue string `xml:"SaturationBlue,attr"`
-	LuminanceBlue  string `xml:"LuminanceBlue,attr"`
+	HueAdjustmentBlue        string `xml:"HueAdjustmentBlue,attr"`
+	SaturationAdjustmentBlue string `xml:"SaturationAdjustmentBlue,attr"`
+	LuminanceAdjustmentBlue  string `xml:"LuminanceAdjustmentBlue,attr"`
+	HueBlue                  string `xml:"HueBlue,attr"`
+	SaturationBlue           string `xml:"SaturationBlue,attr"`
+	LuminanceBlue            string `xml:"LuminanceBlue,attr"`
 
 	// HSL Adjustments - Purple
-	HuePurple        string `xml:"HuePurple,attr"`
-	SaturationPurple string `xml:"SaturationPurple,attr"`
-	LuminancePurple  string `xml:"LuminancePurple,attr"`
+	HueAdjustmentPurple        string `xml:"HueAdjustmentPurple,attr"`
+	SaturationAdjustmentPurple string `xml:"SaturationAdjustmentPurple,attr"`
+	LuminanceAdjustmentPurple  string `xml:"LuminanceAdjustmentPurple,attr"`
+	HuePurple                  string `xml:"HuePurple,attr"`
+	SaturationPurple           string `xml:"SaturationPurple,attr"`
+	LuminancePurple            string `xml:"LuminancePurple,attr"`
 
 	// HSL Adjustments - Magenta
-	HueMagenta        string `xml:"HueMagenta,attr"`
-	SaturationMagenta string `xml:"SaturationMagenta,attr"`
-	LuminanceMagenta  string `xml:"LuminanceMagenta,attr"`
+	HueAdjustmentMagenta        string `xml:"HueAdjustmentMagenta,attr"`
+	SaturationAdjustmentMagenta string `xml:"SaturationAdjustmentMagenta,attr"`
+	LuminanceAdjustmentMagenta  string `xml:"LuminanceAdjustmentMagenta,attr"`
+	HueMagenta                  string `xml:"HueMagenta,attr"`
+	SaturationMagenta           string `xml:"SaturationMagenta,attr"`
+	LuminanceMagenta            string `xml:"LuminanceMagenta,attr"`
 
 	// Split Toning
 	SplitToningShadowHue           string `xml:"SplitToningShadowHue,attr"`
@@ -159,11 +202,31 @@ type Description struct {
 	ColorGradeGlobalSat    string `xml:"ColorGradeGlobalSat,attr"`
 	ColorGradeGlobalLum    string `xml:"ColorGradeGlobalLum,attr"`
 
-	// Tone Curve (stored as string, to be parsed separately if needed)
+	// Camera Calibration (used for film emulation in professional presets)
+	CameraCalibrationRedHue          string `xml:"RedHue,attr"`
+	CameraCalibrationRedSaturation   string `xml:"RedSaturation,attr"`
+	CameraCalibrationGreenHue        string `xml:"GreenHue,attr"`
+	CameraCalibrationGreenSaturation string `xml:"GreenSaturation,attr"`
+	CameraCalibrationBlueHue         string `xml:"BlueHue,attr"`
+	CameraCalibrationBlueSaturation  string `xml:"BlueSaturation,attr"`
+	CameraCalibrationShadowTint      string `xml:"ShadowTint,attr"`
+
+	// Tone Curve (legacy attribute format - deprecated)
 	ToneCurve string `xml:"ToneCurve,attr"`
+
+	// Tone Curves (modern PV2012 nested sequence format)
+	ToneCurvePV2012      ToneCurveSeq `xml:"ToneCurvePV2012>Seq"`
+	ToneCurvePV2012Red   ToneCurveSeq `xml:"ToneCurvePV2012Red>Seq"`
+	ToneCurvePV2012Green ToneCurveSeq `xml:"ToneCurvePV2012Green>Seq"`
+	ToneCurvePV2012Blue  ToneCurveSeq `xml:"ToneCurvePV2012Blue>Seq"`
 
 	// Preset Name (nested element)
 	Name NameElement `xml:"Name"`
+}
+
+// ToneCurveSeq represents a tone curve as RDF sequence of points
+type ToneCurveSeq struct {
+	Points []string `xml:"li"`
 }
 
 // NameElement represents the nested <crs:Name> element
@@ -263,6 +326,49 @@ func validateXMLStructure(data []byte) error {
 	return nil
 }
 
+// parseToneCurveSequence converts RDF sequence of "input, output" strings to ToneCurvePoint array
+// Input format: []string{"0, 0", "24, 28", "123, 122", "255, 255"}
+// Output: []ToneCurvePoint{{Input: 0, Output: 0}, {Input: 24, Output: 28}, ...}
+func parseToneCurveSequence(seq ToneCurveSeq) ([]models.ToneCurvePoint, error) {
+	if len(seq.Points) == 0 {
+		return nil, nil
+	}
+
+	points := make([]models.ToneCurvePoint, 0, len(seq.Points))
+	for i, pointStr := range seq.Points {
+		// Split "input, output" format
+		parts := strings.Split(pointStr, ",")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid tone curve point format at index %d: expected 'input, output', got '%s'", i, pointStr)
+		}
+
+		// Parse input value
+		input, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+		if err != nil {
+			return nil, fmt.Errorf("invalid tone curve input value at index %d: %w", i, err)
+		}
+		if input < 0 || input > 255 {
+			return nil, fmt.Errorf("tone curve input out of range at index %d: %d (must be 0-255)", i, input)
+		}
+
+		// Parse output value
+		output, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+		if err != nil {
+			return nil, fmt.Errorf("invalid tone curve output value at index %d: %w", i, err)
+		}
+		if output < 0 || output > 255 {
+			return nil, fmt.Errorf("tone curve output out of range at index %d: %d (must be 0-255)", i, output)
+		}
+
+		points = append(points, models.ToneCurvePoint{
+			Input:  input,
+			Output: output,
+		})
+	}
+
+	return points, nil
+}
+
 // xmpParameters holds extracted parameter values before validation
 type xmpParameters struct {
 	// Basic Adjustments
@@ -280,6 +386,25 @@ type xmpParameters struct {
 	sharpness   int
 	temperature int
 	tint        int
+	// Incremental white balance (relative adjustments from professional presets)
+	incrementalTemperature int
+	incrementalTint        int
+	hasIncrementalWB       bool // Flag to indicate incremental values were present
+
+	// Presence
+	texture int
+	dehaze  int
+
+	// Sharpening Details
+	sharpenRadius      float64
+	sharpenDetail      int
+	sharpenEdgeMasking int
+
+	// Vignette
+	vignetteAmount    int
+	vignetteMidpoint  int
+	vignetteFeather   int
+	vignetteRoundness int
 
 	// Grain
 	grainAmount    int
@@ -306,8 +431,15 @@ type xmpParameters struct {
 	// Color Grading (Phase 2)
 	colorGrading *models.ColorGrading
 
-	// Tone Curve (stored as string for now)
-	toneCurve string
+	// Tone Curves (modern PV2012 format)
+	toneCurve      []models.ToneCurvePoint
+	toneCurveRed   []models.ToneCurvePoint
+	toneCurveGreen []models.ToneCurvePoint
+	toneCurveBlue  []models.ToneCurvePoint
+
+	// Camera Calibration (for film emulation)
+	cameraCalibration models.CameraProfile
+	shadowTint        int // ShadowTint is separate from CameraProfile struct
 
 	// Preset Name
 	name string
@@ -381,6 +513,63 @@ func extractParameters(desc *Description) (*xmpParameters, error) {
 		return nil, err
 	}
 
+	// Parse IncrementalTemperature/Tint (relative white balance from professional presets)
+	// When present, these override absolute Temperature/Tint values
+	params.incrementalTemperature, err = parseInt(desc.IncrementalTemperature, "IncrementalTemperature")
+	if err != nil && desc.IncrementalTemperature != "" {
+		return nil, err
+	}
+
+	params.incrementalTint, err = parseInt(desc.IncrementalTint, "IncrementalTint")
+	if err != nil && desc.IncrementalTint != "" {
+		return nil, err
+	}
+
+	// Flag if incremental values were present (for buildRecipe to use correct values)
+	params.hasIncrementalWB = desc.IncrementalTemperature != "" || desc.IncrementalTint != ""
+
+	// Extract Texture and Dehaze (Presence panel)
+	params.texture, err = parseInt(desc.Texture, "Texture")
+	if err != nil && desc.Texture != "" {
+		return nil, err
+	}
+	params.dehaze, err = parseInt(desc.Dehaze, "Dehaze")
+	if err != nil && desc.Dehaze != "" {
+		return nil, err
+	}
+
+	// Extract Sharpening Details
+	params.sharpenRadius, err = parseFloat64(desc.SharpenRadius, "SharpenRadius")
+	if err != nil && desc.SharpenRadius != "" {
+		return nil, err
+	}
+	params.sharpenDetail, err = parseInt(desc.SharpenDetail, "SharpenDetail")
+	if err != nil && desc.SharpenDetail != "" {
+		return nil, err
+	}
+	params.sharpenEdgeMasking, err = parseInt(desc.SharpenEdgeMasking, "SharpenEdgeMasking")
+	if err != nil && desc.SharpenEdgeMasking != "" {
+		return nil, err
+	}
+
+	// Extract Post-Crop Vignette
+	params.vignetteAmount, err = parseInt(desc.PostCropVignetteAmount, "PostCropVignetteAmount")
+	if err != nil && desc.PostCropVignetteAmount != "" {
+		return nil, err
+	}
+	params.vignetteMidpoint, err = parseInt(desc.PostCropVignetteMidpoint, "PostCropVignetteMidpoint")
+	if err != nil && desc.PostCropVignetteMidpoint != "" {
+		return nil, err
+	}
+	params.vignetteFeather, err = parseInt(desc.PostCropVignetteFeather, "PostCropVignetteFeather")
+	if err != nil && desc.PostCropVignetteFeather != "" {
+		return nil, err
+	}
+	params.vignetteRoundness, err = parseInt(desc.PostCropVignetteRoundness, "PostCropVignetteRoundness")
+	if err != nil && desc.PostCropVignetteRoundness != "" {
+		return nil, err
+	}
+
 	// Extract Grain
 	params.grainAmount, err = parseInt(desc.GrainAmount, "GrainAmount")
 	if err != nil && desc.GrainAmount != "" {
@@ -397,43 +586,75 @@ func extractParameters(desc *Description) (*xmpParameters, error) {
 		return nil, err
 	}
 
-	// Extract HSL Adjustments
-	params.red, err = extractColorAdjustment(desc.HueRed, desc.SaturationRed, desc.LuminanceRed, "Red")
+	// Extract HSL Adjustments (prefer modern HueAdjustment* names, fallback to legacy Hue*)
+	params.red, err = extractColorAdjustment(
+		coalesce(desc.HueAdjustmentRed, desc.HueRed),
+		coalesce(desc.SaturationAdjustmentRed, desc.SaturationRed),
+		coalesce(desc.LuminanceAdjustmentRed, desc.LuminanceRed),
+		"Red")
 	if err != nil {
 		return nil, err
 	}
 
-	params.orange, err = extractColorAdjustment(desc.HueOrange, desc.SaturationOrange, desc.LuminanceOrange, "Orange")
+	params.orange, err = extractColorAdjustment(
+		coalesce(desc.HueAdjustmentOrange, desc.HueOrange),
+		coalesce(desc.SaturationAdjustmentOrange, desc.SaturationOrange),
+		coalesce(desc.LuminanceAdjustmentOrange, desc.LuminanceOrange),
+		"Orange")
 	if err != nil {
 		return nil, err
 	}
 
-	params.yellow, err = extractColorAdjustment(desc.HueYellow, desc.SaturationYellow, desc.LuminanceYellow, "Yellow")
+	params.yellow, err = extractColorAdjustment(
+		coalesce(desc.HueAdjustmentYellow, desc.HueYellow),
+		coalesce(desc.SaturationAdjustmentYellow, desc.SaturationYellow),
+		coalesce(desc.LuminanceAdjustmentYellow, desc.LuminanceYellow),
+		"Yellow")
 	if err != nil {
 		return nil, err
 	}
 
-	params.green, err = extractColorAdjustment(desc.HueGreen, desc.SaturationGreen, desc.LuminanceGreen, "Green")
+	params.green, err = extractColorAdjustment(
+		coalesce(desc.HueAdjustmentGreen, desc.HueGreen),
+		coalesce(desc.SaturationAdjustmentGreen, desc.SaturationGreen),
+		coalesce(desc.LuminanceAdjustmentGreen, desc.LuminanceGreen),
+		"Green")
 	if err != nil {
 		return nil, err
 	}
 
-	params.aqua, err = extractColorAdjustment(desc.HueAqua, desc.SaturationAqua, desc.LuminanceAqua, "Aqua")
+	params.aqua, err = extractColorAdjustment(
+		coalesce(desc.HueAdjustmentAqua, desc.HueAqua),
+		coalesce(desc.SaturationAdjustmentAqua, desc.SaturationAqua),
+		coalesce(desc.LuminanceAdjustmentAqua, desc.LuminanceAqua),
+		"Aqua")
 	if err != nil {
 		return nil, err
 	}
 
-	params.blue, err = extractColorAdjustment(desc.HueBlue, desc.SaturationBlue, desc.LuminanceBlue, "Blue")
+	params.blue, err = extractColorAdjustment(
+		coalesce(desc.HueAdjustmentBlue, desc.HueBlue),
+		coalesce(desc.SaturationAdjustmentBlue, desc.SaturationBlue),
+		coalesce(desc.LuminanceAdjustmentBlue, desc.LuminanceBlue),
+		"Blue")
 	if err != nil {
 		return nil, err
 	}
 
-	params.purple, err = extractColorAdjustment(desc.HuePurple, desc.SaturationPurple, desc.LuminancePurple, "Purple")
+	params.purple, err = extractColorAdjustment(
+		coalesce(desc.HueAdjustmentPurple, desc.HuePurple),
+		coalesce(desc.SaturationAdjustmentPurple, desc.SaturationPurple),
+		coalesce(desc.LuminanceAdjustmentPurple, desc.LuminancePurple),
+		"Purple")
 	if err != nil {
 		return nil, err
 	}
 
-	params.magenta, err = extractColorAdjustment(desc.HueMagenta, desc.SaturationMagenta, desc.LuminanceMagenta, "Magenta")
+	params.magenta, err = extractColorAdjustment(
+		coalesce(desc.HueAdjustmentMagenta, desc.HueMagenta),
+		coalesce(desc.SaturationAdjustmentMagenta, desc.SaturationMagenta),
+		coalesce(desc.LuminanceAdjustmentMagenta, desc.LuminanceMagenta),
+		"Magenta")
 	if err != nil {
 		return nil, err
 	}
@@ -470,8 +691,77 @@ func extractParameters(desc *Description) (*xmpParameters, error) {
 		return nil, err
 	}
 
-	// Store tone curve as-is for now (to be parsed later if needed)
-	params.toneCurve = desc.ToneCurve
+	// Parse ToneCurvePV2012 (modern nested sequence format)
+	params.toneCurve, err = parseToneCurveSequence(desc.ToneCurvePV2012)
+	if err != nil {
+		return nil, &ConversionError{
+			Operation: "parse",
+			Format:    "xmp",
+			Field:     "ToneCurvePV2012",
+			Cause:     err,
+		}
+	}
+
+	// Parse per-channel tone curves
+	params.toneCurveRed, err = parseToneCurveSequence(desc.ToneCurvePV2012Red)
+	if err != nil {
+		return nil, &ConversionError{
+			Operation: "parse",
+			Format:    "xmp",
+			Field:     "ToneCurvePV2012Red",
+			Cause:     err,
+		}
+	}
+
+	params.toneCurveGreen, err = parseToneCurveSequence(desc.ToneCurvePV2012Green)
+	if err != nil {
+		return nil, &ConversionError{
+			Operation: "parse",
+			Format:    "xmp",
+			Field:     "ToneCurvePV2012Green",
+			Cause:     err,
+		}
+	}
+
+	params.toneCurveBlue, err = parseToneCurveSequence(desc.ToneCurvePV2012Blue)
+	if err != nil {
+		return nil, &ConversionError{
+			Operation: "parse",
+			Format:    "xmp",
+			Field:     "ToneCurvePV2012Blue",
+			Cause:     err,
+		}
+	}
+
+	// Extract Camera Calibration (for film emulation presets)
+	params.cameraCalibration.RedHue, err = parseInt(desc.CameraCalibrationRedHue, "RedHue")
+	if err != nil && desc.CameraCalibrationRedHue != "" {
+		return nil, err
+	}
+	params.cameraCalibration.RedSaturation, err = parseInt(desc.CameraCalibrationRedSaturation, "RedSaturation")
+	if err != nil && desc.CameraCalibrationRedSaturation != "" {
+		return nil, err
+	}
+	params.cameraCalibration.GreenHue, err = parseInt(desc.CameraCalibrationGreenHue, "GreenHue")
+	if err != nil && desc.CameraCalibrationGreenHue != "" {
+		return nil, err
+	}
+	params.cameraCalibration.GreenSaturation, err = parseInt(desc.CameraCalibrationGreenSaturation, "GreenSaturation")
+	if err != nil && desc.CameraCalibrationGreenSaturation != "" {
+		return nil, err
+	}
+	params.cameraCalibration.BlueHue, err = parseInt(desc.CameraCalibrationBlueHue, "BlueHue")
+	if err != nil && desc.CameraCalibrationBlueHue != "" {
+		return nil, err
+	}
+	params.cameraCalibration.BlueSaturation, err = parseInt(desc.CameraCalibrationBlueSaturation, "BlueSaturation")
+	if err != nil && desc.CameraCalibrationBlueSaturation != "" {
+		return nil, err
+	}
+	params.shadowTint, err = parseInt(desc.CameraCalibrationShadowTint, "ShadowTint")
+	if err != nil && desc.CameraCalibrationShadowTint != "" {
+		return nil, err
+	}
 
 	// Extract preset name from nested element
 	params.name = strings.TrimSpace(desc.Name.Alt.Li)
@@ -511,6 +801,17 @@ func parseInt(s, fieldName string) (int, error) {
 		}
 	}
 	return v, nil
+}
+
+// coalesce returns the first non-empty string from the provided values.
+// Used to prefer modern XMP attribute names (HueAdjustmentRed) with fallback to legacy names (HueRed).
+func coalesce(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // extractColorAdjustment extracts a ColorAdjustment from HSL string values
@@ -876,47 +1177,80 @@ func buildRecipe(params *xmpParameters) (*models.UniversalRecipe, error) {
 	builder.WithVibrance(params.vibrance)
 	builder.WithClarity(params.clarity)
 	builder.WithSharpness(params.sharpness)
-	builder.WithTemperature(params.temperature)
-	builder.WithTint(params.tint)
+
+	// Set Temperature - when hasIncrementalWB is true, professional presets use relative adjustments
+	// In this case, absolute Temperature should be nil (representing "As Shot" base)
+	if params.hasIncrementalWB {
+		// Use incremental values - Temperature stays nil (As Shot base)
+		// IncrementalTemperature is stored but Temperature pointer stays nil
+		builder.WithTint(params.incrementalTint)
+	} else {
+		builder.WithTemperature(params.temperature)
+		builder.WithTint(params.tint)
+	}
 
 	// Set Grain
 	builder.WithGrain(params.grainAmount, params.grainSize, params.grainRoughness)
 
-	// Set HSL Adjustments
-	builder.WithRedHSL(params.red.Hue, params.red.Saturation, params.red.Luminance)
-	builder.WithOrangeHSL(params.orange.Hue, params.orange.Saturation, params.orange.Luminance)
-	builder.WithYellowHSL(params.yellow.Hue, params.yellow.Saturation, params.yellow.Luminance)
-	builder.WithGreenHSL(params.green.Hue, params.green.Saturation, params.green.Luminance)
-	builder.WithAquaHSL(params.aqua.Hue, params.aqua.Saturation, params.aqua.Luminance)
-	builder.WithBlueHSL(params.blue.Hue, params.blue.Saturation, params.blue.Luminance)
-	builder.WithPurpleHSL(params.purple.Hue, params.purple.Saturation, params.purple.Luminance)
-	builder.WithMagentaHSL(params.magenta.Hue, params.magenta.Saturation, params.magenta.Luminance)
-
-	// Set Split Toning
-	builder.WithSplitToning(
-		params.splitShadowHue,
-		params.splitShadowSaturation,
-		params.splitHighlightHue,
-		params.splitHighlightSaturation,
-		params.splitBalance,
-	)
-
-	// Set Color Grading (Phase 2)
-	if params.colorGrading != nil {
-		builder.WithColorGrading(
-			params.colorGrading.Highlights,
-			params.colorGrading.Midtone,
-			params.colorGrading.Shadows,
-			params.colorGrading.Blending,
-			params.colorGrading.Balance,
-		)
-	}
-
-	// Build and validate
+	// Build recipe first, then set remaining fields directly (builder pattern doesn't have all methods)
 	recipe, err := builder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("build recipe: %w", err)
 	}
+
+	// Set Texture and Dehaze (Presence panel)
+	recipe.Texture = params.texture
+	recipe.Dehaze = params.dehaze
+
+	// Set Sharpening Details
+	recipe.SharpnessRadius = params.sharpenRadius
+	recipe.SharpnessDetail = params.sharpenDetail
+	recipe.SharpnessMasking = params.sharpenEdgeMasking
+
+	// Set Vignette
+	recipe.VignetteAmount = params.vignetteAmount
+	recipe.VignetteMidpoint = params.vignetteMidpoint
+	recipe.VignetteFeather = params.vignetteFeather
+	recipe.VignetteRoundness = params.vignetteRoundness
+
+	// Set HSL Adjustments (directly since we already built the recipe)
+	recipe.Red = params.red
+	recipe.Orange = params.orange
+	recipe.Yellow = params.yellow
+	recipe.Green = params.green
+	recipe.Aqua = params.aqua
+	recipe.Blue = params.blue
+	recipe.Purple = params.purple
+	recipe.Magenta = params.magenta
+
+	// Set Split Toning
+	recipe.SplitShadowHue = params.splitShadowHue
+	recipe.SplitShadowSaturation = params.splitShadowSaturation
+	recipe.SplitHighlightHue = params.splitHighlightHue
+	recipe.SplitHighlightSaturation = params.splitHighlightSaturation
+	recipe.SplitBalance = params.splitBalance
+
+	// Set Color Grading
+	if params.colorGrading != nil {
+		recipe.ColorGrading = params.colorGrading
+	}
+
+	// Set tone curves
+	if len(params.toneCurve) > 0 {
+		recipe.PointCurve = params.toneCurve
+	}
+	if len(params.toneCurveRed) > 0 {
+		recipe.PointCurveRed = params.toneCurveRed
+	}
+	if len(params.toneCurveGreen) > 0 {
+		recipe.PointCurveGreen = params.toneCurveGreen
+	}
+	if len(params.toneCurveBlue) > 0 {
+		recipe.PointCurveBlue = params.toneCurveBlue
+	}
+
+	// Set Camera Calibration
+	recipe.CameraProfile = params.cameraCalibration
 
 	return recipe, nil
 }

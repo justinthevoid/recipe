@@ -67,20 +67,20 @@ func TestOffsetConstants(t *testing.T) {
 		{"MagentaChroma", OffsetMagentaChroma, 354},
 		{"MagentaBrightness", OffsetMagentaBrightness, 355},
 
-		// Color Grading - Highlights
-		{"HighlightsHue", OffsetHighlightsHue, 368},
-		{"HighlightsChroma", OffsetHighlightsChroma, 370},
-		{"HighlightsBrightness", OffsetHighlightsBrightness, 371},
+		// Color Grading - Shadows (FIRST in binary order at offset 368)
+		{"ShadowsHue", OffsetShadowsHue, 368},
+		{"ShadowsChroma", OffsetShadowsChroma, 370},
+		{"ShadowsBrightness", OffsetShadowsBrightness, 371},
 
-		// Color Grading - Midtone
+		// Color Grading - Midtone (SECOND in binary order at offset 372)
 		{"MidtoneHue", OffsetMidtoneHue, 372},
 		{"MidtoneChroma", OffsetMidtoneChroma, 374},
 		{"MidtoneBrightness", OffsetMidtoneBrightness, 375},
 
-		// Color Grading - Shadows
-		{"ShadowsHue", OffsetShadowsHue, 376},
-		{"ShadowsChroma", OffsetShadowsChroma, 378},
-		{"ShadowsBrightness", OffsetShadowsBrightness, 379},
+		// Color Grading - Highlights (THIRD in binary order at offset 376)
+		{"HighlightsHue", OffsetHighlightsHue, 376},
+		{"HighlightsChroma", OffsetHighlightsChroma, 378},
+		{"HighlightsBrightness", OffsetHighlightsBrightness, 379},
 
 		// Color Grading - Global
 		{"ColorGradingBlending", OffsetColorGradingBlending, 384},
@@ -180,16 +180,16 @@ func TestDecodeScaled4(t *testing.T) {
 		expected float64
 	}{
 		{"zero", 0x80, 0.0},
-		{"positive max (sharpening)", 0xA4, 9.0},      // (164-128)/4 = 9.0
-		{"negative max (sharpening)", 0x74, -3.0},     // (116-128)/4 = -3.0
-		{"positive max (clarity)", 0x94, 5.0},         // (148-128)/4 = 5.0
-		{"negative max (clarity)", 0x6C, -5.0},        // (108-128)/4 = -5.0
-		{"positive mid", 0x8A, 2.5},                   // (138-128)/4 = 2.5
-		{"negative mid", 0x76, -2.5},                  // (118-128)/4 = -2.5
-		{"positive quarter", 0x81, 0.25},              // (129-128)/4 = 0.25
-		{"negative quarter", 0x7F, -0.25},             // (127-128)/4 = -0.25
-		{"mid-range sharp positive", 0x8A, 2.5},       // (138-128)/4 = 2.5
-		{"mid-range sharp negative", 0x76, -2.5},      // (118-128)/4 = -2.5
+		{"positive max (sharpening)", 0xA4, 9.0},  // (164-128)/4 = 9.0
+		{"negative max (sharpening)", 0x74, -3.0}, // (116-128)/4 = -3.0
+		{"positive max (clarity)", 0x94, 5.0},     // (148-128)/4 = 5.0
+		{"negative max (clarity)", 0x6C, -5.0},    // (108-128)/4 = -5.0
+		{"positive mid", 0x8A, 2.5},               // (138-128)/4 = 2.5
+		{"negative mid", 0x76, -2.5},              // (118-128)/4 = -2.5
+		{"positive quarter", 0x81, 0.25},          // (129-128)/4 = 0.25
+		{"negative quarter", 0x7F, -0.25},         // (127-128)/4 = -0.25
+		{"mid-range sharp positive", 0x8A, 2.5},   // (138-128)/4 = 2.5
+		{"mid-range sharp negative", 0x76, -2.5},  // (118-128)/4 = -2.5
 	}
 
 	for _, tt := range tests {
@@ -254,12 +254,12 @@ func TestDecodeHue12(t *testing.T) {
 		expected int
 	}{
 		{"zero", 0x00, 0x00, 0},
-		{"max", 0x01, 0x68, 360},    // (1 << 8) + 104 = 360
-		{"mid", 0x00, 0xB4, 180},    // (0 << 8) + 180 = 180
-		{"90", 0x00, 0x5A, 90},      // (0 << 8) + 90 = 90
-		{"270", 0x01, 0x0E, 270},    // (1 << 8) + 14 = 270
+		{"max", 0x01, 0x68, 360}, // (1 << 8) + 104 = 360
+		{"mid", 0x00, 0xB4, 180}, // (0 << 8) + 180 = 180
+		{"90", 0x00, 0x5A, 90},   // (0 << 8) + 90 = 90
+		{"270", 0x01, 0x0E, 270}, // (1 << 8) + 14 = 270
 		{"1", 0x00, 0x01, 1},
-		{"359", 0x01, 0x67, 359},    // (1 << 8) + 103 = 359
+		{"359", 0x01, 0x67, 359},                // (1 << 8) + 103 = 359
 		{"high nibble masked", 0xF1, 0x68, 360}, // Top 4 bits ignored
 	}
 

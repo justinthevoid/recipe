@@ -145,23 +145,26 @@ const (
 // Color Grading Offsets (Flexible Color Picture Control - NP3-specific)
 // 3 tonal zones (Highlights, Midtone, Shadows) × 4 bytes each + 2 global parameters
 // Each zone: 2 bytes for Hue (12-bit), 1 byte for Chroma, 1 byte for Brightness
+//
+// IMPORTANT: The zone order in the binary file is: Shadows, Midtone, Highlights
+// (NOT Highlights, Midtone, Shadows as one might expect)
 const (
-	// Highlights zone (4 bytes starting at 368)
+	// Shadows zone (4 bytes starting at 368) - FIRST in binary order
 	// Hue formula: ((byte[0] & 0x0f) << 8) + byte[1]
 	// Chroma/Brightness formula: byte - 0x80
-	OffsetHighlightsHue        = 0x170 // 368 decimal - 2 bytes, 12-bit value (0-360 degrees)
-	OffsetHighlightsChroma     = 0x172 // 370 decimal - 1 byte (-100 to 100)
-	OffsetHighlightsBrightness = 0x173 // 371 decimal - 1 byte (-100 to 100)
+	OffsetShadowsHue        = 0x170 // 368 decimal - 2 bytes, 12-bit value (0-360 degrees)
+	OffsetShadowsChroma     = 0x172 // 370 decimal - 1 byte (-100 to 100)
+	OffsetShadowsBrightness = 0x173 // 371 decimal - 1 byte (-100 to 100)
 
-	// Midtone zone (4 bytes starting at 372)
+	// Midtone zone (4 bytes starting at 372) - SECOND in binary order
 	OffsetMidtoneHue        = 0x174 // 372 decimal - 2 bytes, 12-bit value (0-360 degrees)
 	OffsetMidtoneChroma     = 0x176 // 374 decimal - 1 byte (-100 to 100)
 	OffsetMidtoneBrightness = 0x177 // 375 decimal - 1 byte (-100 to 100)
 
-	// Shadows zone (4 bytes starting at 376)
-	OffsetShadowsHue        = 0x178 // 376 decimal - 2 bytes, 12-bit value (0-360 degrees)
-	OffsetShadowsChroma     = 0x17A // 378 decimal - 1 byte (-100 to 100)
-	OffsetShadowsBrightness = 0x17B // 379 decimal - 1 byte (-100 to 100)
+	// Highlights zone (4 bytes starting at 376) - THIRD in binary order
+	OffsetHighlightsHue        = 0x178 // 376 decimal - 2 bytes, 12-bit value (0-360 degrees)
+	OffsetHighlightsChroma     = 0x17A // 378 decimal - 1 byte (-100 to 100)
+	OffsetHighlightsBrightness = 0x17B // 379 decimal - 1 byte (-100 to 100)
 
 	// Global Color Grading parameters
 	// OffsetColorGradingBlending controls transition smoothness between zones.
@@ -191,6 +194,13 @@ const (
 	// Range: 0 to 32767 for each point
 	// Maps input levels (0-256) to output levels
 	OffsetToneCurveRaw = 0x1CC // 460 decimal
+
+	// OffsetExtendedToneCurveLUT is the start of the 256-point tone curve LUT in extended format files.
+	// Only present in 978+ byte files (extended format with metadata/descriptions)
+	// Format: 256 × 16-bit big-endian values (0-65535)
+	// Total size: 512 bytes
+	// This is KOLORA's custom curve location
+	OffsetExtendedToneCurveLUT = 0x230 // 560 decimal
 )
 
 // File Size Constants
