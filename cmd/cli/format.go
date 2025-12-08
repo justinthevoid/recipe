@@ -21,11 +21,11 @@ import (
 
 // Supported format identifiers (exported for use in other CLI modules)
 const (
-	FormatNP3         = "np3"
-	FormatXMP         = "xmp"
-	FormatLRTemplate  = "lrtemplate"
-	FormatCostyle     = "costyle"
-	FormatCostylepack = "costylepack"
+	FormatNP3        = "np3"
+	FormatXMP        = "xmp"
+	FormatLRTemplate = "lrtemplate"
+	// FormatCostyle     = "costyle"     // DISABLED: costyle format support
+	// FormatCostylepack = "costylepack" // DISABLED: costyle format support
 )
 
 // detectFormat returns format string based on file extension (fast path).
@@ -34,8 +34,6 @@ const (
 //   - .np3 → "np3"
 //   - .xmp → "xmp"
 //   - .lrtemplate → "lrtemplate"
-//   - .costyle → "costyle"
-//   - .costylepack → "costylepack"
 //
 // Returns error if extension is unrecognized or missing.
 //
@@ -57,14 +55,15 @@ func detectFormat(filePath string) (string, error) {
 		return FormatXMP, nil
 	case ".lrtemplate":
 		return FormatLRTemplate, nil
-	case ".costyle":
-		return FormatCostyle, nil
-	case ".costylepack":
-		return FormatCostylepack, nil
+	// DISABLED: costyle format support
+	// case ".costyle":
+	// 	return FormatCostyle, nil
+	// case ".costylepack":
+	// 	return FormatCostylepack, nil
 	case "":
-		return "", fmt.Errorf("file has no extension (expected .np3, .xmp, .lrtemplate, .costyle, or .costylepack)")
+		return "", fmt.Errorf("file has no extension (expected .np3, .xmp, or .lrtemplate)")
 	default:
-		return "", fmt.Errorf("unknown file format: %s (expected .np3, .xmp, .lrtemplate, .costyle, or .costylepack)", ext)
+		return "", fmt.Errorf("unknown file format: %s (expected .np3, .xmp, or .lrtemplate)", ext)
 	}
 }
 
@@ -75,9 +74,8 @@ func detectFormat(filePath string) (string, error) {
 //
 // Detection logic (from converter package):
 //   - NP3: Magic bytes "NCP" (ASCII) at start + minimum 300 bytes
-//   - Costylepack: ZIP magic bytes (PK\x03\x04)
+//   - DCP: Magic bytes "IIRC" (Adobe DNG Camera Profile)
 //   - lrtemplate: Lua table syntax (s = { at start after trimming whitespace)
-//   - Costyle: XML with <SL Engine=> tag (Capture One format)
 //   - XMP: XML with x:xmpmeta wrapper (Adobe Lightroom format)
 //
 // Returns error if content doesn't match any known format.
@@ -104,7 +102,7 @@ func detectFormatFromBytes(data []byte) (string, error) {
 
 // validateFormat checks if a format string is supported.
 //
-// Accepts: "np3", "xmp", "lrtemplate", "costyle", "costylepack"
+// Accepts: "np3", "xmp", "lrtemplate"
 // Rejects: Any other string with descriptive error
 //
 // Used by convert command to validate user input from --from and --to flags.
@@ -112,14 +110,14 @@ func detectFormatFromBytes(data []byte) (string, error) {
 // Example:
 //
 //	if err := validateFormat(userFormat); err != nil {
-//	    fmt.Println(err) // "Unsupported format: "pdf" (must be 'np3', 'xmp', 'lrtemplate', 'costyle', or 'costylepack')"
+//	    fmt.Println(err) // "Unsupported format: "pdf" (must be 'np3', 'xmp', or 'lrtemplate')"
 //	}
 func validateFormat(format string) error {
 	switch format {
-	case FormatNP3, FormatXMP, FormatLRTemplate, FormatCostyle, FormatCostylepack:
+	case FormatNP3, FormatXMP, FormatLRTemplate: // DISABLED: FormatCostyle, FormatCostylepack
 		return nil
 	default:
-		return fmt.Errorf("unsupported format: %q (must be %q, %q, %q, %q, or %q)",
-			format, FormatNP3, FormatXMP, FormatLRTemplate, FormatCostyle, FormatCostylepack)
+		return fmt.Errorf("unsupported format: %q (must be %q, %q, or %q)",
+			format, FormatNP3, FormatXMP, FormatLRTemplate)
 	}
 }

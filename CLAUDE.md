@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) and similar AI agent
 
 ## Project Overview
 
-Recipe is a universal photo preset converter that converts between Nikon NP3, Adobe Lightroom XMP, lrtemplate, and Capture One Costyle formats. The project provides three interfaces (CLI, TUI, Web) that all share a common Go conversion engine.
+Recipe is a universal photo preset converter that converts between Nikon NP3, Adobe Lightroom XMP, and lrtemplate formats. The project provides two interfaces (CLI, Web) that share a common Go conversion engine.
 
 **Key Characteristics:**
 - **Privacy-first**: All processing happens locally (no server uploads)
@@ -12,13 +12,14 @@ Recipe is a universal photo preset converter that converts between Nikon NP3, Ad
 - **Accuracy**: 98%+ conversion fidelity via exact offset mapping (48 NP3 parameters)
 - **Architecture**: Hub-and-spoke pattern with UniversalRecipe intermediate representation
 
+**Note**: Capture One Costyle format support is disabled. TUI interface is archived in `.archive/tui/`.
+
 ## Technology Stack
 
 | Component | Technology | Notes |
 |-----------|------------|-------|
 | Core Engine | Go 1.25.1+ | `go:wasmexport` for WASM |
 | CLI Framework | Cobra | github.com/spf13/cobra |
-| TUI Framework | Bubbletea v2 | charm.land/bubbletea/v2 |
 | **Web Frontend** | **Vite + Svelte 5** | `web/` directory |
 | WASM | Go WebAssembly | Compiled from `cmd/wasm/` |
 | Deployment | Cloudflare Pages | Auto-deploy on push to main |
@@ -32,17 +33,12 @@ Recipe is a universal photo preset converter that converts between Nikon NP3, Ad
 make cli
 # or: go build -o recipe cmd/cli/*.go
 
-# Build TUI (interactive file browser)
-make tui
-# or: go build -o recipe-tui cmd/tui/*.go
-
 # Build WASM for web interface (with size optimization)
 make wasm
 # or: GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/public/recipe.wasm cmd/wasm/main.go
 
 # Build for all platforms
 make cli-all
-make tui-all
 ```
 
 ### Testing
@@ -115,7 +111,6 @@ All conversions flow through a central `UniversalRecipe` intermediate representa
 NP3 ──Parse──→ UniversalRecipe ──Generate──→ XMP
 XMP ──Parse──→ UniversalRecipe ──Generate──→ lrtemplate
 lrtemplate ──Parse──→ UniversalRecipe ──Generate──→ NP3
-Costyle ──Parse──→ UniversalRecipe ──Generate──→ XMP
 DCP ──Parse──→ UniversalRecipe ──Generate──→ DCP  (hub integrated)
 ```
 
@@ -134,7 +129,7 @@ func Convert(input []byte, from, to string) ([]byte, error)
 ```
 
 **Critical Rules:**
-1. All interfaces (CLI, TUI, WASM) MUST use `converter.Convert()` - never call format parsers directly
+1. All interfaces (CLI, WASM) MUST use `converter.Convert()` - never call format parsers directly
 2. All conversion errors MUST be wrapped in `ConversionError` type
 3. The API is thread-safe and stateless
 
@@ -143,7 +138,6 @@ func Convert(input []byte, from, to string) ([]byte, error)
 ```
 cmd/
 ├── cli/           # Cobra CLI application
-├── tui/           # Bubbletea TUI application
 └── wasm/          # WASM export entry point
 
 internal/
@@ -153,7 +147,7 @@ internal/
 │   ├── xmp/       # Adobe Lightroom XML
 │   ├── lrtemplate/# Lightroom Classic Lua
 │   ├── dcp/       # DNG Camera Profiles (fully hub integrated)
-│   └── costyle/   # Capture One presets (96 files)
+│   └── costyle/   # Capture One presets (DISABLED - 96 files)
 ├── models/        # UniversalRecipe data structures
 ├── inspect/       # Parameter inspection and diff tools
 ├── lut/           # LUT table handling
@@ -178,9 +172,14 @@ web/               # Vite + Svelte 5 frontend
 └── svelte.config.js       # Svelte configuration
 
 testdata/          # 1,531 real sample files (73 NP3, 914 XMP, 544 lrtemplate)
-docs/              # Documentation (67 files + subdirectories)
-├── reverse_engineering/   # NX Studio analysis (12 files)
-scripts/           # Utility scripts (88 files, Python/JS/Shell)
+docs/              # Core documentation (user guides, format specs, architecture)
+.reverse-engineering/      # Reverse engineering artifacts
+├── docs/          # NX Studio analysis, DCP research, findings
+└── scripts/       # Python RE scripts (88 files)
+.archive/          # Archived implementation artifacts
+├── tui/           # Bubbletea TUI (archived)
+└── docs/          # Epic/story/retrospective docs
+scripts/           # Build utility scripts (benchmark, WASM build)
 ```
 
 ### Format Package Pattern

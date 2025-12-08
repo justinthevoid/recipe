@@ -38,9 +38,7 @@ Examples:
   recipe batch *.xmp --to np3
   recipe batch presets/**/*.xmp --to np3 --output-dir converted
   recipe batch *.xmp --to np3 --parallel 8 --overwrite
-  recipe batch testdata/xmp/*.xmp --to np3 --json
-  recipe batch *.costyle --to xmp
-  recipe batch presets/*.xmp --to costylepack --output-dir bundles`,
+  recipe batch testdata/xmp/*.xmp --to np3 --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: runBatch,
 }
@@ -49,7 +47,7 @@ func init() {
 	rootCmd.AddCommand(batchCmd)
 
 	// Required flags
-	batchCmd.Flags().StringP("to", "t", "", "Target format (required): np3, xmp, lrtemplate, costyle, or costylepack")
+	batchCmd.Flags().StringP("to", "t", "", "Target format (required): np3, xmp, or lrtemplate")
 	batchCmd.MarkFlagRequired("to")
 
 	// Optional flags
