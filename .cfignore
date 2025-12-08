@@ -32,3 +32,10 @@ docs/
 .vscode/
 .idea/
 *.log
+
+.reverse-engineering/
+.archive/
+.bmad/
+.claude/
+.venv/
+.vscode/
