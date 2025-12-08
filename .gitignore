@@ -8,6 +8,7 @@ legacy/
 *.tif
 *.tiff
 *.nef
+.legacy/
 
 # Test coverage reports
 coverage.out

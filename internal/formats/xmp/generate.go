@@ -341,11 +341,12 @@ func buildXMPDocument(recipe *models.UniversalRecipe) *xmpDocWrapper {
 		// It affects the internal color processing in NX Studio but cannot be accurately
 		// represented in Lightroom's color grading system
 
-		// Tone Curve Mode - tells Lightroom to use custom curve instead of Linear
-		ToneCurveName2012: formatToneCurveName2012(recipe.PointCurve),
-
-		// Tone Curves (modern PV2012 format - preferred)
-		ToneCurvePV2012:      formatToneCurvePV2012(recipe.PointCurve),
+		// Tone Curve: We now use ONLY parametric curve (Shadows/Darks/Lights/Highlights)
+		// instead of point curve (ToneCurvePV2012) for better NX Studio compatibility.
+		// If parametric values are set, skip the point curve entirely.
+		// If no parametric values, use point curve as fallback.
+		ToneCurveName2012:    formatToneCurveName2012ParametricAware(recipe),
+		ToneCurvePV2012:      formatToneCurvePV2012ParametricAware(recipe),
 		ToneCurvePV2012Red:   formatToneCurvePV2012(recipe.PointCurveRed),
 		ToneCurvePV2012Green: formatToneCurvePV2012(recipe.PointCurveGreen),
 		ToneCurvePV2012Blue:  formatToneCurvePV2012(recipe.PointCurveBlue),
@@ -875,6 +876,33 @@ func formatToneCurveName2012(points []models.ToneCurvePoint) string {
 		return "Custom"
 	}
 	return "" // Omit attribute if no curve (defaults to Linear)
+}
+
+// hasParametricCurve checks if the recipe has non-zero parametric curve values.
+// When parametric curve is present, we skip the point curve to avoid double-applying adjustments.
+func hasParametricCurve(recipe *models.UniversalRecipe) bool {
+	return recipe.ToneCurveShadows != 0 ||
+		recipe.ToneCurveDarks != 0 ||
+		recipe.ToneCurveLights != 0 ||
+		recipe.ToneCurveHighlights != 0
+}
+
+// formatToneCurveName2012ParametricAware returns empty if parametric curve is used
+// (to let parametric handle tone adjustments), otherwise returns "Custom" for point curve.
+func formatToneCurveName2012ParametricAware(recipe *models.UniversalRecipe) string {
+	if hasParametricCurve(recipe) {
+		return "" // Use Linear base, let parametric curve handle adjustments
+	}
+	return formatToneCurveName2012(recipe.PointCurve)
+}
+
+// formatToneCurvePV2012ParametricAware returns nil if parametric curve is used
+// (to skip point curve entirely), otherwise returns the formatted point curve.
+func formatToneCurvePV2012ParametricAware(recipe *models.UniversalRecipe) *toneCurveSeqWrapper {
+	if hasParametricCurve(recipe) {
+		return nil // Skip point curve, use parametric curve instead
+	}
+	return formatToneCurvePV2012(recipe.PointCurve)
 }
 
 // formatColorGradingZoneHue formats the Hue value for a specific color grading zone.
