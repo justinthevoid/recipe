@@ -10,10 +10,10 @@ import (
 // by testing the internal function directly
 func TestConvertToNP3ParametersDirectly(t *testing.T) {
 	tests := []struct {
-		name       string
-		recipe     *models.UniversalRecipe
-		wantErr    bool
-		checkFunc  func(*testing.T, *np3Parameters)
+		name      string
+		recipe    *models.UniversalRecipe
+		wantErr   bool
+		checkFunc func(*testing.T, *np3Parameters)
 	}{
 		{
 			name: "Sharpness at exact upper boundary (150 → 9)",
@@ -152,10 +152,10 @@ func TestEncodeBinaryMinFileSize(t *testing.T) {
 		t.Fatalf("encodeBinary failed: %v", err)
 	}
 
-	// Phase 2: NP3 files are 1050 bytes, matching working NP3 files (e.g., Filmic.np3)
-	// Note: Real NP3 files vary in size (392-1050 bytes), but generator uses 1050 for compatibility
-	if len(data) != 1050 {
-		t.Errorf("File size: got %d, want 1050", len(data))
+	// Phase 2: NP3 files are 1072 bytes to accommodate extended tone curve LUT at offset 560
+	// Note: Real NP3 files vary in size (392-1140 bytes), but generator uses 1072 for compatibility
+	if len(data) != 1072 {
+		t.Errorf("File size: got %d, want 1072", len(data))
 	}
 }
 
@@ -230,7 +230,9 @@ func TestGenerateToneCurveNegativeContrast(t *testing.T) {
 	}
 }
 
-// TestWriteRawParameterBytesSharpnessZero tests sharpness=0 special case
+// TestWriteRawParameterBytesSharpnessZero tests that writeRawParameterBytes is now a no-op.
+// This function previously wrote heuristic bytes to offsets 66-79, but these offsets
+// are now used by TLV chunks. Parameters are written to exact offsets instead.
 func TestWriteRawParameterBytesSharpnessZero(t *testing.T) {
 	data := make([]byte, 500)
 	params := &np3Parameters{
@@ -241,11 +243,10 @@ func TestWriteRawParameterBytesSharpnessZero(t *testing.T) {
 
 	writeRawParameterBytes(data, params)
 
-	// Sharpness=0 should write byte value 1 (not 0) to avoid parser default
-	for i := 66; i <= 70; i++ {
-		if data[i] != 1 {
-			t.Errorf("Sharpness byte at offset %d: got %d, want 1", i, data[i])
+	// Verify function doesn't write anything (all bytes should remain zero)
+	for i := 66; i <= 79; i++ {
+		if data[i] != 0 {
+			t.Errorf("Unexpected write at offset %d: got %d, want 0 (function should be no-op)", i, data[i])
 		}
 	}
 }
-

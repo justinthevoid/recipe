@@ -417,7 +417,7 @@ func TestValidateParametersEdgeCases(t *testing.T) {
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
 		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-		findSubstring(s, substr)))
+			findSubstring(s, substr)))
 }
 
 func findSubstring(s, substr string) bool {
@@ -440,9 +440,9 @@ func TestGenerate(t *testing.T) {
 	recipe, err := builder.
 		WithSourceFormat("test").
 		WithName("Test Preset").
-		WithSharpness(50).    // Maps to NP3 sharpening = 5
-		WithContrast(33).     // Maps to NP3 contrast = 1
-		WithSaturation(-33).  // Maps to NP3 saturation = -1
+		WithSharpness(50).   // Maps to NP3 sharpening = 5
+		WithContrast(33).    // Maps to NP3 contrast = 1
+		WithSaturation(-33). // Maps to NP3 saturation = -1
 		Build()
 
 	if err != nil {
@@ -579,23 +579,23 @@ func parametersMatch(original, roundTrip *models.UniversalRecipe, t *testing.T) 
 	}
 
 	// Compare sharpness (allow ±10 due to conversion rounding)
-	if abs(original.Sharpness - roundTrip.Sharpness) > 10 {
+	if abs(original.Sharpness-roundTrip.Sharpness) > 10 {
 		t.Logf("Sharpness mismatch: original=%d, roundTrip=%d (diff=%d)",
-			original.Sharpness, roundTrip.Sharpness, abs(original.Sharpness - roundTrip.Sharpness))
+			original.Sharpness, roundTrip.Sharpness, abs(original.Sharpness-roundTrip.Sharpness))
 		match = false
 	}
 
 	// Compare contrast (allow ±5 due to conversion rounding)
-	if abs(original.Contrast - roundTrip.Contrast) > 5 {
+	if abs(original.Contrast-roundTrip.Contrast) > 5 {
 		t.Logf("Contrast mismatch: original=%d, roundTrip=%d (diff=%d)",
-			original.Contrast, roundTrip.Contrast, abs(original.Contrast - roundTrip.Contrast))
+			original.Contrast, roundTrip.Contrast, abs(original.Contrast-roundTrip.Contrast))
 		match = false
 	}
 
 	// Compare saturation (allow ±5 due to conversion rounding)
-	if abs(original.Saturation - roundTrip.Saturation) > 5 {
+	if abs(original.Saturation-roundTrip.Saturation) > 5 {
 		t.Logf("Saturation mismatch: original=%d, roundTrip=%d (diff=%d)",
-			original.Saturation, roundTrip.Saturation, abs(original.Saturation - roundTrip.Saturation))
+			original.Saturation, roundTrip.Saturation, abs(original.Saturation-roundTrip.Saturation))
 		match = false
 	}
 
@@ -700,7 +700,7 @@ func TestGenerateBoundaryValues(t *testing.T) {
 			}
 
 			// Verify parameters are within tolerance
-			if abs(roundTrip.Sharpness - tt.sharpness) > 10 {
+			if abs(roundTrip.Sharpness-tt.sharpness) > 10 {
 				t.Errorf("Sharpness out of tolerance: expected ~%d, got %d",
 					tt.sharpness, roundTrip.Sharpness)
 			}
@@ -798,4 +798,92 @@ func TestParameterDiversity(t *testing.T) {
 
 	t.Log("✓ Parameter diversity validation complete")
 	t.Log("Note: Some parameters may have limited diversity if NP3 files lack encoded data in those byte ranges")
+}
+
+// TestGenerateWithWarnings_Clarity verifies advisory warning for Clarity parameter
+func TestGenerateWithWarnings_Clarity(t *testing.T) {
+	recipe := &models.UniversalRecipe{
+		Clarity: 50, // Non-zero clarity should trigger advisory warning
+	}
+
+	_, result, err := GenerateWithWarnings(recipe)
+	if err != nil {
+		t.Fatalf("GenerateWithWarnings failed: %v", err)
+	}
+
+	if !result.HasWarnings() {
+		t.Error("Expected warnings for Clarity parameter")
+	}
+
+	// Check for Clarity warning
+	found := false
+	for _, w := range result.Warnings {
+		if w.Parameter == "Clarity" {
+			found = true
+			if w.Level != models.WarnAdvisory {
+				t.Errorf("Clarity warning level = %v, want WarnAdvisory", w.Level)
+			}
+		}
+	}
+
+	if !found {
+		t.Error("Expected Clarity warning in result")
+	}
+}
+
+// TestGenerateWithWarnings_RGBCurves verifies critical warning for RGB channel curves
+func TestGenerateWithWarnings_RGBCurves(t *testing.T) {
+	recipe := &models.UniversalRecipe{
+		PointCurveRed: []models.ToneCurvePoint{
+			{Input: 0, Output: 0},
+			{Input: 128, Output: 140},
+			{Input: 255, Output: 255},
+		},
+	}
+
+	_, result, err := GenerateWithWarnings(recipe)
+	if err != nil {
+		t.Fatalf("GenerateWithWarnings failed: %v", err)
+	}
+
+	if !result.HasCritical() {
+		t.Error("Expected critical warning for RGB curve")
+	}
+
+	// Check for PointCurveRed warning
+	found := false
+	for _, w := range result.Warnings {
+		if w.Parameter == "PointCurveRed" {
+			found = true
+			if w.Level != models.WarnCritical {
+				t.Errorf("PointCurveRed warning level = %v, want WarnCritical", w.Level)
+			}
+		}
+	}
+
+	if !found {
+		t.Error("Expected PointCurveRed warning in result")
+	}
+}
+
+// TestGenerateWithWarnings_NoWarnings verifies no warnings for basic recipe
+func TestGenerateWithWarnings_NoWarnings(t *testing.T) {
+	recipe := &models.UniversalRecipe{
+		Sharpness:  50,
+		Contrast:   25,
+		Saturation: 10,
+		// No unsupported parameters
+	}
+
+	_, result, err := GenerateWithWarnings(recipe)
+	if err != nil {
+		t.Fatalf("GenerateWithWarnings failed: %v", err)
+	}
+
+	if result.HasWarnings() {
+		t.Errorf("Expected no warnings, got %d", len(result.Warnings))
+		for _, w := range result.Warnings {
+			t.Logf("  Warning: %s = %s", w.Parameter, w.Message)
+		}
+	}
 }
