@@ -27,29 +27,106 @@ import (
 //   - Parameter out of range: Value cannot be represented in NP3 format
 //   - Encoding error: Binary encoding failed
 func Generate(recipe *models.UniversalRecipe) ([]byte, error) {
+	data, _, err := GenerateWithWarnings(recipe)
+	return data, err
+}
+
+// GenerateWithWarnings converts a UniversalRecipe to NP3 binary format and returns
+// any warnings about unsupported or approximated parameters.
+func GenerateWithWarnings(recipe *models.UniversalRecipe) ([]byte, *models.ConversionResult, error) {
+	result := &models.ConversionResult{}
+
 	// Validate input
 	if recipe == nil {
-		return nil, fmt.Errorf("generate NP3: recipe cannot be nil")
+		return nil, result, fmt.Errorf("generate NP3: recipe cannot be nil")
 	}
+
+	// Check for unsupported parameters and collect warnings
+	collectConversionWarnings(recipe, result)
 
 	// Convert parameters from UniversalRecipe to NP3 ranges
 	params, err := convertToNP3Parameters(recipe)
 	if err != nil {
-		return nil, fmt.Errorf("generate NP3: %w", err)
+		return nil, result, fmt.Errorf("generate NP3: %w", err)
 	}
 
 	// Validate converted parameters
 	if err := validateParameters(params); err != nil {
-		return nil, fmt.Errorf("generate NP3: %w", err)
+		return nil, result, fmt.Errorf("generate NP3: %w", err)
 	}
 
 	// Build binary structure
 	data, err := encodeBinary(params, recipe.Name)
 	if err != nil {
-		return nil, fmt.Errorf("generate NP3: %w", err)
+		return nil, result, fmt.Errorf("generate NP3: %w", err)
 	}
 
-	return data, nil
+	return data, result, nil
+}
+
+// collectConversionWarnings checks for unsupported parameters and adds warnings
+func collectConversionWarnings(recipe *models.UniversalRecipe, result *models.ConversionResult) {
+	// Check frequency-based effects (not supported in NP3)
+	if recipe.Clarity != 0 {
+		result.AddWarning(
+			models.WarnAdvisory,
+			"Clarity",
+			fmt.Sprintf("%d", recipe.Clarity),
+			"Clarity affects mid-tone contrast via frequency separation",
+			"Use NP3 Mid-Range Sharpening for a similar effect",
+		)
+	}
+
+	if recipe.Texture != 0 {
+		result.AddWarning(
+			models.WarnAdvisory,
+			"Texture",
+			fmt.Sprintf("%d", recipe.Texture),
+			"Texture affects fine detail enhancement",
+			"Use NP3 Sharpening Detail setting",
+		)
+	}
+
+	if recipe.Dehaze != 0 {
+		result.AddWarning(
+			models.WarnAdvisory,
+			"Dehaze",
+			fmt.Sprintf("%d", recipe.Dehaze),
+			"Dehaze removes atmospheric haze",
+			"Use increased Contrast and reduced Blacks",
+		)
+	}
+
+	// Check RGB channel curves (NP3 only supports master curve)
+	if len(recipe.PointCurveRed) > 0 {
+		result.AddWarning(
+			models.WarnCritical,
+			"PointCurveRed",
+			fmt.Sprintf("%d points", len(recipe.PointCurveRed)),
+			"NP3 only supports master tone curve, not per-channel curves",
+			"Use Color Blender Red adjustments instead",
+		)
+	}
+
+	if len(recipe.PointCurveGreen) > 0 {
+		result.AddWarning(
+			models.WarnCritical,
+			"PointCurveGreen",
+			fmt.Sprintf("%d points", len(recipe.PointCurveGreen)),
+			"NP3 only supports master tone curve, not per-channel curves",
+			"Use Color Blender Green adjustments instead",
+		)
+	}
+
+	if len(recipe.PointCurveBlue) > 0 {
+		result.AddWarning(
+			models.WarnCritical,
+			"PointCurveBlue",
+			fmt.Sprintf("%d points", len(recipe.PointCurveBlue)),
+			"NP3 only supports master tone curve, not per-channel curves",
+			"Use Color Blender Cyan/Blue adjustments instead",
+		)
+	}
 }
 
 // convertToNP3Parameters converts UniversalRecipe parameters to NP3 ranges.
@@ -215,6 +292,31 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 				position: 405 + (i * 2), // Offset calculation
 				value1:   uint8(recipe.PointCurve[i].Input),
 				value2:   uint8(recipe.PointCurve[i].Output),
+			}
+		}
+	} else if HasParametricCurve(recipe.ToneCurveShadows, recipe.ToneCurveDarks,
+		recipe.ToneCurveLights, recipe.ToneCurveHighlights) {
+		// Convert parametric curve to control points
+		controlPoints := ParametricToControlPoints(
+			recipe.ToneCurveShadows,
+			recipe.ToneCurveDarks,
+			recipe.ToneCurveLights,
+			recipe.ToneCurveHighlights,
+			recipe.ToneCurveShadowSplit,
+			recipe.ToneCurveMidtoneSplit,
+			recipe.ToneCurveHighlightSplit,
+		)
+
+		// Only use parametric curve if it's not a linear identity curve
+		if !IsLinearCurve(controlPoints, 5) {
+			params.toneCurvePointCount = len(controlPoints)
+			params.toneCurvePoints = make([]toneCurvePoint, len(controlPoints))
+			for i, cp := range controlPoints {
+				params.toneCurvePoints[i] = toneCurvePoint{
+					position: 405 + (i * 2),
+					value1:   uint8(cp.X),
+					value2:   uint8(cp.Y),
+				}
 			}
 		}
 	}
@@ -460,11 +562,10 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 		data = make([]byte, len(params.rawData))
 		copy(data, params.rawData)
 	} else {
-		// Create buffer for complete file
-		// Real files: 1050+ bytes (Filmic.np3 = 1050, other advanced presets = 1050+)
-		// Need at least 974 bytes for tone curve raw data (offset 460 + 257*2)
-		// Using 1050 to match working NP3 files
-		data = make([]byte, 1050)
+		// Create buffer for complete file with extended tone curve
+		// Need at least 1072 bytes for extended tone curve LUT (offset 560 + 256*2)
+		// Using 1072 to ensure curve data fits
+		data = make([]byte, 1072)
 	}
 
 	// Only write header if we don't have raw data (raw data already has correct header)
@@ -519,9 +620,8 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 		writeChunks(data, params)
 	}
 
-	// Write raw parameter bytes at offsets 64-79 (legacy structure)
-	// IMPORTANT: This must be called AFTER writeChunks to avoid being overwritten
-	// by chunk data (chunks span offsets 46-335, which includes 64-79)
+	// Write raw parameter bytes at offsets 71-79 (brightness, hue)
+	// NOTE: Sharpness (previously at 66-70) is now handled by TLV chunks
 	if params.rawData == nil || len(params.rawData) == 0 {
 		writeRawParameterBytes(data, params)
 	}
@@ -552,53 +652,25 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 // Generator strategy (reverse of parser):
 //   - Convert NP3 parameter values back to raw bytes using 128-offset encoding
 func writeRawParameterBytes(data []byte, params *np3Parameters) {
-	// Sharpness: Write to offsets 66-70
-	// Parser has default value of 5 when no non-zero bytes found
-	// For sharpening=0, we need a non-zero byte that produces 0 after formula
-	// Formula: params.sharpening = (avgSharpness + 128) * 9 / 255
-	// For result=0: (adjusted + 128) * 9 / 255 = 0 → adjusted in range -128 to -100
-	// Using byte value 1: adjusted = 1 - 128 = -127 → sharpening = (1 * 9) / 255 = 0
-	var sharpnessRaw byte
-	if params.sharpening == 0 {
-		// Use byte value 1 to avoid default value of 5
-		sharpnessRaw = 1
-	} else {
-		sharpnessAdjusted := (params.sharpening * 255 / 9) - 128
-		sharpnessRaw = byte(sharpnessAdjusted + 128)
-	}
-
-	// Write same value to all 5 bytes (66-70) for consistency
-	for i := 66; i <= 70; i++ {
-		data[i] = sharpnessRaw
-	}
-
-	// Brightness: Write to offsets 71-75
-	// Parser: params.brightness = float64(avgBrightness) / 128.0
-	// Generator reverse: adjusted = brightness * 128.0
-	brightnessAdjusted := int(params.brightness * 128.0)
-	brightnessVal := brightnessAdjusted + 128
-	if brightnessVal > 255 {
-		brightnessVal = 255
-	} else if brightnessVal < 0 {
-		brightnessVal = 0
-	}
-	brightnessRaw := byte(brightnessVal)
-
-	// Write same value to all 5 bytes (71-75) for consistency
-	for i := 71; i <= 75; i++ {
-		data[i] = brightnessRaw
-	}
-
-	// Hue: Write to offsets 76-79
-	// Parser: params.hue = avgHue * 9 / 128
-	// Generator reverse: adjusted = hue * 128 / 9
-	hueAdjusted := params.hue * 128 / 9
-	hueRaw := byte(hueAdjusted + 128)
-
-	// Write same value to all 4 bytes (76-79) for consistency
-	for i := 76; i <= 79; i++ {
-		data[i] = hueRaw
-	}
+	// DEPRECATED: This function previously wrote heuristic parameter bytes to offsets 66-79.
+	//
+	// These offsets are now used by TLV chunks (chunks start at offset 46, each is 10 bytes):
+	//   - Chunk #2 (id=0x05): offsets 66-75
+	//   - Chunk #3 (id=0x06): offsets 76-85
+	//   - Chunk #4 (id=0x07): offsets 86-95
+	//
+	// Writing heuristic bytes to these offsets corrupts the TLV chunk structure,
+	// causing NX Studio to reject the file.
+	//
+	// Parameters are now written to their exact offsets instead:
+	//   - Sharpness: offset 82 (via writeBasicAdjustments)
+	//   - Clarity: offset 92 (via writeBasicAdjustments)
+	//   - Brightness: Not currently mapped to exact offset (TODO)
+	//   - Hue: Not currently mapped to exact offset (TODO)
+	//
+	// The parser still reads from heuristic offsets 66-79 as a fallback when exact
+	// offsets are unavailable, but it will now extract these values from the TLV
+	// chunk structure instead of dedicated heuristic bytes.
 }
 
 // generateColorData generates RGB color triplets at offsets 100-299
@@ -901,34 +973,85 @@ func writeColorGrading(data []byte, params *np3Parameters) {
 
 // writeToneCurve writes tone curve control points to exact offsets.
 //
+// CRITICAL: NX Studio requires the BI0 marker structure to enable custom tone curves.
+// Without this structure, the "Use Custom Tone Curve" checkbox remains unchecked.
+//
 // Offsets:
-//   - Point Count: offset 404 (direct value 0-255)
-//   - Control Points: offset 405 (2 bytes per point: input, output)
-//   - Raw Curve: offset 460 (257 × 16-bit big-endian values)
+//   - Enable Flags: offsets 389-390 (must be 0x01, 0x01)
+//   - BI0 Marker: offset 409 (structure with magic bytes and control points)
+//   - BI0+0..2:  Magic "BI0" (0x42, 0x49, 0x30)
+//   - BI0+3..8:  Fixed (0x00, 0xFF, 0x00, 0xFF, 0x01, 0x00)
+//   - BI0+9:     Point count
+//   - BI0+10..11: Padding (0x00, 0x00)
+//   - BI0+12+:   Control points as X,Y byte pairs
 func writeToneCurve(data []byte, params *np3Parameters) {
-	// Point count (offset 404)
-	if len(data) > OffsetToneCurvePointCount {
-		data[OffsetToneCurvePointCount] = uint8(params.toneCurvePointCount)
+	// Only write curve data if we have control points
+	if params.toneCurvePointCount == 0 && len(params.toneCurvePoints) == 0 {
+		return
+	}
 
-		// Control points (offset 405, 2 bytes per point)
-		if params.toneCurvePointCount > 0 && len(params.toneCurvePoints) > 0 {
-			for i := 0; i < params.toneCurvePointCount && i < len(params.toneCurvePoints); i++ {
-				offset := OffsetToneCurvePoints + (i * 2)
-				if len(data) > offset+1 {
-					data[offset] = params.toneCurvePoints[i].value1
-					data[offset+1] = params.toneCurvePoints[i].value2
-				}
+	// Write curve enable flags - both must be 0x01
+	if len(data) > OffsetToneCurveEnabled2 {
+		data[OffsetToneCurveEnabled1] = 0x01
+		data[OffsetToneCurveEnabled2] = 0x01
+	}
+
+	// Write BI0 marker structure at offset 409
+	bi0 := OffsetBI0Marker
+	if len(data) > bi0+30 { // Ensure we have space for BI0 structure + points
+		// Magic bytes "BI0"
+		data[bi0+0] = 0x42 // 'B'
+		data[bi0+1] = 0x49 // 'I'
+		data[bi0+2] = 0x30 // '0'
+
+		// Fixed header bytes (observed in working files)
+		data[bi0+3] = 0x00
+		data[bi0+4] = 0xFF
+		data[bi0+5] = 0x00
+		data[bi0+6] = 0xFF
+		data[bi0+7] = 0x01
+		data[bi0+8] = 0x00
+
+		// Point count at BI0+9
+		pointCount := params.toneCurvePointCount
+		if pointCount == 0 {
+			pointCount = len(params.toneCurvePoints)
+		}
+		data[bi0+9] = uint8(pointCount)
+
+		// Padding at BI0+10..11
+		data[bi0+10] = 0x00
+		data[bi0+11] = 0x00
+
+		// Write control points at BI0+12 onwards (X,Y pairs as single bytes)
+		for i := 0; i < len(params.toneCurvePoints) && i < pointCount; i++ {
+			offset := bi0 + 12 + (i * 2)
+			if len(data) > offset+1 {
+				data[offset] = params.toneCurvePoints[i].value1   // X (input)
+				data[offset+1] = params.toneCurvePoints[i].value2 // Y (output)
 			}
 		}
 	}
 
-	// Raw curve (offset 460, 257 × 16-bit big-endian)
-	// Note: This is optional and typically not written unless we have raw curve data
-	if len(params.toneCurveRaw) == 257 && len(data) >= OffsetToneCurveRaw+514 {
-		for i := 0; i < 257; i++ {
-			offset := OffsetToneCurveRaw + (i * 2)
-			data[offset] = uint8(params.toneCurveRaw[i] >> 8)     // High byte
-			data[offset+1] = uint8(params.toneCurveRaw[i] & 0xFF) // Low byte
+	// Also write to legacy offset 404-405 for compatibility
+	if len(data) > OffsetToneCurvePointCount {
+		data[OffsetToneCurvePointCount] = uint8(params.toneCurvePointCount)
+	}
+
+	// Extended tone curve LUT at offset 560 (for files that use LUT instead of points)
+	if len(params.toneCurveRaw) > 0 && len(data) >= OffsetExtendedToneCurveLUT+512 {
+		numEntries := len(params.toneCurveRaw)
+		if numEntries > 256 {
+			numEntries = 256
+		}
+		for i := 0; i < numEntries; i++ {
+			offset := OffsetExtendedToneCurveLUT + (i * 2)
+			value := params.toneCurveRaw[i]
+			if value <= 32767 {
+				value = value * 2 // Scale to 0-65535 range
+			}
+			data[offset] = uint8(value >> 8)
+			data[offset+1] = uint8(value & 0xFF)
 		}
 	}
 }

@@ -180,6 +180,22 @@ const (
 
 // Tone Curve Offsets
 const (
+	// OffsetToneCurveEnabled1 and OffsetToneCurveEnabled2 are flags that enable custom tone curve.
+	// Both must be 0x01 for NX Studio to recognize the custom tone curve.
+	// Without these set to 0x01, the "Use Custom Tone Curve" checkbox will be unchecked.
+	OffsetToneCurveEnabled1 = 0x185 // 389 decimal - must be 0x01
+	OffsetToneCurveEnabled2 = 0x186 // 390 decimal - must be 0x01
+
+	// OffsetBI0Marker is the start of the BI0 structure that contains tone curve control points.
+	// NX Studio searches for the 'BI0' magic bytes (0x42 0x49 0x30) to locate control points.
+	// Structure:
+	//   BI0+0..2:  Magic "BI0" (0x42, 0x49, 0x30)
+	//   BI0+3..8:  Fixed bytes (0x00, 0xFF, 0x00, 0xFF, 0x01, 0x00)
+	//   BI0+9:     Point count (1-255)
+	//   BI0+10..11: Padding (0x00, 0x00)
+	//   BI0+12+:   Control points as X,Y byte pairs
+	OffsetBI0Marker = 0x199 // 409 decimal - where to write BI0 marker
+
 	// OffsetToneCurvePointCount is the number of control points in the tone curve.
 	// Range: 0 to 255
 	OffsetToneCurvePointCount = 0x194 // 404 decimal

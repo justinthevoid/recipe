@@ -214,6 +214,15 @@ type Description struct {
 	// Tone Curve (legacy attribute format - deprecated)
 	ToneCurve string `xml:"ToneCurve,attr"`
 
+	// Parametric Curves (Lightroom's zone-based tone curve adjustments)
+	ParametricShadows        string `xml:"ParametricShadows,attr"`
+	ParametricDarks          string `xml:"ParametricDarks,attr"`
+	ParametricLights         string `xml:"ParametricLights,attr"`
+	ParametricHighlights     string `xml:"ParametricHighlights,attr"`
+	ParametricShadowSplit    string `xml:"ParametricShadowSplit,attr"`
+	ParametricMidtoneSplit   string `xml:"ParametricMidtoneSplit,attr"`
+	ParametricHighlightSplit string `xml:"ParametricHighlightSplit,attr"`
+
 	// Tone Curves (modern PV2012 nested sequence format)
 	ToneCurvePV2012      ToneCurveSeq `xml:"ToneCurvePV2012>Seq"`
 	ToneCurvePV2012Red   ToneCurveSeq `xml:"ToneCurvePV2012Red>Seq"`
@@ -427,6 +436,15 @@ type xmpParameters struct {
 	splitHighlightHue        int
 	splitHighlightSaturation int
 	splitBalance             int
+
+	// Parametric Curves (Lightroom zone-based adjustments)
+	parametricShadows        int
+	parametricDarks          int
+	parametricLights         int
+	parametricHighlights     int
+	parametricShadowSplit    int
+	parametricMidtoneSplit   int
+	parametricHighlightSplit int
 
 	// Color Grading (Phase 2)
 	colorGrading *models.ColorGrading
@@ -688,6 +706,36 @@ func extractParameters(desc *Description) (*xmpParameters, error) {
 	// Extract Color Grading (Phase 2)
 	params.colorGrading, err = extractColorGrading(desc)
 	if err != nil {
+		return nil, err
+	}
+
+	// Extract Parametric Curve (Lightroom zone-based tone curve adjustments)
+	params.parametricShadows, err = parseInt(desc.ParametricShadows, "ParametricShadows")
+	if err != nil && desc.ParametricShadows != "" {
+		return nil, err
+	}
+	params.parametricDarks, err = parseInt(desc.ParametricDarks, "ParametricDarks")
+	if err != nil && desc.ParametricDarks != "" {
+		return nil, err
+	}
+	params.parametricLights, err = parseInt(desc.ParametricLights, "ParametricLights")
+	if err != nil && desc.ParametricLights != "" {
+		return nil, err
+	}
+	params.parametricHighlights, err = parseInt(desc.ParametricHighlights, "ParametricHighlights")
+	if err != nil && desc.ParametricHighlights != "" {
+		return nil, err
+	}
+	params.parametricShadowSplit, err = parseInt(desc.ParametricShadowSplit, "ParametricShadowSplit")
+	if err != nil && desc.ParametricShadowSplit != "" {
+		return nil, err
+	}
+	params.parametricMidtoneSplit, err = parseInt(desc.ParametricMidtoneSplit, "ParametricMidtoneSplit")
+	if err != nil && desc.ParametricMidtoneSplit != "" {
+		return nil, err
+	}
+	params.parametricHighlightSplit, err = parseInt(desc.ParametricHighlightSplit, "ParametricHighlightSplit")
+	if err != nil && desc.ParametricHighlightSplit != "" {
 		return nil, err
 	}
 
@@ -1248,6 +1296,15 @@ func buildRecipe(params *xmpParameters) (*models.UniversalRecipe, error) {
 	if len(params.toneCurveBlue) > 0 {
 		recipe.PointCurveBlue = params.toneCurveBlue
 	}
+
+	// Set Parametric Curves (zone-based tone adjustments)
+	recipe.ToneCurveShadows = params.parametricShadows
+	recipe.ToneCurveDarks = params.parametricDarks
+	recipe.ToneCurveLights = params.parametricLights
+	recipe.ToneCurveHighlights = params.parametricHighlights
+	recipe.ToneCurveShadowSplit = params.parametricShadowSplit
+	recipe.ToneCurveMidtoneSplit = params.parametricMidtoneSplit
+	recipe.ToneCurveHighlightSplit = params.parametricHighlightSplit
 
 	// Set Camera Calibration
 	recipe.CameraProfile = params.cameraCalibration
