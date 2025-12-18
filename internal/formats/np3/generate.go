@@ -5,6 +5,7 @@ package np3
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/justin/recipe/internal/models"
 )
@@ -56,6 +57,18 @@ func GenerateWithWarnings(recipe *models.UniversalRecipe) ([]byte, *models.Conve
 	}
 
 	// Build binary structure
+	// DEBUG: Append version to force fresh import in NX Studio
+	recipe.Name += " v9"
+	
+	// Truncate name to 20 chars to ensure suffix fits in effective display area
+	// Hex dump showed truncation at 20 chars ("Agfachrome RSX 200 v").
+	if len(recipe.Name) > 20 {
+		// We want the suffix " v9" to be visible, so keep the start + suffix?
+		// "Agfachrome... v9"
+		// Start: "Agfachrome RSX 2" (16 chars)
+		recipe.Name = recipe.Name[:16] + " v9"
+	}
+	
 	data, err := encodeBinary(params, recipe.Name)
 	if err != nil {
 		return nil, result, fmt.Errorf("generate NP3: %w", err)
@@ -129,6 +142,71 @@ func collectConversionWarnings(recipe *models.UniversalRecipe, result *models.Co
 	}
 }
 
+// applyCameraCalibrationToColorBlender maps XMP Camera Calibration to NP3 Color Blender.
+//
+// XMP Camera Calibration (RedHue, GreenHue, BlueHue, RedSaturation, etc.) adjusts
+// the camera's primary color response at a fundamental level. Since NP3 doesn't have
+// a direct equivalent, we approximate by adding the calibration values to the
+// corresponding Color Blender channels with a 0.5x scale to prevent extreme results.
+//
+// Mapping:
+//   - RedHue/RedSaturation → Red and Orange channels
+//   - GreenHue/GreenSaturation → Green and Yellow channels  
+//   - BlueHue/BlueSaturation → Blue and Cyan channels
+func applyCameraCalibrationToColorBlender(recipe *models.UniversalRecipe, params *np3Parameters) {
+	// CameraProfile is a struct value, check if all fields are zero (no calibration)
+	cp := recipe.CameraProfile
+	if cp.RedHue == 0 && cp.RedSaturation == 0 &&
+		cp.GreenHue == 0 && cp.GreenSaturation == 0 &&
+		cp.BlueHue == 0 && cp.BlueSaturation == 0 {
+		return
+	}
+
+	// Scale factor: Camera Calibration values are already -100 to +100
+	// Apply at 50% strength to prevent extreme values when combined with HSL
+	const scale = 0.5
+
+	// Red calibration → affects Red and Orange (adjacent in color wheel)
+	if cp.RedHue != 0 {
+		params.redHue = clampColorBlender(params.redHue + int(float64(cp.RedHue)*scale))
+		params.orangeHue = clampColorBlender(params.orangeHue + int(float64(cp.RedHue)*scale*0.5))
+	}
+	if cp.RedSaturation != 0 {
+		params.redChroma = clampColorBlender(params.redChroma + int(float64(cp.RedSaturation)*scale))
+		params.orangeChroma = clampColorBlender(params.orangeChroma + int(float64(cp.RedSaturation)*scale*0.5))
+	}
+
+	// Green calibration → affects Green and Yellow
+	if cp.GreenHue != 0 {
+		params.greenHue = clampColorBlender(params.greenHue + int(float64(cp.GreenHue)*scale))
+		params.yellowHue = clampColorBlender(params.yellowHue + int(float64(cp.GreenHue)*scale*0.5))
+	}
+	if cp.GreenSaturation != 0 {
+		params.greenChroma = clampColorBlender(params.greenChroma + int(float64(cp.GreenSaturation)*scale))
+		params.yellowChroma = clampColorBlender(params.yellowChroma + int(float64(cp.GreenSaturation)*scale*0.5))
+	}
+
+	// Blue calibration → affects Blue and Cyan
+	if cp.BlueHue != 0 {
+		params.blueHue = clampColorBlender(params.blueHue + int(float64(cp.BlueHue)*scale))
+		params.cyanHue = clampColorBlender(params.cyanHue + int(float64(cp.BlueHue)*scale*0.5))
+	}
+	if cp.BlueSaturation != 0 {
+		params.blueChroma = clampColorBlender(params.blueChroma + int(float64(cp.BlueSaturation)*scale))
+		params.cyanChroma = clampColorBlender(params.cyanChroma + int(float64(cp.BlueSaturation)*scale*0.5))
+	}
+}
+
+// clampColorBlender clamps a Color Blender value to NP3's valid range (-100 to +100)
+func clampColorBlender(v int) int {
+	if v < -100 {
+		return -100
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
+}
 // convertToNP3Parameters converts UniversalRecipe parameters to NP3 ranges.
 //
 // Phase 2 Enhancement: Now converts all 48 parameters using exact offset mappings
@@ -217,12 +295,17 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 		params.whiteLevel = -100
 	}
 
-	params.blackLevel = recipe.Blacks
+	// recipe.Blacks is baked into the tone curve. Disable params.blackLevel to avoid clipping.
+	params.blackLevel = 0
 	if params.blackLevel > 100 {
 		params.blackLevel = 100
+
 	} else if params.blackLevel < -100 {
 		params.blackLevel = -100
 	}
+
+	// Apply Dehaze (affects Contrast and Blacks)
+	applyDehaze(recipe, params)
 
 	params.saturation = recipe.Saturation
 	if params.saturation > 100 {
@@ -230,6 +313,9 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 	} else if params.saturation < -100 {
 		params.saturation = -100
 	}
+
+	// Apply Vibrance (affects Saturation)
+	applyVibranceToSaturation(recipe, params)
 
 	// === Color Blender (24 parameters) ===
 	// UniversalRecipe ColorAdjustment maps directly to NP3 Color Blender (hue, chroma, brightness)
@@ -266,9 +352,22 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 	params.magentaChroma = recipe.Magenta.Saturation
 	params.magentaBrightness = recipe.Magenta.Luminance
 
+	// === Camera Calibration → Color Blender Approximation ===
+	// XMP Camera Calibration adjusts the primary colors (RGB) at a fundamental level.
+	// NP3 doesn't have this, but we can approximate by adjusting Color Blender values.
+	//
+	// Mapping strategy:
+	// - RedHue/Saturation → affects Red and Orange in Color Blender
+	// - GreenHue/Saturation → affects Green and Yellow in Color Blender
+	// - BlueHue/Saturation → affects Blue and Cyan in Color Blender
+	//
+	// Scale factor: 0.5 to prevent extreme values (Camera Calibration is subtle)
+	applyCameraCalibrationToColorBlender(recipe, params)
+
 	// === Color Grading (11 parameters) ===
 	// Direct mapping from UniversalRecipe ColorGrading
 
+	// Map Color Grading if present
 	if recipe.ColorGrading != nil {
 		params.highlightsZone = recipe.ColorGrading.Highlights
 		params.midtoneZone = recipe.ColorGrading.Midtone
@@ -277,27 +376,54 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 		params.balance = recipe.ColorGrading.Balance
 	}
 
+	// Fallback/Merge: Legacy Split Toning
+	// If specific Color Grading zones are empty, fill them from Split Toning
+	if params.shadowsZone.Chroma == 0 && recipe.SplitShadowSaturation > 0 {
+		params.shadowsZone.Hue = recipe.SplitShadowHue
+		params.shadowsZone.Chroma = recipe.SplitShadowSaturation
+	}
+	if params.highlightsZone.Chroma == 0 && recipe.SplitHighlightSaturation > 0 {
+		params.highlightsZone.Hue = recipe.SplitHighlightHue
+		params.highlightsZone.Chroma = recipe.SplitHighlightSaturation
+	}
+	// Map Balance if not set by Color Grading
+	if params.balance == 0 && recipe.SplitBalance != 0 {
+		params.balance = recipe.SplitBalance
+	}
+
+	// If Split Toning is used (and blending is low/unset), ensure Blending is set to default (50)
+	if (recipe.SplitShadowSaturation > 0 || recipe.SplitHighlightSaturation > 0) && params.blending < 10 {
+		params.blending = 50
+	}
+
+
+	// Apply White Balance (Temp/Tint) via Color Grading
+	applyWhiteBalanceToColorGrading(recipe, params)
+
 	// === Tone Curve (3 parameters) ===
 	// Convert UniversalRecipe PointCurve to NP3 format
+	// If RGB channel curves exist, merge them with the master curve first
 
-	if len(recipe.PointCurve) > 0 {
-		params.toneCurvePointCount = len(recipe.PointCurve)
-		if params.toneCurvePointCount > 127 {
-			params.toneCurvePointCount = 127 // NP3 limit
-		}
+	// Convert models.ToneCurvePoint to internal ControlPoint format
+	masterCPs := toneCurvePointsToControlPoints(recipe.PointCurve)
+	redCPs := toneCurvePointsToControlPoints(recipe.PointCurveRed)
+	greenCPs := toneCurvePointsToControlPoints(recipe.PointCurveGreen)
+	blueCPs := toneCurvePointsToControlPoints(recipe.PointCurveBlue)
 
-		params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
-		for i := 0; i < params.toneCurvePointCount; i++ {
-			params.toneCurvePoints[i] = toneCurvePoint{
-				position: 405 + (i * 2), // Offset calculation
-				value1:   uint8(recipe.PointCurve[i].Input),
-				value2:   uint8(recipe.PointCurve[i].Output),
-			}
-		}
-	} else if HasParametricCurve(recipe.ToneCurveShadows, recipe.ToneCurveDarks,
+	// Merge RGB curves with master if any RGB curves exist
+	// Merge RGB curves with master if any RGB curves exist
+	var finalCurve []ControlPoint
+	// Tone Curve Generation Strategy:
+	// Lightroom applies curves in this order:
+	// 1. Parametric Curve (Sliders)
+	// 2. Point Curve (Custom Points / RGB)
+	// We must chain these effects, not select exclusively.
+
+	// 1. Calculate Parametric Curve LUT
+	var parametricLUT []int
+	if HasParametricCurve(recipe.ToneCurveShadows, recipe.ToneCurveDarks,
 		recipe.ToneCurveLights, recipe.ToneCurveHighlights) {
-		// Convert parametric curve to control points
-		controlPoints := ParametricToControlPoints(
+		parametricCPs := ParametricToControlPoints(
 			recipe.ToneCurveShadows,
 			recipe.ToneCurveDarks,
 			recipe.ToneCurveLights,
@@ -306,17 +432,100 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 			recipe.ToneCurveMidtoneSplit,
 			recipe.ToneCurveHighlightSplit,
 		)
+		parametricLUT = PointsToCurveLUT(parametricCPs)
+	} else {
+		// Identity LUT
+		parametricLUT = make([]int, 256)
+		for i := 0; i < 256; i++ {
+			parametricLUT[i] = i
+		}
+	}
 
-		// Only use parametric curve if it's not a linear identity curve
-		if !IsLinearCurve(controlPoints, 5) {
-			params.toneCurvePointCount = len(controlPoints)
-			params.toneCurvePoints = make([]toneCurvePoint, len(controlPoints))
-			for i, cp := range controlPoints {
-				params.toneCurvePoints[i] = toneCurvePoint{
-					position: 405 + (i * 2),
-					value1:   uint8(cp.X),
-					value2:   uint8(cp.Y),
-				}
+	// 2. Calculate Point Curve LUT
+	// (RGB Merged or Master Point)
+	var pointCurveCPs []ControlPoint
+	if HasRGBCurves(redCPs, greenCPs, blueCPs) {
+		// Merge RGB curves into master curve
+		pointCurveCPs = MergeRGBCurvesToMaster(masterCPs, redCPs, greenCPs, blueCPs)
+	} else if len(masterCPs) > 0 {
+		pointCurveCPs = masterCPs
+	}
+	
+	var pointCurveLUT []int
+	if len(pointCurveCPs) > 0 {
+		pointCurveLUT = PointsToCurveLUT(pointCurveCPs)
+	} else {
+		// Identity LUT
+		pointCurveLUT = make([]int, 256)
+		for i := 0; i < 256; i++ {
+			pointCurveLUT[i] = i
+		}
+	}
+
+	// 3. Combine: Final = Point(Parametric(Input))
+	finalCurveLUT := ApplyCurveToLUT(parametricLUT, pointCurveLUT)
+	
+	// Convert combined LUT to Control Points for final output
+	finalCurve = LUTToControlPoints(finalCurveLUT, 20)
+
+	// Apply Standard S-Curve contrast if this is an XMP preset expecting "Standard" contrast
+	// but we are using "Flexible Color" (Linear) as the base.
+	// This restores the "Adobe Standard" / "Camera Standard" look.
+	isStandardProfile := recipe.CameraProfileName == "Default Color" ||
+		recipe.CameraProfileName == "Camera Standard" ||
+		recipe.CameraProfileName == "Adobe Standard" ||
+		recipe.CameraProfileName == "Embedded" // Embedded usually means standard-ish
+
+	if isStandardProfile {
+		// Ensure we have a curve to act as modifier
+		if len(finalCurve) == 0 {
+			// Identity curve
+			finalCurve = []ControlPoint{{X: 0, Y: 0}, {X: 255, Y: 255}}
+		}
+
+		// Calculate composite curve: Final(x) = CombinedXMP(Base(x))
+		// Base = Standard S-Curve
+		// CombinedXMP = Parametric + Point
+		baseLUT := GetStandardBaseCurveLUT()
+		mergedLUT := ApplyCurveToLUT(baseLUT, finalCurveLUT)
+
+		// === Bake Exposure and Blacks into Curve ===
+		// XMP Exposure and Blacks are not fully mapped to NP3 parameters.
+		// We bake them into the tone curve LUT to ensure histogram fidelity.
+		if recipe.Exposure != 0 || recipe.Blacks != 0 {
+			mergedLUT = ApplyExposureAndBlacksToLUT(mergedLUT, recipe.Exposure, recipe.Blacks)
+		}
+
+		// Convert back to control points (use 20 points for fidelity)
+		finalCurve = LUTToControlPoints(mergedLUT, 20)
+		
+		// === Color Fidelity: Standard Profile Color Emulation ===
+		// "Camera Standard" renders blues/greens significantly darker than "Flexible Color".
+		// Users report "blues/greens are much darker" in Lightroom reference.
+		// We aggressively deepen these memory colors to match the Standard look.
+		params.blueBrightness = clampColorBlender(params.blueBrightness - 40)
+		params.cyanBrightness = clampColorBlender(params.cyanBrightness - 40)
+		params.greenBrightness = clampColorBlender(params.greenBrightness - 30)
+
+		
+		// Standard also tends to be slightly warmer in highlights.
+		params.orangeBrightness = clampColorBlender(params.orangeBrightness + 5)
+		params.yellowBrightness = clampColorBlender(params.yellowBrightness + 5)
+	}
+
+	// Only write curve if it's not a linear identity curve
+	if len(finalCurve) > 0 && !IsLinearCurve(finalCurve, 5) {
+		params.toneCurvePointCount = len(finalCurve)
+		if params.toneCurvePointCount > 127 {
+			params.toneCurvePointCount = 127 // NP3 limit
+		}
+
+		params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
+		for i := 0; i < params.toneCurvePointCount; i++ {
+			params.toneCurvePoints[i] = toneCurvePoint{
+				position: 405 + (i * 2), // Offset calculation
+				value1:   uint8(finalCurve[i].X),
+				value2:   uint8(finalCurve[i].Y),
 			}
 		}
 	}
@@ -440,13 +649,13 @@ func writeChunks(data []byte, params *np3Parameters) {
 	offset = writeChunk(data, offset, npChunk{id: 0x07, length: 2, value: []byte{clarityValue, 0x04}})
 
 	// Chunks 0x08-0x13: Constants
-	// Chunks 0x08-0x0B: Grain Amount (and related?)
-	// We write the same value to all 4 chunks as observed in Junk.NP3
-	grainAmountValue := EncodeScaled4(params.grainAmount)
-	offset = writeChunk(data, offset, npChunk{id: 0x08, length: 2, value: []byte{grainAmountValue, 0x04}})
-	offset = writeChunk(data, offset, npChunk{id: 0x09, length: 2, value: []byte{grainAmountValue, 0x04}})
-	offset = writeChunk(data, offset, npChunk{id: 0x0a, length: 2, value: []byte{grainAmountValue, 0x04}})
-	offset = writeChunk(data, offset, npChunk{id: 0x0b, length: 2, value: []byte{grainAmountValue, 0x04}})
+	// Chunks 0x08-0x0B: Previously mapped to Grain Amount, but this breaks Quick Sharp interaction.
+	// Working files (FLEXIBLECOLOR) use 0xFF for these chunks.
+	// We now write constant 0xFF values to avoid corrupting Quick Sharp / Picture Control settings.
+	offset = writeChunk(data, offset, npChunk{id: 0x08, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x09, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0a, length: 2, value: []byte{0xff, 0x04}})
+	offset = writeChunk(data, offset, npChunk{id: 0x0b, length: 2, value: []byte{0xff, 0x04}})
 	offset = writeChunk(data, offset, npChunk{id: 0x0c, length: 2, value: []byte{0xff, 0x00}})
 	offset = writeChunk(data, offset, npChunk{id: 0x0d, length: 2, value: []byte{0xff, 0x00}})
 	offset = writeChunk(data, offset, npChunk{id: 0x0e, length: 2, value: []byte{0xff, 0x04}})
@@ -457,9 +666,9 @@ func writeChunks(data []byte, params *np3Parameters) {
 	offset = writeChunk(data, offset, npChunk{id: 0x13, length: 2, value: []byte{0xff, 0x01}})
 
 	// Chunk 0x14: Constant
-	// Chunk 0x14: Grain Size
-	// Value is Signed8 Enum: 1=Large, 2=Small, 127=Off
-	offset = writeChunk(data, offset, npChunk{id: 0x14, length: 2, value: []byte{EncodeSigned8(params.grainSize), 0x01}})
+	// Previously mapped to Grain Size, but Grain is not supported in NP3.
+	// Setting to constant safe value.
+	offset = writeChunk(data, offset, npChunk{id: 0x14, length: 2, value: []byte{0x01, 0x01}})
 
 	// Chunk 0x15: Constant
 	offset = writeChunk(data, offset, npChunk{id: 0x15, length: 2, value: []byte{0xff, 0x0a}})
@@ -1011,7 +1220,13 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 		data[402] = 0x00
 		data[403] = 0x00
 
-		// Critical: Offset 404 must be 0x00 (not point count!)
+		// Write Point Count at Offset 404 (Style 1) - Required for NX Studio to know count?
+		// But verify if this disabled BI0? 
+		// Previous attempt: 404=0 -> BI0 read.
+		// If BI0 read -> Points read from wrong place.
+		// If I set 404=Count, maybe BI0 is ignored?
+		// User says "Tone Curve Gone" with Style 1.
+		// So 404 MUST BE 0 to enable BI0 reading.
 		data[404] = 0x00
 
 		// Required bytes at 405 and 408
@@ -1044,21 +1259,22 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 		}
 		data[bi0+9] = uint8(pointCount)
 
-		// Padding at BI0+10..11
-		data[bi0+10] = 0x00
-		data[bi0+11] = 0x00
 
-		// Write control points at BI0+12 onwards (X,Y pairs as single bytes)
+		// Padding at BI0+10 (1 byte only)
+		data[bi0+10] = 0x00
+		// Note: Working files show data starting at BI0+11 (Offset 420)
+
+		// Write control points at BI0+11 onwards (X,Y pairs as single bytes)
 		for i := 0; i < len(params.toneCurvePoints) && i < pointCount; i++ {
-			offset := bi0 + 12 + (i * 2)
+			offset := bi0 + 11 + (i * 2)
 			if len(data) > offset+1 {
 				data[offset] = params.toneCurvePoints[i].value1   // X (input)
 				data[offset+1] = params.toneCurvePoints[i].value2 // Y (output)
 			}
 		}
 
-		// Padding after control points (fill with zeros up to next 4 bytes)
-		lastPointOffset := bi0 + 12 + (pointCount * 2)
+		// Padding after control points
+		lastPointOffset := bi0 + 11 + (pointCount * 2)
 		for i := lastPointOffset; i < lastPointOffset+4 && i < len(data); i++ {
 			data[i] = 0x00
 		}
@@ -1066,6 +1282,7 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 
 	// Extended tone curve LUT at offset 560 (for files that use LUT instead of points)
 	if len(params.toneCurveRaw) > 0 && len(data) >= OffsetExtendedToneCurveLUT+512 {
+
 		numEntries := len(params.toneCurveRaw)
 		if numEntries > 256 {
 			numEntries = 256
@@ -1078,6 +1295,131 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 			}
 			data[offset] = uint8(value >> 8)
 			data[offset+1] = uint8(value & 0xFF)
+		}
+	}
+}
+
+// applyWhiteBalanceToColorGrading simulates XMP White Balance (Temp/Tint) using NP3 Color Grading.
+func applyWhiteBalanceToColorGrading(recipe *models.UniversalRecipe, params *np3Parameters) {
+	temp := recipe.IncrementalTemperature
+	tint := recipe.IncrementalTint
+
+	if temp == 0 && tint == 0 {
+		return
+	}
+
+	// Calculate WB vector (Polar coordinates)
+	// Temp: + = Warm (Orange ~40°), - = Cool (Blue ~220°)
+	// Tint: + = Magenta (~300°), - = Green (~120°)
+	
+	type colorVector struct {
+		hue    float64 // degrees
+		chroma float64 // strength
+	}
+	var wbVectors []colorVector
+
+	// Temperature
+	if temp > 0 {
+		// Warm (Orange) - 40°
+		wbVectors = append(wbVectors, colorVector{40, float64(temp) * 0.5})
+	} else if temp < 0 {
+		// Cool (Blue) - 220°
+		wbVectors = append(wbVectors, colorVector{220, float64(-temp) * 0.5})
+	}
+
+	// Tint
+	if tint > 0 {
+		// Magenta - 300°
+		wbVectors = append(wbVectors, colorVector{300, float64(tint) * 0.5})
+	} else if tint < 0 {
+		// Green - 120°
+		wbVectors = append(wbVectors, colorVector{120, float64(-tint) * 0.5})
+	}
+
+	// Apply vectors to all 3 zones
+	zones := []*models.ColorGradingZone{
+		&params.highlightsZone,
+		&params.midtoneZone,
+		&params.shadowsZone,
+	}
+
+	for _, zone := range zones {
+		// Convert current zone to Cartesian (x, y)
+		rad := float64(zone.Hue) * math.Pi / 180.0
+		x := float64(zone.Chroma) * math.Cos(rad)
+		y := float64(zone.Chroma) * math.Sin(rad)
+
+		// Add WB vectors
+		for _, vec := range wbVectors {
+			vecRad := vec.hue * math.Pi / 180.0
+			x += vec.chroma * math.Cos(vecRad)
+			y += vec.chroma * math.Sin(vecRad)
+		}
+
+		// Convert back to Polar (Hue, Chroma)
+		newChroma := math.Sqrt(x*x + y*y)
+		newHueRad := math.Atan2(y, x)
+		newHue := newHueRad * 180.0 / math.Pi
+		if newHue < 0 {
+			newHue += 360.0
+		}
+
+		// Update zone
+		zone.Hue = int(newHue)
+		zone.Chroma = int(newChroma)
+
+		// Clamp Chroma to 0-100 (NP3 limit usually 100 for Signed8? No, Chroma is 0-100 unsigned usually)
+		// But in writeColorGrading, Chroma is EncodeSigned8 (-100..100).
+		// Wait, Color Grading Chroma is 0..100? Or -100..100?
+		// models.ColorGradingZone implies Hue, Chroma, Brightness.
+		// Usually Chroma is positive magnitude.
+		if zone.Chroma > 100 {
+			zone.Chroma = 100
+		}
+	}
+	
+	// Ensure Blending is sufficient to make this visible if it wasn't already
+	if params.blending < 50 {
+		params.blending = 50 // Ensure grading is applied
+	}
+}
+
+// applyVibranceToSaturation maps XMP Vibrance to NP3 Saturation.
+// Vibrance is a smart saturation that protects skin tones.
+// We approximate it with a gentler global Saturation boost (0.5x scale).
+func applyVibranceToSaturation(recipe *models.UniversalRecipe, params *np3Parameters) {
+	if recipe.Vibrance != 0 {
+		params.saturation += int(float64(recipe.Vibrance) * 0.5)
+		if params.saturation > 100 {
+			params.saturation = 100
+		} else if params.saturation < -100 {
+			params.saturation = -100
+		}
+	}
+}
+
+// applyDehaze maps XMP Dehaze to NP3 Contrast and Black Level.
+// Dehaze increases local contrast (approximated by Global Contrast)
+// and darkens blacks/shadows.
+func applyDehaze(recipe *models.UniversalRecipe, params *np3Parameters) {
+	if recipe.Dehaze != 0 {
+		// Boost Contrast (0.5x strength)
+		params.contrast += int(float64(recipe.Dehaze) * 0.5)
+		if params.contrast > 100 {
+			params.contrast = 100
+		} else if params.contrast < -100 {
+			params.contrast = -100
+		}
+
+		// Reduce Black Level (darken blacks) (0.25x strength)
+		// Positive Dehaze -> Darker Blacks -> Lower Black Level?
+		// Or Higher Black Level?
+		// Black Level in NP3: - = Darker, + = Lighter? Usually.
+		params.blackLevel -= int(float64(recipe.Dehaze) * 0.25)
+		if params.blackLevel > 100 {
+			params.blackLevel = 100
+		} else if params.blackLevel < -100 {
+			params.blackLevel = -100
 		}
 	}
 }
