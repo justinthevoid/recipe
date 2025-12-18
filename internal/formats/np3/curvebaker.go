@@ -58,11 +58,13 @@ func ParametricToControlPoints(shadows, darks, lights, highlights int,
 	points := make([]ControlPoint, 0, 8)
 
 	// Calculate Y offsets for each zone
-	// Scale: -100 to +100 slider maps to -50 to +50 pixel offset (about 20% of range)
-	shadowOffset := (shadows * 50) / 100
-	darkOffset := (darks * 50) / 100
-	lightOffset := (lights * 50) / 100
-	highlightOffset := (highlights * 50) / 100
+	// Scale: -100 to +100 slider maps to approximately -15 to +15 pixel offset
+	// This is a subtle adjustment - Lightroom parametric curves are relatively gentle
+	// Previous scale of 50/100 was too aggressive
+	shadowOffset := (shadows * 15) / 100
+	darkOffset := (darks * 15) / 100
+	lightOffset := (lights * 15) / 100
+	highlightOffset := (highlights * 15) / 100
 
 	// Point 1: In shadow zone (1/3 of shadow zone)
 	x1 := shadowX / 3

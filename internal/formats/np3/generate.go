@@ -971,19 +971,18 @@ func writeColorGrading(data []byte, params *np3Parameters) {
 	}
 }
 
-// writeToneCurve writes tone curve control points to exact offsets.
+// writeToneCurve writes tone curve control points using the BI0 marker structure.
 //
-// CRITICAL: NX Studio requires the BI0 marker structure to enable custom tone curves.
-// Without this structure, the "Use Custom Tone Curve" checkbox remains unchecked.
+// CRITICAL: NX Studio requires specific byte patterns to enable custom tone curves:
+//   - Enable Flags: offsets 389-390 must be 0x01, 0x01
+//   - Pre-BI0 structure: offsets 395-408 with specific values
+//   - BI0 Marker: offset 409 with magic bytes and control points
 //
-// Offsets:
-//   - Enable Flags: offsets 389-390 (must be 0x01, 0x01)
-//   - BI0 Marker: offset 409 (structure with magic bytes and control points)
-//   - BI0+0..2:  Magic "BI0" (0x42, 0x49, 0x30)
-//   - BI0+3..8:  Fixed (0x00, 0xFF, 0x00, 0xFF, 0x01, 0x00)
-//   - BI0+9:     Point count
-//   - BI0+10..11: Padding (0x00, 0x00)
-//   - BI0+12+:   Control points as X,Y byte pairs
+// The pre-BI0 structure (observed in working files):
+//   - 395-399: Tag bytes ([6]TEST or similar)
+//   - 404: 0x00 (NOT point count!)
+//   - 405: 0x02
+//   - 408: 0x02
 func writeToneCurve(data []byte, params *np3Parameters) {
 	// Only write curve data if we have control points
 	if params.toneCurvePointCount == 0 && len(params.toneCurvePoints) == 0 {
@@ -996,9 +995,35 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 		data[OffsetToneCurveEnabled2] = 0x01
 	}
 
+	// Write pre-BI0 structure (critical for NX Studio recognition)
+	// These bytes were observed in working files like FLEXIBLECOLOR-05.NP3
+	if len(data) > 410 {
+		// Tag at 395-399 (observed as [6]TEST in working files)
+		data[395] = 0x06 // Length prefix
+		data[396] = 0x54 // 'T'
+		data[397] = 0x45 // 'E'
+		data[398] = 0x53 // 'S'
+		data[399] = 0x54 // 'T'
+
+		// Zeros at 400-403
+		data[400] = 0x00
+		data[401] = 0x00
+		data[402] = 0x00
+		data[403] = 0x00
+
+		// Critical: Offset 404 must be 0x00 (not point count!)
+		data[404] = 0x00
+
+		// Required bytes at 405 and 408
+		data[405] = 0x02
+		data[406] = 0x00
+		data[407] = 0x00
+		data[408] = 0x02
+	}
+
 	// Write BI0 marker structure at offset 409
-	bi0 := OffsetBI0Marker
-	if len(data) > bi0+30 { // Ensure we have space for BI0 structure + points
+	bi0 := OffsetBI0Marker // 409
+	if len(data) > bi0+30 {
 		// Magic bytes "BI0"
 		data[bi0+0] = 0x42 // 'B'
 		data[bi0+1] = 0x49 // 'I'
@@ -1031,11 +1056,12 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 				data[offset+1] = params.toneCurvePoints[i].value2 // Y (output)
 			}
 		}
-	}
 
-	// Also write to legacy offset 404-405 for compatibility
-	if len(data) > OffsetToneCurvePointCount {
-		data[OffsetToneCurvePointCount] = uint8(params.toneCurvePointCount)
+		// Padding after control points (fill with zeros up to next 4 bytes)
+		lastPointOffset := bi0 + 12 + (pointCount * 2)
+		for i := lastPointOffset; i < lastPointOffset+4 && i < len(data); i++ {
+			data[i] = 0x00
+		}
 	}
 
 	// Extended tone curve LUT at offset 560 (for files that use LUT instead of points)
