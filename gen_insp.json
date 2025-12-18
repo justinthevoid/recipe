@@ -1,0 +1,117 @@
+{
+  "metadata": {
+    "source_file": "Agfachrome RSX 200.np3",
+    "source_format": "np3",
+    "parsed_at": "2025-12-18T17:02:44Z",
+    "recipe_version": "Recipe CLI v0.1.0"
+  },
+  "parameters": {
+    "name": "Agfachrome RSX 200 ",
+    "sourceFormat": "np3",
+    "exposure": -0.328125,
+    "contrast": 19,
+    "highlights": -17,
+    "shadows": 16,
+    "whites": 6,
+    "blacks": -13,
+    "clarity": -10,
+    "sharpnessRadius": 1,
+    "red": {
+      "hue": -4,
+      "saturation": -2,
+      "luminance": 5
+    },
+    "orange": {
+      "hue": -3,
+      "saturation": -2,
+      "luminance": 8
+    },
+    "yellow": {
+      "hue": -4,
+      "saturation": -6,
+      "luminance": 5
+    },
+    "green": {
+      "hue": 7,
+      "saturation": -9,
+      "luminance": 8
+    },
+    "aqua": {
+      "hue": 7,
+      "saturation": -6,
+      "luminance": 5
+    },
+    "blue": {
+      "hue": 5,
+      "saturation": -4,
+      "luminance": 3
+    },
+    "purple": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "magenta": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "colorGrading": {
+      "highlights": {
+        "hue": 31,
+        "chroma": 16
+      },
+      "midtone": {
+        "hue": 234,
+        "chroma": 5
+      },
+      "shadows": {
+        "hue": 222,
+        "chroma": 8
+      },
+      "blending": 50,
+      "balance": -7
+    },
+    "toneCurveShadowSplit": 25,
+    "toneCurveMidtoneSplit": 50,
+    "toneCurveHighlightSplit": 75,
+    "pointCurve": [
+      {
+        "input": 0,
+        "output": 20
+      },
+      {
+        "input": 36,
+        "output": 42
+      },
+      {
+        "input": 72,
+        "output": 65
+      },
+      {
+        "input": 108,
+        "output": 105
+      },
+      {
+        "input": 144,
+        "output": 145
+      },
+      {
+        "input": 180,
+        "output": 185
+      },
+      {
+        "input": 216,
+        "output": 214
+      },
+      {
+        "input": 255,
+        "output": 242
+      }
+    ],
+    "cameraProfileName": "Camera Standard",
+    "cameraProfile": {},
+    "grainAmount": 22,
+    "grainSize": 25
+  }
+}

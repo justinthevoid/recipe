@@ -203,6 +203,7 @@ type Description struct {
 	ColorGradeGlobalLum    string `xml:"ColorGradeGlobalLum,attr"`
 
 	// Camera Calibration (used for film emulation in professional presets)
+	CameraProfile                    string `xml:"CameraProfile,attr"`
 	CameraCalibrationRedHue          string `xml:"RedHue,attr"`
 	CameraCalibrationRedSaturation   string `xml:"RedSaturation,attr"`
 	CameraCalibrationGreenHue        string `xml:"GreenHue,attr"`
@@ -460,7 +461,8 @@ type xmpParameters struct {
 	shadowTint        int // ShadowTint is separate from CameraProfile struct
 
 	// Preset Name
-	name string
+	name              string
+	cameraProfileName string
 }
 
 // extractParameters extracts all parameter values from the XMP Description and converts
@@ -468,6 +470,10 @@ type xmpParameters struct {
 func extractParameters(desc *Description) (*xmpParameters, error) {
 	params := &xmpParameters{}
 	var err error
+
+	// Extract Metadata
+	params.name = desc.Name.Alt.Li
+	params.cameraProfileName = desc.CameraProfile
 
 	// Extract Basic Adjustments
 	params.exposure, err = parseFloat64(desc.Exposure2012, "Exposure2012")
@@ -1250,6 +1256,10 @@ func buildRecipe(params *xmpParameters) (*models.UniversalRecipe, error) {
 	recipe.Texture = params.texture
 	recipe.Dehaze = params.dehaze
 
+	// Set Incremental White Balance
+	recipe.IncrementalTemperature = params.incrementalTemperature
+	recipe.IncrementalTint = params.incrementalTint
+
 	// Set Sharpening Details
 	recipe.SharpnessRadius = params.sharpenRadius
 	recipe.SharpnessDetail = params.sharpenDetail
@@ -1307,6 +1317,7 @@ func buildRecipe(params *xmpParameters) (*models.UniversalRecipe, error) {
 	recipe.ToneCurveHighlightSplit = params.parametricHighlightSplit
 
 	// Set Camera Calibration
+	recipe.CameraProfileName = params.cameraProfileName
 	recipe.CameraProfile = params.cameraCalibration
 
 	return recipe, nil

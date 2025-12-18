@@ -244,8 +244,9 @@ func buildXMPDocument(recipe *models.UniversalRecipe) *xmpDocWrapper {
 		PresetType:     "Normal",
 		RDFAbout:       "", // Required by XMP/RDF specification
 
-		// Camera Profile
-		CameraProfile: recipe.CameraProfileName,
+		// Camera Profile - default to "Camera Flexible Color" for Nikon color accuracy
+		// This matches NX Studio's rendering better than Adobe Standard
+		CameraProfile: getCameraProfile(recipe.CameraProfileName),
 
 		// Basic Adjustments (formatted with appropriate precision)
 		Exposure2012:   formatFloat(recipe.Exposure),
@@ -753,6 +754,16 @@ func formatTemperature(temp *int) string {
 		return ""
 	}
 	return strconv.Itoa(*temp)
+}
+
+// getCameraProfile returns the camera profile name, defaulting to "Camera Flexible Color"
+// when no profile is specified. This default better matches Nikon's color rendering
+// than Adobe Standard, producing more accurate XMP output from NP3 conversions.
+func getCameraProfile(profileName string) string {
+	if profileName == "" {
+		return "Camera Flexible Color"
+	}
+	return profileName
 }
 
 // formatToneCurvePV2012 converts tone curve points to modern PV2012 nested sequence format.

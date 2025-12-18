@@ -1128,27 +1128,45 @@ func lutToParametric(lut []uint16) (shadows, darks, lights, highlights int) {
 }
 
 func extractToneCurve(data []byte, params *np3Parameters) {
-	// Point count (offset 404)
+	// Tone Curve Point Count
+	// Standard NP3 files (NX Studio) often have 0x00 at OffsetToneCurvePointCount (404)
+	// and store the actual count in the BI0 structure (offset 418).
+	// We must check both locations.
+	
+	// Initial check at 404
 	if ValidateOffset(OffsetToneCurvePointCount) && len(data) > OffsetToneCurvePointCount {
 		params.toneCurvePointCount = int(data[OffsetToneCurvePointCount])
+	}
 
-		// Control points (offset 405, 2 bytes per point)
-		if params.toneCurvePointCount > 0 && params.toneCurvePointCount <= 127 {
-			pointsOffset := OffsetToneCurvePoints
-			pointsEnd := pointsOffset + (params.toneCurvePointCount * 2)
+	// Check for BI0 marker at offset 409 (standard for valid NP3 files)
+	// If present, points start at BI0+11 (offset 420), NOT 405 (matches working file structure)
+	pointsOffset := OffsetToneCurvePoints
+	if len(data) > OffsetBI0Marker+3 && data[OffsetBI0Marker] == 'B' && data[OffsetBI0Marker+1] == 'I' && data[OffsetBI0Marker+2] == '0' {
+		pointsOffset = OffsetBI0Marker + 11
+		
+		// Sync point count from BI0 header (offset 418)
+		if len(data) > OffsetBI0Marker+9 {
+			bi0Count := int(data[OffsetBI0Marker+9])
+			if bi0Count > 0 {
+				params.toneCurvePointCount = bi0Count
+			}
+		}
+	}
 
-			if ValidateOffsetRange(pointsOffset, pointsEnd) && len(data) >= pointsEnd {
-				params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
-				for i := 0; i < params.toneCurvePointCount; i++ {
-					offset := pointsOffset + (i * 2)
-					// SWAP: value1 is Output, value2 is Input
-					// Previous assumption: V1=Input, V2=Output -> Dark curve
-					// New Finding: V1=Output, V2=Input -> Correct Bright curve (matches user values)
-					params.toneCurvePoints[i] = toneCurvePoint{
-						position: offset,
-						value1:   data[offset+1], // Input
-						value2:   data[offset],   // Output
-					}
+	// Read control points if we have a count
+	if params.toneCurvePointCount > 0 && params.toneCurvePointCount <= 127 {
+		pointsEnd := pointsOffset + (params.toneCurvePointCount * 2)
+
+		if len(data) >= pointsEnd {
+			params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
+			for i := 0; i < params.toneCurvePointCount; i++ {
+				offset := pointsOffset + (i * 2)
+				// FIXED: Read X (Input) and Y (Output) directly.
+				// Writer writes [X, Y]. Previous swap logic inverted the curve axes!
+				params.toneCurvePoints[i] = toneCurvePoint{
+					position: offset,
+					value1:   data[offset],   // Input (X)
+					value2:   data[offset+1], // Output (Y)
 				}
 			}
 		}
@@ -1199,8 +1217,9 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 		}
 	}
 
-	// Extract LUT if valid offset found
-	if lutOffset >= 0 && lutOffset+514 <= len(data) {
+	// Extract LUT if valid offset found AND we don't already have valid control points
+	// CRITICAL: Don't overwrite valid control points from offset 405 with potentially garbage LUT data
+	if lutOffset >= 0 && lutOffset+514 <= len(data) && len(params.toneCurvePoints) == 0 {
 		params.toneCurveRaw = make([]uint16, lutSize)
 		for i := 0; i < lutSize; i++ {
 			offset := lutOffset + (i * 2)

@@ -198,3 +198,159 @@ func TestParametricCurveIntegration(t *testing.T) {
 		}
 	}
 }
+
+// ===== RGB Curve Merging Tests =====
+
+func TestMergeRGBCurvesToMaster_IdenticalCurves(t *testing.T) {
+	// Simulates Agfachrome RSX 200: identical RGB curves (0,10), (71,64), (188,194), (255,242)
+	rgbCurve := []ControlPoint{
+		{X: 0, Y: 10},
+		{X: 71, Y: 64},
+		{X: 188, Y: 194},
+		{X: 255, Y: 242},
+	}
+
+	masterCurve := []ControlPoint{
+		{X: 0, Y: 13},
+		{X: 65, Y: 65},
+		{X: 255, Y: 255},
+	}
+
+	result := MergeRGBCurvesToMaster(masterCurve, rgbCurve, rgbCurve, rgbCurve)
+
+	if len(result) == 0 {
+		t.Fatal("Expected merged curve to have points")
+	}
+
+	// Verify first point is lifted (RGB curve lifts blacks from 0 to 10)
+	if result[0].Y < 5 {
+		t.Errorf("Expected lifted blacks at first point, got Y=%d", result[0].Y)
+	}
+
+	// Verify last point is compressed (RGB curve compresses whites to 242)
+	lastIdx := len(result) - 1
+	if result[lastIdx].Y > 250 {
+		t.Errorf("Expected compressed whites at last point, got Y=%d", result[lastIdx].Y)
+	}
+
+	t.Logf("Merged curve has %d points:", len(result))
+	for i, p := range result {
+		t.Logf("  Point %d: (%d, %d)", i, p.X, p.Y)
+	}
+}
+
+func TestMergeRGBCurvesToMaster_NoRGBCurves(t *testing.T) {
+	masterCurve := []ControlPoint{
+		{X: 0, Y: 0},
+		{X: 128, Y: 140},
+		{X: 255, Y: 255},
+	}
+
+	result := MergeRGBCurvesToMaster(masterCurve, nil, nil, nil)
+
+	if len(result) != len(masterCurve) {
+		t.Errorf("Expected %d points, got %d", len(masterCurve), len(result))
+	}
+}
+
+func TestCurvesAreIdentical(t *testing.T) {
+	curve1 := []ControlPoint{{X: 0, Y: 10}, {X: 128, Y: 140}, {X: 255, Y: 255}}
+	curve2 := []ControlPoint{{X: 0, Y: 10}, {X: 128, Y: 140}, {X: 255, Y: 255}}
+	curve3 := []ControlPoint{{X: 0, Y: 11}, {X: 128, Y: 140}, {X: 255, Y: 255}} // Slightly different
+
+	if !CurvesAreIdentical(curve1, curve2, curve2, 2) {
+		t.Error("Expected identical curves to be recognized")
+	}
+
+	if !CurvesAreIdentical(curve1, curve2, curve3, 2) {
+		t.Error("Expected curves to be identical within tolerance=2")
+	}
+
+	if CurvesAreIdentical(curve1, curve2, curve3, 0) {
+		t.Error("Expected curves to be different with tolerance=0")
+	}
+}
+
+func TestPointsToCurveLUT(t *testing.T) {
+	points := []ControlPoint{{X: 0, Y: 10}, {X: 255, Y: 240}}
+
+	lut := PointsToCurveLUT(points)
+
+	if lut[0] != 10 {
+		t.Errorf("Expected lut[0]=10, got %d", lut[0])
+	}
+
+	if lut[255] != 240 {
+		t.Errorf("Expected lut[255]=240, got %d", lut[255])
+	}
+
+	expectedMid := (10 + 240) / 2
+	if absInt(lut[127]-expectedMid) > 2 {
+		t.Errorf("Expected lut[127]≈%d, got %d", expectedMid, lut[127])
+	}
+}
+
+func TestToneCurvePointsToControlPoints(t *testing.T) {
+	points := []models.ToneCurvePoint{
+		{Input: 0, Output: 10},
+		{Input: 128, Output: 140},
+		{Input: 255, Output: 255},
+	}
+
+	result := toneCurvePointsToControlPoints(points)
+
+	if len(result) != 3 {
+		t.Fatalf("Expected 3 points, got %d", len(result))
+	}
+
+	if result[0].X != 0 || result[0].Y != 10 {
+		t.Errorf("First point mismatch: got (%d,%d)", result[0].X, result[0].Y)
+	}
+}
+
+func TestRGBCurveIntegration(t *testing.T) {
+	// Test the full flow: XMP recipe with RGB curves → NP3 with merged curve
+	recipe := &models.UniversalRecipe{
+		PointCurve: []models.ToneCurvePoint{
+			{Input: 0, Output: 13},
+			{Input: 65, Output: 65},
+			{Input: 255, Output: 255},
+		},
+		PointCurveRed: []models.ToneCurvePoint{
+			{Input: 0, Output: 10},
+			{Input: 71, Output: 64},
+			{Input: 188, Output: 194},
+			{Input: 255, Output: 242},
+		},
+		PointCurveGreen: []models.ToneCurvePoint{
+			{Input: 0, Output: 10},
+			{Input: 71, Output: 64},
+			{Input: 188, Output: 194},
+			{Input: 255, Output: 242},
+		},
+		PointCurveBlue: []models.ToneCurvePoint{
+			{Input: 0, Output: 10},
+			{Input: 71, Output: 64},
+			{Input: 188, Output: 194},
+			{Input: 255, Output: 242},
+		},
+	}
+
+	params, err := convertToNP3Parameters(recipe)
+	if err != nil {
+		t.Fatalf("convertToNP3Parameters failed: %v", err)
+	}
+
+	// Verify that tone curve was generated
+	if params.toneCurvePointCount == 0 {
+		t.Error("Expected tone curve points from merged RGB curves")
+	}
+
+	t.Logf("Generated %d tone curve points from RGB curve merging", params.toneCurvePointCount)
+
+	// First point should have lifted blacks
+	if len(params.toneCurvePoints) > 0 {
+		first := params.toneCurvePoints[0]
+		t.Logf("First point: (%d, %d)", first.value1, first.value2)
+	}
+}
