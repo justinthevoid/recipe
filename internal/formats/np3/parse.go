@@ -201,6 +201,12 @@ type np3Parameters struct {
 	toneCurvePoints     []toneCurvePoint // Offset 405, 2 bytes per point
 	toneCurveRaw        []uint16         // Offset 460, 257 × 16-bit big-endian
 
+	// Tone Curve (Control Points for generation)
+	toneCurve    []ControlPoint // Slice of 20 control points
+
+	// Base Picture Control ID (e.g. 1=Standard, 40=Flexible Color)
+	basePictureControlID uint8
+
 	// Parametric Curve (derived from toneCurveRaw via lutToParametric)
 	// These values represent zone-based deviations from linear, scaled to -100 to +100
 	parametricShadows    int // Shadows zone (0-25%)
@@ -558,33 +564,16 @@ func extractHeuristicParameters(params *np3Parameters, rawParams []rawParamByte)
 	// Since we don't have it here, we need to extract differently
 	// For now, use the rawParams but fix the conversion
 
-	// BRIGHTNESS: Analyze raw parameter bytes 71-75
-	// Encoding: raw_byte = (brightness * 128) + 128
-	// Decoding: brightness = (raw_byte - 128) / 128.0
-	brightnessSum := 0
-	brightnessCount := 0
-	for _, rp := range rawParams {
-		if rp.offset >= heuristicBrightnessStart && rp.offset <= heuristicBrightnessEnd {
-			// Use raw byte and apply simple offset decoding (not two's complement)
-			// adjusted = raw_byte - 128
-			adjusted := int(rp.raw) - 128
-			brightnessSum += adjusted
-			brightnessCount++
-		}
-	}
-
-	if brightnessCount > 0 {
-		// Average and normalize to -1.0 to +1.0 range
-		avgBrightness := brightnessSum / brightnessCount
-		params.brightness = float64(avgBrightness) / 128.0
-		if params.brightness < -1.0 {
-			params.brightness = -1.0
-		} else if params.brightness > 1.0 {
-			params.brightness = 1.0
-		}
-	} else {
-		params.brightness = 0.0
-	}
+	// BRIGHTNESS: DEPRECATED - DO NOT EXTRACT
+	// Previously extracted from bytes 71-75, but these offsets are actually TLV chunk structure.
+	// NP3 format does NOT have a dedicated Exposure/Brightness parameter at a known offset.
+	// The heuristic extraction was incorrectly interpreting TLV chunk bytes as brightness values.
+	// Result: Random/incorrect brightness values like -0.328125 from chunk data.
+	//
+	// SOLUTION: Always set brightness to 0.0 when parsing NP3.
+	// Brightness/Exposure is NOT a real NP3 parameter - it only exists in XMP/lrtemplate.
+	// This ensures XMP→NP3→XMP conversion doesn't introduce spurious exposure shifts.
+	params.brightness = 0.0
 
 	// HUE: Analyze raw parameter bytes 76-79
 	// Encoding: raw_byte = (hue * 128 / 9) + 128

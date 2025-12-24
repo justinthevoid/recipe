@@ -6,6 +6,7 @@ package np3
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/justin/recipe/internal/models"
 )
@@ -58,15 +59,15 @@ func GenerateWithWarnings(recipe *models.UniversalRecipe) ([]byte, *models.Conve
 
 	// Build binary structure
 	// DEBUG: Append version to force fresh import in NX Studio
-	recipe.Name += " v9"
+	recipe.Name += " v15"
 	
 	// Truncate name to 20 chars to ensure suffix fits in effective display area
 	// Hex dump showed truncation at 20 chars ("Agfachrome RSX 200 v").
 	if len(recipe.Name) > 20 {
-		// We want the suffix " v9" to be visible, so keep the start + suffix?
-		// "Agfachrome... v9"
+		// We want the suffix " v15" to be visible, so keep the start + suffix?
+		// "Agfachrome... v15"
 		// Start: "Agfachrome RSX 2" (16 chars)
-		recipe.Name = recipe.Name[:16] + " v9"
+		recipe.Name = recipe.Name[:16] + " v15"
 	}
 	
 	data, err := encodeBinary(params, recipe.Name)
@@ -368,10 +369,17 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 	// Direct mapping from UniversalRecipe ColorGrading
 
 	// Map Color Grading if present
+	// Only assign zones that have actual data (non-zero chroma) to avoid overwriting Split Toning fallback
 	if recipe.ColorGrading != nil {
-		params.highlightsZone = recipe.ColorGrading.Highlights
-		params.midtoneZone = recipe.ColorGrading.Midtone
-		params.shadowsZone = recipe.ColorGrading.Shadows
+		if recipe.ColorGrading.Highlights.Chroma != 0 {
+			params.highlightsZone = recipe.ColorGrading.Highlights
+		}
+		if recipe.ColorGrading.Midtone.Chroma != 0 {
+			params.midtoneZone = recipe.ColorGrading.Midtone
+		}
+		if recipe.ColorGrading.Shadows.Chroma != 0 {
+			params.shadowsZone = recipe.ColorGrading.Shadows
+		}
 		params.blending = recipe.ColorGrading.Blending
 		params.balance = recipe.ColorGrading.Balance
 	}
@@ -464,17 +472,66 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 
 	// 3. Combine: Final = Point(Parametric(Input))
 	finalCurveLUT := ApplyCurveToLUT(parametricLUT, pointCurveLUT)
+
+	// === CRITICAL FIX: Apply Blacks BEFORE any other curve processing ===
+	// XMP Blacks adjustment must be applied in Lightroom order: Blacks → Point Curve
+	// Previously, Blacks was only baked when Standard profile was enabled.
+	// This caused Blacks to be lost when Standard profile was disabled to fix shadow crushing.
+	// Now we ALWAYS apply Blacks to match Lightroom's processing order.
+	// Example: XMP has Blacks -13 (pulls down shadow point) → Point Curve 0→13 (lifts shadows)
+	// Result: Shadow detail preserved but blacks properly anchored.
+	if recipe.Blacks != 0 {
+		finalCurveLUT = ApplyExposureAndBlacksToLUT(finalCurveLUT, 0, recipe.Blacks)
+		// Note: Pass 0 for Exposure here, as Exposure is handled separately via brightness parameter
+	}
+
+	// Parse profile name for decision making
+	profileName := strings.TrimSpace(recipe.CameraProfileName)
+
+	// === BASELINE COMPENSATION for Adobe DCP vs Nikon Profile Differences ===
+	// Adobe's "Flexible Color" DCP has a +47.8 brightness baseline applied before XMP adjustments.
+	// Nikon's native "Flexible Color" has a ~+105.6 brightness baseline (58 units brighter).
+	// When converting XMP→NP3, we need to compensate for this baseline difference so that
+	// NX Studio output matches Lightroom output when both use their Flexible Color profiles.
+	//
+	// Compensation is applied if:
+	// 1. Metadata explicitly requests it (recipe.Metadata["baseline_compensation"] == "flexible_color")
+	// 2. The Camera Profile is explicitly "Flexible Color" (auto-detection)
+	//
+	// The compensation darkens the curve by applying the inverse of the baseline difference.
+	// See: docs/analysis/adobe-dcp-baseline-discovery.md for full analysis.
+	isFlexibleColor := strings.Contains(profileName, "Flexible Color")
+	forceCompensation := recipe.Metadata != nil && recipe.Metadata["baseline_compensation"] == "flexible_color"
 	
+	if isFlexibleColor || forceCompensation {
+		// TEMPORARILY DISABLED: Testing with X/Y swap fix first
+		// The compensation was too aggressive (crushing shadows to 0)
+		// TODO: Re-enable with gentler compensation once baseline is verified
+		// finalCurveLUT = ApplyFlexibleColorBaselineCompensation(finalCurveLUT)
+		_ = isFlexibleColor // Suppress unused warning
+		_ = forceCompensation
+	}
+
 	// Convert combined LUT to Control Points for final output
 	finalCurve = LUTToControlPoints(finalCurveLUT, 20)
 
 	// Apply Standard S-Curve contrast if this is an XMP preset expecting "Standard" contrast
 	// but we are using "Flexible Color" (Linear) as the base.
 	// This restores the "Adobe Standard" / "Camera Standard" look.
-	isStandardProfile := recipe.CameraProfileName == "Default Color" ||
-		recipe.CameraProfileName == "Camera Standard" ||
-		recipe.CameraProfileName == "Adobe Standard" ||
-		recipe.CameraProfileName == "Embedded" // Embedded usually means standard-ish
+	isStandardProfile := profileName == "Default Color" ||
+		profileName == "Camera Standard" ||
+		profileName == "Adobe Standard" ||
+		profileName == "Embedded" || // Embedded usually means standard-ish
+		strings.Contains(profileName, "Standard") // Catch-all for variants
+
+	// CRITICAL FIX: Skip Standard base curve if preset already has custom Point Curve with shadow lift.
+	// Film emulation presets like Agfachrome have their own tone curves baked in.
+	// Applying Standard base curve on top of custom curves CRUSHES the intended shadow lift.
+	// Example: XMP has 0→13 lift, but Standard base curve crushes it back to 0.
+	hasCustomPointCurve := len(recipe.PointCurve) > 0 && recipe.PointCurve[0].Output > recipe.PointCurve[0].Input
+	if hasCustomPointCurve {
+		isStandardProfile = false // Disable Standard base curve for presets with custom curves
+	}
 
 	if isStandardProfile {
 		// Ensure we have a curve to act as modifier
@@ -489,23 +546,42 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 		baseLUT := GetStandardBaseCurveLUT()
 		mergedLUT := ApplyCurveToLUT(baseLUT, finalCurveLUT)
 
-		// === Bake Exposure and Blacks into Curve ===
-		// XMP Exposure and Blacks are not fully mapped to NP3 parameters.
-		// We bake them into the tone curve LUT to ensure histogram fidelity.
-		if recipe.Exposure != 0 || recipe.Blacks != 0 {
-			mergedLUT = ApplyExposureAndBlacksToLUT(mergedLUT, recipe.Exposure, recipe.Blacks)
+		// === Bake Contrast into Curve ===
+		// XMP Contrast (+19) is best applied to the curve for fidelity,
+		// especially if the NP3 Contrast slider behaves differently or is ignored when chaining.
+		// FIXED: Removed 2x multiplier (was Bug #3). XMP Contrast +19 should be applied as +19, not +38.
+		// The 2x multiplier was too aggressive and contributed to overall darkening.
+		if recipe.Contrast != 0 {
+			mergedLUT = ApplyContrastToLUT(mergedLUT, recipe.Contrast)
+			params.contrast = 0 // Zero out the slider
 		}
+
+		// === Bake Exposure into Curve (for Standard profile only) ===
+		// Note: Blacks is now handled earlier (lines 483-486) for ALL presets.
+		// Here we only handle Exposure for Standard profile presets.
+		if recipe.Exposure != 0 {
+			mergedLUT = ApplyExposureAndBlacksToLUT(mergedLUT, recipe.Exposure, 0)
+			params.brightness = 0 // Zero out exposure slider (mapped to brightness)
+		}
+		
+		// Force a slight negative Black Level to ensure the curve starts at rigid 0.
+		// Previous result showed a lift (~3-5) despite mathematical 0.
+		// Pulling it down ensures deep blacks.
+		params.blackLevel = -5
 
 		// Convert back to control points (use 20 points for fidelity)
 		finalCurve = LUTToControlPoints(mergedLUT, 20)
 		
 		// === Color Fidelity: Standard Profile Color Emulation ===
-		// "Camera Standard" renders blues/greens significantly darker than "Flexible Color".
-		// Users report "blues/greens are much darker" in Lightroom reference.
-		// We aggressively deepen these memory colors to match the Standard look.
-		params.blueBrightness = clampColorBlender(params.blueBrightness - 40)
-		params.cyanBrightness = clampColorBlender(params.cyanBrightness - 40)
-		params.greenBrightness = clampColorBlender(params.greenBrightness - 30)
+		// FIXED: Previous code darkened blues/greens by -30 to -40 based on MISUNDERSTANDING of user feedback.
+		// User actually said "blues/greens are MORE VIBRANT in Lightroom" (meaning BRIGHTER, not darker).
+		// Darkening hack removed - HSL luminance values now come directly from XMP preset.
+		// This preserves the intended color vibrancy instead of crushing it.
+		//
+		// REMOVED (was Bug #2):
+		// params.blueBrightness = clampColorBlender(params.blueBrightness - 40)   // Made blue -37 instead of +3!
+		// params.cyanBrightness = clampColorBlender(params.cyanBrightness - 40)   // Made cyan -35 instead of +5!
+		// params.greenBrightness = clampColorBlender(params.greenBrightness - 30) // Made green -22 instead of +8!
 
 		
 		// Standard also tends to be slightly warmer in highlights.
@@ -522,23 +598,46 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 
 		params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
 		for i := 0; i < params.toneCurvePointCount; i++ {
+			// CRITICAL: We must use the Compensated LUT value for Y, not the original point Y.
+			// The finalCurveLUT contains the brightness compensation (and other adjustments).
+			// By sampling the LUT at the point's X position, we bake the compensation into the control points.
+			x := int(finalCurve[i].X)
+			var y uint8
+			if x >= 0 && x < 256 {
+				y = uint8(finalCurveLUT[x])
+			} else {
+				y = uint8(finalCurve[i].Y) // Fallback
+			}
+
+			// SIMPLE LINEAR DARKENING: NX Studio baseline is brighter than Lightroom
+			// Subtract a flat offset from Y values to darken the output
+			// This is simpler than the complex compensation and doesn't crush shadows to 0
+			darkenOffset := 40
+			yDarkened := int(y) - darkenOffset
+			if yDarkened < 0 {
+				yDarkened = 0
+			}
+
 			params.toneCurvePoints[i] = toneCurvePoint{
-				position: 405 + (i * 2), // Offset calculation
-				value1:   uint8(finalCurve[i].X),
-				value2:   uint8(finalCurve[i].Y),
+				position: 405 + (i * 2),
+				value1:   uint8(yDarkened), // Y (output) - NP3 stores (Y, X)
+				value2:   uint8(x),         // X (input)
 			}
 		}
+
+		// NOTE: Do NOT populate toneCurveRaw - the BASELINE file that worked
+		// had zeros in the Extended LUT area (560-1072). Writing data there
+		// causes import failures in NX Studio.
+		// The curve is fully defined by the BI0 control points.
 	}
 
 	// === Legacy Parameters (for heuristic fallback compatibility) ===
 
 	// Brightness: UniversalRecipe Exposure field → NP3 brightness (-1.0 to +1.0)
-	params.brightness = recipe.Exposure
-	if params.brightness > 1.0 {
-		params.brightness = 1.0
-	} else if params.brightness < -1.0 {
-		params.brightness = -1.0
-	}
+	// NOTE: NP3 format does NOT have a dedicated Exposure/Brightness offset.
+	// This parameter exists in the struct for round-trip compatibility but is not written to binary.
+	// Always set to 0 since there's nowhere to write it in the 480-byte NP3 format.
+	params.brightness = 0.0 // Force to 0 (NP3 has no exposure parameter)
 
 	// Hue: No direct mapping in UniversalRecipe (only per-color hue adjustments)
 	params.hue = 0
@@ -639,7 +738,11 @@ func writeChunks(data []byte, params *np3Parameters) {
 	// Chunks 0x03-0x05: Constants
 	offset = writeChunk(data, offset, npChunk{id: 0x03, length: 2, value: []byte{0x00, 0x20}})
 	offset = writeChunk(data, offset, npChunk{id: 0x04, length: 2, value: []byte{0x00, 0x00}})
-	offset = writeChunk(data, offset, npChunk{id: 0x05, length: 2, value: []byte{0xff, 0x01}})
+	
+	// Chunk 0x05: Base Picture Control ID
+	baseID := params.basePictureControlID
+	if baseID == 0 { baseID = 1 } // Default to Standard if not set
+	offset = writeChunk(data, offset, npChunk{id: 0x05, length: 2, value: []byte{0xff, baseID}})
 
 	// Chunks 0x06-0x07: Sharpening and Clarity parameters
 	// These chunks contain the actual parameter values in their value fields
@@ -1198,46 +1301,40 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 		return
 	}
 
-	// Write curve enable flags - both must be 0x01
+	// WORKING LAYOUT from Agfachrome RSX 2 v15-FIXED-BASELINE.NP3:
+	// - Flags 389/390: 01 01
+	// - TEST block at 395: 06 54 45 53 54 00 00 00 00 00 00 00 02 00 00 02
+	// - BI0 at 409
+	// - No Extended LUT (curve is in BI0 control points only)
+	
+	// Enable Flags at 389/390: Set to 0x01
 	if len(data) > OffsetToneCurveEnabled2 {
 		data[OffsetToneCurveEnabled1] = 0x01
 		data[OffsetToneCurveEnabled2] = 0x01
 	}
 
-	// Write pre-BI0 structure (critical for NX Studio recognition)
-	// These bytes were observed in working files like FLEXIBLECOLOR-05.NP3
-	if len(data) > 410 {
-		// Tag at 395-399 (observed as [6]TEST in working files)
+	// TEST block at 395-408 (observed in working FIXED-BASELINE file)
+	if len(data) > 408 {
 		data[395] = 0x06 // Length prefix
 		data[396] = 0x54 // 'T'
 		data[397] = 0x45 // 'E'
 		data[398] = 0x53 // 'S'
 		data[399] = 0x54 // 'T'
-
-		// Zeros at 400-403
 		data[400] = 0x00
 		data[401] = 0x00
 		data[402] = 0x00
 		data[403] = 0x00
-
-		// Write Point Count at Offset 404 (Style 1) - Required for NX Studio to know count?
-		// But verify if this disabled BI0? 
-		// Previous attempt: 404=0 -> BI0 read.
-		// If BI0 read -> Points read from wrong place.
-		// If I set 404=Count, maybe BI0 is ignored?
-		// User says "Tone Curve Gone" with Style 1.
-		// So 404 MUST BE 0 to enable BI0 reading.
 		data[404] = 0x00
-
-		// Required bytes at 405 and 408
 		data[405] = 0x02
 		data[406] = 0x00
 		data[407] = 0x00
 		data[408] = 0x02
 	}
+	
+	// BI0 Marker at 409
+	bi0 := OffsetBI0Marker // 409
 
 	// Write BI0 marker structure at offset 409
-	bi0 := OffsetBI0Marker // 409
 	if len(data) > bi0+30 {
 		// Magic bytes "BI0"
 		data[bi0+0] = 0x42 // 'B'
@@ -1280,7 +1377,8 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 		}
 	}
 
-	// Extended tone curve LUT at offset 560 (for files that use LUT instead of points)
+	// Extended tone curve LUT at offset 560 (0x230) - for files large enough to support it
+	// Note: We do NOT write to 0x1CC as that can corrupt smaller NP3 structures
 	if len(params.toneCurveRaw) > 0 && len(data) >= OffsetExtendedToneCurveLUT+512 {
 
 		numEntries := len(params.toneCurveRaw)
@@ -1293,6 +1391,9 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 			if value <= 32767 {
 				value = value * 2 // Scale to 0-65535 range
 			}
+			// Note: MGA Slide has natural curve data (no artificial minimums)
+			// The checkbox appears to be triggered by the BI0@395 layout,
+			// not by LUT[0] being non-zero. Keeping natural curve values.
 			data[offset] = uint8(value >> 8)
 			data[offset+1] = uint8(value & 0xFF)
 		}
@@ -1422,4 +1523,189 @@ func applyDehaze(recipe *models.UniversalRecipe, params *np3Parameters) {
 			params.blackLevel = -100
 		}
 	}
+}
+
+// ApplyFlexibleColorBaselineCompensation applies compensation for the difference between
+// Adobe's "Flexible Color" DCP baseline (+47.8 brightness) and Nikon's native "Flexible Color"
+// baseline (~+105.6 brightness).
+//
+// This function darkens the tone curve by ~57.8 luminance units to compensate for Nikon's
+// brighter baseline, ensuring that NX Studio output matches Lightroom output when both
+// use their respective Flexible Color profiles.
+//
+// The compensation uses the inverse baseline method:
+// - Adobe DCP baseline extracted from "Nikon Z f Camera Flexible Color.dcp"
+// - Nikon baseline estimated from visual comparison (+51.1 luminance difference)
+// - Compensation applied as inverse curve mapping
+//
+// See: docs/analysis/adobe-dcp-baseline-discovery.md for detailed analysis
+// See: scripts/calculate_baseline_compensation.py for derivation
+//
+// Returns a darkened LUT that compensates for the baseline difference.
+// ApplyFlexibleColorBaselineCompensation applies a compensation curve to match Adobe vs Nikon baseline differences.
+//
+// Problem:
+// - Adobe's "Flexible Color" profile applies a moderate S-curve baseline.
+// - Nikon's native "Flexible Color" profile applies a MUCH brighter baseline (Shadows +70, Mids +40).
+// - Start-to-end difference: +47.6 luminance average, but highly non-linear.
+//
+// Solution:
+// We construct a compensation curve C such that: C(NikonBase(x)) ≈ XMPCurve(AdobeBase(x))
+// This ensures that when Nikon applies its base, followed by our curve, the result matches 
+// what Lightroom produces (XMP curve on top of Adobe base).
+//
+// See: docs/analysis/visual-accuracy-root-cause-analysis.md
+func ApplyFlexibleColorBaselineCompensation(lut []int) []int {
+	// 1. Adobe DCP Flexible Color Baseline (32 sample points from 128-point curve)
+	// Extracted from: testdata/dcp/Nikon Z f Camera Flexible Color.dcp
+	adobeBaseline := []struct{ x, y float64 }{
+		{x: 0.000000, y: 0.000000}, {x: 0.002438, y: 0.001959}, {x: 0.005208, y: 0.005911}, {x: 0.009189, y: 0.013544},
+		{x: 0.014539, y: 0.024477}, {x: 0.021368, y: 0.038992}, {x: 0.029773, y: 0.057326}, {x: 0.039846, y: 0.079311},
+		{x: 0.051668, y: 0.105307}, {x: 0.065317, y: 0.135484}, {x: 0.080866, y: 0.169726}, {x: 0.098385, y: 0.208347},
+		{x: 0.117937, y: 0.251100}, {x: 0.139587, y: 0.298750}, {x: 0.163393, y: 0.349381}, {x: 0.189414, y: 0.400751},
+		{x: 0.217703, y: 0.449423}, {x: 0.248315, y: 0.496630}, {x: 0.281302, y: 0.543200}, {x: 0.316712, y: 0.590829},
+		{x: 0.354594, y: 0.639572}, {x: 0.394996, y: 0.686798}, {x: 0.437963, y: 0.730482}, {x: 0.483539, y: 0.771481},
+		{x: 0.531769, y: 0.809248}, {x: 0.582693, y: 0.844011}, {x: 0.636355, y: 0.875652}, {x: 0.692794, y: 0.903849},
+		{x: 0.752050, y: 0.928407}, {x: 0.814161, y: 0.953279}, {x: 0.879166, y: 0.974905}, {x: 1.000000, y: 1.000000},
+	}
+
+	// 2. Generate Adobe Base LUT (Input -> AdobeOutput)
+	adobeLUT := make([]int, 256)
+	for i := 0; i < 256; i++ {
+		inputNorm := float64(i) / 255.0
+		var outputNorm float64
+		// Basic linear interpolation
+		if inputNorm <= adobeBaseline[0].x {
+			outputNorm = adobeBaseline[0].y
+		} else if inputNorm >= adobeBaseline[len(adobeBaseline)-1].x {
+			outputNorm = adobeBaseline[len(adobeBaseline)-1].y
+		} else {
+			for j := 0; j < len(adobeBaseline)-1; j++ {
+				if inputNorm >= adobeBaseline[j].x && inputNorm <= adobeBaseline[j+1].x {
+					t := (inputNorm - adobeBaseline[j].x) / (adobeBaseline[j+1].x - adobeBaseline[j].x)
+					outputNorm = adobeBaseline[j].y + t*(adobeBaseline[j+1].y-adobeBaseline[j].y)
+					break
+				}
+			}
+		}
+		adobeLUT[i] = int(outputNorm * 255.0)
+		if adobeLUT[i] > 255 { adobeLUT[i] = 255 } // Safety clamp
+	}
+
+	// 3. Generate Estimated Nikon Base LUT (Input -> NikonOutput)
+	// Modeled as Adobe + Non-Linear Offset based on visual regression data
+	// INCREASED VALUES: Previous 75/60/25/10 was not aggressive enough.
+	// Shadows: +120->100 | Mids: 100->50 | Highs: 50->20
+	nikonLUT := make([]int, 256)
+	for i := 0; i < 256; i++ {
+		var offset float64
+		inputVal := float64(i)
+		
+		if inputVal < 64 {
+			// Shadows (0-63): Fade 120 -> 100
+			ratio := inputVal / 64.0
+			offset = 120.0 - (20.0 * ratio)
+		} else if inputVal < 192 {
+			// Midtones (64-191): Fade 100 -> 50
+			ratio := (inputVal - 64.0) / 128.0
+			offset = 100.0 - (50.0 * ratio)
+		} else {
+			// Highlights (192-255): Fade 50 -> 20
+			ratio := (inputVal - 192.0) / 63.0
+			offset = 50.0 - (30.0 * ratio)
+		}
+
+		val := adobeLUT[i] + int(offset)
+		if val > 255 { val = 255 }
+		nikonLUT[i] = val
+	}
+
+	// 4. Construct Compensation LUT mapping: NikonOutput -> TargetOutput
+	// We gather points (x, y) where x = NikonLUT[i], y = lut[AdobeLUT[i]]
+	// This creates the mapping C(x) = y
+	compensatedLUT := make([]int, 256)
+	for i := range compensatedLUT {
+		compensatedLUT[i] = -1 // Mark as uninitialized
+	}
+
+	// Gather points
+	for i := 0; i < 256; i++ {
+		inputToCurve := nikonLUT[i]        // This is what the curve receives from Nikon Base
+		
+		adobeOut := adobeLUT[i]            // This is what Adobe Base produces for same input
+		target := lut[adobeOut]            // This is our desired final output (XMP applied to Adobe Base)
+
+		// Map inputToCurve -> target
+		// Since multiple inputs i might map to same inputToCurve, we take the last one (safe assumption for monotonic)
+		// or simpler: just write it.
+		compensatedLUT[inputToCurve] = target
+	}
+
+	// 5. Fill gaps using interpolation and handle edges
+	// Forward pass to fill gaps
+	lastVal := 0
+	// Find first valid value
+	firstValidIdx := -1
+	for i := 0; i < 256; i++ {
+		if compensatedLUT[i] != -1 {
+			firstValidIdx = i
+			lastVal = compensatedLUT[i]
+			break
+		}
+	}
+
+	if firstValidIdx == -1 {
+		// Degenerate case, shouldn't happen
+		return lut
+	}
+
+	// Fill valid range
+	for i := firstValidIdx; i < 256; i++ {
+		if compensatedLUT[i] != -1 {
+			lastVal = compensatedLUT[i]
+		} else {
+			// Look ahead for next valid
+			nextValidIdx := -1
+			nextVal := lastVal
+			for j := i + 1; j < 256; j++ {
+				if compensatedLUT[j] != -1 {
+					nextValidIdx = j
+					nextVal = compensatedLUT[j]
+					break
+				}
+			}
+			
+			if nextValidIdx != -1 {
+				// Interpolate
+				dist := float64(nextValidIdx - (i - 1)) // distance from prev valid
+				currDist := float64(i - (i - 1))
+				t := currDist / dist
+				
+				// Simpler fill: Just connect last valid to next valid
+				// We need the index of point BEFORE the gap. 
+				// The loop structure: we are at `i` which is -1.
+				// Previous index `i-1` MUST be valid (or we are before firstValidIdx).
+				// We handled before firstValidIdx separately.
+				prevValidIdx := i - 1
+				prevVal := compensatedLUT[prevValidIdx]
+				
+				compensatedLUT[i] = int(float64(prevVal) + t*float64(nextVal - prevVal))
+			} else {
+				// No more valid points, clamp to last value
+				compensatedLUT[i] = lastVal
+			}
+		}
+	}
+
+	// Fill beginning (0 to firstValidIdx)
+	// Extrapolate slope? Or clamp to 0?
+	// Nikon adds brightness, so input 0 -> Nikon 75. 
+	// Curve inputs 0-74 are impossible inputs from Base.
+	// But mathematically we should probably clamp to 0 or extend slope.
+	// Clamping 0 is safest for "Black remains Black".
+	for i := 0; i < firstValidIdx; i++ {
+		compensatedLUT[i] = 0 // Assume anything darker than black is black
+	}
+
+	return compensatedLUT
 }
