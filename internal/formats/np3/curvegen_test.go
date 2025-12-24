@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package np3
 
 import (
@@ -5,6 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 )
+
+// ARCHIVED: These tests are for curve generation functionality that is no longer used.
+// See sprint-change-proposal-2025-12-24.md for rationale.
 
 func TestGenerateTestCurve_Linear(t *testing.T) {
 	lut, err := GenerateTestCurve(CurveLinear)

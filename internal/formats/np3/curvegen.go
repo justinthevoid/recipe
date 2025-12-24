@@ -1,7 +1,10 @@
+//go:build ignore
+// +build ignore
+
 // Package np3 provides functionality for generating test tone curves for NX Studio validation.
 //
-// This file contains test curve generation utilities to validate that our NP3 curve
-// format is correctly interpreted by Nikon NX Studio / Picture Control Utility 2.
+// ARCHIVED: This file is no longer used. We now use direct parameter mapping instead of curve generation.
+// See sprint-change-proposal-2025-12-24.md for rationale.
 
 package np3
 

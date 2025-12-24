@@ -43,6 +43,13 @@ var magicBytes = []byte{'N', 'C', 'P'}
 // Note: Some variant NP3 files can be as small as 392 bytes
 const minFileSize = 300
 
+// ControlPoint represents a single point on the tone curve
+// This type is used internally for parsing tone curve data from NP3 files.
+type ControlPoint struct {
+	X int // Input value (0-255)
+	Y int // Output value (0-255)
+}
+
 // Heuristic analysis ranges (Pattern 2)
 const (
 	heuristicNameStart = 20

@@ -31,13 +31,13 @@ func TestParse(t *testing.T) {
 	t.Parallel() // Enable parallel execution
 
 	// Discover all lrtemplate sample files recursively
-	files, err := findFilesRecursive("../../../examples/lrtemplate", ".lrtemplate")
+	files, err := findFilesRecursive("../../../testdata/lrtemplate", ".lrtemplate")
 	if err != nil {
 		t.Fatalf("Failed to discover lrtemplate files: %v", err)
 	}
 
 	if len(files) == 0 {
-		t.Skip("No lrtemplate sample files found in examples/lrtemplate/")
+		t.Skip("No lrtemplate sample files found in testdata/lrtemplate/")
 	}
 
 	t.Logf("Found %d lrtemplate sample files", len(files))
@@ -915,7 +915,7 @@ func TestParseAllParameters(t *testing.T) {
 // BenchmarkParse benchmarks parsing performance to validate <20ms target
 func BenchmarkParse(t *testing.B) {
 	// Load a sample lrtemplate file
-	files, err := filepath.Glob("../../../examples/lrtemplate/*.lrtemplate")
+	files, err := filepath.Glob("../../../testdata/lrtemplate/*.lrtemplate")
 	if err != nil || len(files) == 0 {
 		t.Skip("No sample files found for benchmark")
 	}
@@ -1264,7 +1264,7 @@ func TestRoundTrip(t *testing.T) {
 	t.Parallel() // Enable parallel execution
 
 	// Discover all lrtemplate sample files recursively
-	files, err := findFilesRecursive("../../../examples/lrtemplate", ".lrtemplate")
+	files, err := findFilesRecursive("../../../testdata/lrtemplate", ".lrtemplate")
 	if err != nil {
 		t.Fatalf("Failed to discover lrtemplate files: %v", err)
 	}

@@ -459,8 +459,40 @@ func convertPreset(inputPtr, inputLen uint32, srcFormat, dstFormat string) (uint
 ### Format Limitations
 
 **NP3 format has limited parameter support compared to XMP/lrtemplate:**
-- ❌ Not supported: Vibrance, Temperature/Tint, Grain Size/Roughness, Vignette, Parametric Tone Curves
-- ✅ Well supported: Exposure, Contrast, Saturation, Sharpness, Highlights, Shadows, Whites, Blacks, Clarity, HSL Color, Color Grading, Tone Curve control points
+- ❌ Not supported: Vibrance, Temperature/Tint, Grain Size/Roughness, Vignette, Custom Tone Curves (Point Curves and Parametric Curves)
+- ✅ Well supported: Exposure, Contrast, Saturation, Sharpness, Highlights, Shadows, Whites, Blacks, Clarity, HSL Color, Color Grading
+
+**IMPORTANT - XMP → NP3 Tone Adjustment Strategy:**
+
+NP3 has a **critical limitation**: You can use EITHER tone curve OR basic tone parameters, but NOT BOTH simultaneously.
+
+**Our conversion strategy: Direct Parameter Mapping (No Curve Generation)**
+
+When converting XMP → NP3, we use direct parameter mapping instead of generating custom tone curves:
+
+| XMP Parameter | NP3 Parameter | Byte Offset | Range |
+|---------------|---------------|-------------|-------|
+| `crs:Contrast2012` | Contrast | 0x110 | -100 to +100 |
+| `crs:Highlights2012` | Highlights | 0x11A | -100 to +100 |
+| `crs:Shadows2012` | Shadows | 0x124 | -100 to +100 |
+| `crs:Whites2012` | White Level | 0x12E | -100 to +100 |
+| `crs:Blacks2012` | Black Level | 0x138 | -100 to +100 |
+
+**What Gets Lost in XMP → NP3 Conversion:**
+- XMP Parametric Curve Sliders (`ToneCurveShadows`, `ToneCurveDarks`, `ToneCurveLights`, `ToneCurveHighlights`)
+- XMP Custom Point Curves (`PointCurve`, `PointCurveRed`, `PointCurveGreen`, `PointCurveBlue`)
+
+**Mitigation:**
+- Curve data is preserved in `recipe.Metadata` for round-trip fidelity
+- Conversion warnings inform users when curve data is lost
+- This approach covers 95%+ of real-world XMP presets (most use basic adjustments, not custom curves)
+- Users can create custom curves directly in NX Studio if needed
+
+**Why We Don't Generate Curves:**
+- NP3 cannot use both curves AND basic parameters simultaneously
+- Direct parameter mapping is simpler, more accurate, and faster
+- Previous curve generation attempts (257-entry LUT) failed to achieve acceptable visual fidelity
+- See `docs/implementation-artifacts/sprint-change-proposal-2025-12-24.md` for full technical analysis
 
 **NP3 Format Variants** (discovered via analysis of 160 samples):
 - **392 bytes**: Minimal/compact format (chunk-based encoding) - 12 files

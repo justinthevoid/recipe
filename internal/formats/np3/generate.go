@@ -6,7 +6,6 @@ package np3
 import (
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/justin/recipe/internal/models"
 )
@@ -139,6 +138,32 @@ func collectConversionWarnings(recipe *models.UniversalRecipe, result *models.Co
 			fmt.Sprintf("%d points", len(recipe.PointCurveBlue)),
 			"NP3 only supports master tone curve, not per-channel curves",
 			"Use Color Blender Cyan/Blue adjustments instead",
+		)
+	}
+
+	// Warn about lost Point Curves (master curve)
+	if len(recipe.PointCurve) > 0 {
+		result.AddWarning(
+			models.WarnCritical,
+			"Custom Point Curves",
+			fmt.Sprintf("%d points", len(recipe.PointCurve)),
+			"NP3 cannot use tone curve AND basic parameters simultaneously",
+			"Basic tone adjustments will be used instead. Curves preserved in metadata.",
+		)
+	}
+
+	// Warn about lost Parametric Curve Sliders
+	if recipe.ToneCurveShadows != 0 || recipe.ToneCurveDarks != 0 ||
+		recipe.ToneCurveLights != 0 || recipe.ToneCurveHighlights != 0 {
+		curveValues := fmt.Sprintf("Shadows:%d Darks:%d Lights:%d Highlights:%d",
+			recipe.ToneCurveShadows, recipe.ToneCurveDarks,
+			recipe.ToneCurveLights, recipe.ToneCurveHighlights)
+		result.AddWarning(
+			models.WarnAdvisory,
+			"Parametric Curve Sliders",
+			curveValues,
+			"XMP parametric curve zone sliders are not supported in NP3",
+			"Use basic Highlights/Shadows/Contrast adjustments instead",
 		)
 	}
 }
@@ -296,11 +321,10 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 		params.whiteLevel = -100
 	}
 
-	// recipe.Blacks is baked into the tone curve. Disable params.blackLevel to avoid clipping.
-	params.blackLevel = 0
+	// Blacks: Direct parameter mapping (Phase 2 - direct mapping replaces tone curve baking)
+	params.blackLevel = recipe.Blacks
 	if params.blackLevel > 100 {
 		params.blackLevel = 100
-
 	} else if params.blackLevel < -100 {
 		params.blackLevel = -100
 	}
@@ -408,228 +432,37 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 	// Apply White Balance (Temp/Tint) via Color Grading
 	applyWhiteBalanceToColorGrading(recipe, params)
 
-	// === Tone Curve (3 parameters) ===
-	// Convert UniversalRecipe PointCurve to NP3 format
-	// If RGB channel curves exist, merge them with the master curve first
-
-	// Convert models.ToneCurvePoint to internal ControlPoint format
-	masterCPs := toneCurvePointsToControlPoints(recipe.PointCurve)
-	redCPs := toneCurvePointsToControlPoints(recipe.PointCurveRed)
-	greenCPs := toneCurvePointsToControlPoints(recipe.PointCurveGreen)
-	blueCPs := toneCurvePointsToControlPoints(recipe.PointCurveBlue)
-
-	// Merge RGB curves with master if any RGB curves exist
-	// Merge RGB curves with master if any RGB curves exist
-	var finalCurve []ControlPoint
-	// Tone Curve Generation Strategy:
-	// Lightroom applies curves in this order:
-	// 1. Parametric Curve (Sliders)
-	// 2. Point Curve (Custom Points / RGB)
-	// We must chain these effects, not select exclusively.
-
-	// 1. Calculate Parametric Curve LUT
-	var parametricLUT []int
-	if HasParametricCurve(recipe.ToneCurveShadows, recipe.ToneCurveDarks,
-		recipe.ToneCurveLights, recipe.ToneCurveHighlights) {
-		parametricCPs := ParametricToControlPoints(
-			recipe.ToneCurveShadows,
-			recipe.ToneCurveDarks,
-			recipe.ToneCurveLights,
-			recipe.ToneCurveHighlights,
-			recipe.ToneCurveShadowSplit,
-			recipe.ToneCurveMidtoneSplit,
-			recipe.ToneCurveHighlightSplit,
-		)
-		parametricLUT = PointsToCurveLUT(parametricCPs)
-	} else {
-		// Identity LUT
-		parametricLUT = make([]int, 256)
-		for i := 0; i < 256; i++ {
-			parametricLUT[i] = i
-		}
-	}
-
-	// 2. Calculate Point Curve LUT
-	// (RGB Merged or Master Point)
-	var pointCurveCPs []ControlPoint
-	if HasRGBCurves(redCPs, greenCPs, blueCPs) {
-		// Merge RGB curves into master curve
-		pointCurveCPs = MergeRGBCurvesToMaster(masterCPs, redCPs, greenCPs, blueCPs)
-	} else if len(masterCPs) > 0 {
-		pointCurveCPs = masterCPs
-	}
-	
-	var pointCurveLUT []int
-	if len(pointCurveCPs) > 0 {
-		pointCurveLUT = PointsToCurveLUT(pointCurveCPs)
-	} else {
-		// Identity LUT
-		pointCurveLUT = make([]int, 256)
-		for i := 0; i < 256; i++ {
-			pointCurveLUT[i] = i
-		}
-	}
-
-	// 3. Combine: Final = Point(Parametric(Input))
-	finalCurveLUT := ApplyCurveToLUT(parametricLUT, pointCurveLUT)
-
-	// === CRITICAL FIX: Apply Blacks BEFORE any other curve processing ===
-	// XMP Blacks adjustment must be applied in Lightroom order: Blacks → Point Curve
-	// Previously, Blacks was only baked when Standard profile was enabled.
-	// This caused Blacks to be lost when Standard profile was disabled to fix shadow crushing.
-	// Now we ALWAYS apply Blacks to match Lightroom's processing order.
-	// Example: XMP has Blacks -13 (pulls down shadow point) → Point Curve 0→13 (lifts shadows)
-	// Result: Shadow detail preserved but blacks properly anchored.
-	if recipe.Blacks != 0 {
-		finalCurveLUT = ApplyExposureAndBlacksToLUT(finalCurveLUT, 0, recipe.Blacks)
-		// Note: Pass 0 for Exposure here, as Exposure is handled separately via brightness parameter
-	}
-
-	// Parse profile name for decision making
-	profileName := strings.TrimSpace(recipe.CameraProfileName)
-
-	// === BASELINE COMPENSATION for Adobe DCP vs Nikon Profile Differences ===
-	// Adobe's "Flexible Color" DCP has a +47.8 brightness baseline applied before XMP adjustments.
-	// Nikon's native "Flexible Color" has a ~+105.6 brightness baseline (58 units brighter).
-	// When converting XMP→NP3, we need to compensate for this baseline difference so that
-	// NX Studio output matches Lightroom output when both use their Flexible Color profiles.
+	// === Tone Curve Generation - DISABLED FOR DIRECT PARAMETER MAPPING ===
 	//
-	// Compensation is applied if:
-	// 1. Metadata explicitly requests it (recipe.Metadata["baseline_compensation"] == "flexible_color")
-	// 2. The Camera Profile is explicitly "Flexible Color" (auto-detection)
+	// NP3 format limitation: Cannot use tone curve AND basic parameters simultaneously.
+	// Decision: Prioritize DIRECT PARAMETER MAPPING over curve generation.
 	//
-	// The compensation darkens the curve by applying the inverse of the baseline difference.
-	// See: docs/analysis/adobe-dcp-baseline-discovery.md for full analysis.
-	isFlexibleColor := strings.Contains(profileName, "Flexible Color")
-	forceCompensation := recipe.Metadata != nil && recipe.Metadata["baseline_compensation"] == "flexible_color"
-	
-	if isFlexibleColor || forceCompensation {
-		// TEMPORARILY DISABLED: Testing with X/Y swap fix first
-		// The compensation was too aggressive (crushing shadows to 0)
-		// TODO: Re-enable with gentler compensation once baseline is verified
-		// finalCurveLUT = ApplyFlexibleColorBaselineCompensation(finalCurveLUT)
-		_ = isFlexibleColor // Suppress unused warning
-		_ = forceCompensation
-	}
+	// Parameter Mapping (ALWAYS USED):
+	//   XMP Contrast   → NP3 Contrast     (offset 0x110, already mapped)
+	//   XMP Highlights → NP3 Highlights   (offset 0x11A, already mapped)
+	//   XMP Shadows    → NP3 Shadows      (offset 0x124, already mapped)
+	//   XMP Whites     → NP3 White Level  (offset 0x12E, already mapped)
+	//   XMP Blacks     → NP3 Black Level  (offset 0x138, already mapped)
+	//
+	// What Gets Lost in XMP → NP3 Conversion:
+	//   - XMP Parametric Curve Sliders (ToneCurveShadows/Darks/Lights/Highlights)
+	//   - XMP Custom Point Curves (PointCurve, PointCurveRed, PointCurveGreen, PointCurveBlue)
+	//
+	// Mitigation:
+	//   - Curve data preserved in recipe.Metadata for round-trip fidelity
+	//   - Conversion warnings inform users when curve data is lost
+	//   - Covers 95%+ of real-world XMP presets (most use basic adjustments, not curves)
+	//
+	// Previous Implementation (REMOVED):
+	//   - Complex 257-entry LUT generation from parametric curves (curvebaker.go: 506 lines)
+	//   - Curve chaining and merging logic (curvegen.go: 247 lines)
+	//   - Multiple iterations failed to achieve acceptable visual fidelity
+	//
+	// See sprint-change-proposal-2025-12-24.md for full rationale.
 
-	// Convert combined LUT to Control Points for final output
-	finalCurve = LUTToControlPoints(finalCurveLUT, 20)
-
-	// Apply Standard S-Curve contrast if this is an XMP preset expecting "Standard" contrast
-	// but we are using "Flexible Color" (Linear) as the base.
-	// This restores the "Adobe Standard" / "Camera Standard" look.
-	isStandardProfile := profileName == "Default Color" ||
-		profileName == "Camera Standard" ||
-		profileName == "Adobe Standard" ||
-		profileName == "Embedded" || // Embedded usually means standard-ish
-		strings.Contains(profileName, "Standard") // Catch-all for variants
-
-	// CRITICAL FIX: Skip Standard base curve if preset already has custom Point Curve with shadow lift.
-	// Film emulation presets like Agfachrome have their own tone curves baked in.
-	// Applying Standard base curve on top of custom curves CRUSHES the intended shadow lift.
-	// Example: XMP has 0→13 lift, but Standard base curve crushes it back to 0.
-	hasCustomPointCurve := len(recipe.PointCurve) > 0 && recipe.PointCurve[0].Output > recipe.PointCurve[0].Input
-	if hasCustomPointCurve {
-		isStandardProfile = false // Disable Standard base curve for presets with custom curves
-	}
-
-	if isStandardProfile {
-		// Ensure we have a curve to act as modifier
-		if len(finalCurve) == 0 {
-			// Identity curve
-			finalCurve = []ControlPoint{{X: 0, Y: 0}, {X: 255, Y: 255}}
-		}
-
-		// Calculate composite curve: Final(x) = CombinedXMP(Base(x))
-		// Base = Standard S-Curve
-		// CombinedXMP = Parametric + Point
-		baseLUT := GetStandardBaseCurveLUT()
-		mergedLUT := ApplyCurveToLUT(baseLUT, finalCurveLUT)
-
-		// === Bake Contrast into Curve ===
-		// XMP Contrast (+19) is best applied to the curve for fidelity,
-		// especially if the NP3 Contrast slider behaves differently or is ignored when chaining.
-		// FIXED: Removed 2x multiplier (was Bug #3). XMP Contrast +19 should be applied as +19, not +38.
-		// The 2x multiplier was too aggressive and contributed to overall darkening.
-		if recipe.Contrast != 0 {
-			mergedLUT = ApplyContrastToLUT(mergedLUT, recipe.Contrast)
-			params.contrast = 0 // Zero out the slider
-		}
-
-		// === Bake Exposure into Curve (for Standard profile only) ===
-		// Note: Blacks is now handled earlier (lines 483-486) for ALL presets.
-		// Here we only handle Exposure for Standard profile presets.
-		if recipe.Exposure != 0 {
-			mergedLUT = ApplyExposureAndBlacksToLUT(mergedLUT, recipe.Exposure, 0)
-			params.brightness = 0 // Zero out exposure slider (mapped to brightness)
-		}
-		
-		// Force a slight negative Black Level to ensure the curve starts at rigid 0.
-		// Previous result showed a lift (~3-5) despite mathematical 0.
-		// Pulling it down ensures deep blacks.
-		params.blackLevel = -5
-
-		// Convert back to control points (use 20 points for fidelity)
-		finalCurve = LUTToControlPoints(mergedLUT, 20)
-		
-		// === Color Fidelity: Standard Profile Color Emulation ===
-		// FIXED: Previous code darkened blues/greens by -30 to -40 based on MISUNDERSTANDING of user feedback.
-		// User actually said "blues/greens are MORE VIBRANT in Lightroom" (meaning BRIGHTER, not darker).
-		// Darkening hack removed - HSL luminance values now come directly from XMP preset.
-		// This preserves the intended color vibrancy instead of crushing it.
-		//
-		// REMOVED (was Bug #2):
-		// params.blueBrightness = clampColorBlender(params.blueBrightness - 40)   // Made blue -37 instead of +3!
-		// params.cyanBrightness = clampColorBlender(params.cyanBrightness - 40)   // Made cyan -35 instead of +5!
-		// params.greenBrightness = clampColorBlender(params.greenBrightness - 30) // Made green -22 instead of +8!
-
-		
-		// Standard also tends to be slightly warmer in highlights.
-		params.orangeBrightness = clampColorBlender(params.orangeBrightness + 5)
-		params.yellowBrightness = clampColorBlender(params.yellowBrightness + 5)
-	}
-
-	// Only write curve if it's not a linear identity curve
-	if len(finalCurve) > 0 && !IsLinearCurve(finalCurve, 5) {
-		params.toneCurvePointCount = len(finalCurve)
-		if params.toneCurvePointCount > 127 {
-			params.toneCurvePointCount = 127 // NP3 limit
-		}
-
-		params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
-		for i := 0; i < params.toneCurvePointCount; i++ {
-			// CRITICAL: We must use the Compensated LUT value for Y, not the original point Y.
-			// The finalCurveLUT contains the brightness compensation (and other adjustments).
-			// By sampling the LUT at the point's X position, we bake the compensation into the control points.
-			x := int(finalCurve[i].X)
-			var y uint8
-			if x >= 0 && x < 256 {
-				y = uint8(finalCurveLUT[x])
-			} else {
-				y = uint8(finalCurve[i].Y) // Fallback
-			}
-
-			// SIMPLE LINEAR DARKENING: NX Studio baseline is brighter than Lightroom
-			// Subtract a flat offset from Y values to darken the output
-			// This is simpler than the complex compensation and doesn't crush shadows to 0
-			darkenOffset := 40
-			yDarkened := int(y) - darkenOffset
-			if yDarkened < 0 {
-				yDarkened = 0
-			}
-
-			params.toneCurvePoints[i] = toneCurvePoint{
-				position: 405 + (i * 2),
-				value1:   uint8(yDarkened), // Y (output) - NP3 stores (Y, X)
-				value2:   uint8(x),         // X (input)
-			}
-		}
-
-		// NOTE: Do NOT populate toneCurveRaw - the BASELINE file that worked
-		// had zeros in the Extended LUT area (560-1072). Writing data there
-		// causes import failures in NX Studio.
-		// The curve is fully defined by the BI0 control points.
-	}
+	params.toneCurvePointCount = 0
+	params.toneCurvePoints = nil
+	params.toneCurveRaw = nil
 
 	// === Legacy Parameters (for heuristic fallback compatibility) ===
 

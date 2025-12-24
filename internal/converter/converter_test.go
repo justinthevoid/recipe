@@ -32,12 +32,12 @@ func TestConvert_AllPaths(t *testing.T) {
 		dir  string
 		ext  string
 	}{
-		{"NP3→XMP", FormatNP3, FormatXMP, "../../examples/np3", ".np3"},
-		{"NP3→LRTemplate", FormatNP3, FormatLRTemplate, "../../examples/np3", ".np3"},
-		{"XMP→NP3", FormatXMP, FormatNP3, "../../examples/xmp", ".xmp"},
-		{"XMP→LRTemplate", FormatXMP, FormatLRTemplate, "../../examples/xmp", ".xmp"},
-		{"LRTemplate→NP3", FormatLRTemplate, FormatNP3, "../../examples/lrtemplate", ".lrtemplate"},
-		{"LRTemplate→XMP", FormatLRTemplate, FormatXMP, "../../examples/lrtemplate", ".lrtemplate"},
+		{"NP3→XMP", FormatNP3, FormatXMP, "../../testdata/np3", ".np3"},
+		{"NP3→LRTemplate", FormatNP3, FormatLRTemplate, "../../testdata/np3", ".np3"},
+		{"XMP→NP3", FormatXMP, FormatNP3, "../../testdata/xmp", ".xmp"},
+		{"XMP→LRTemplate", FormatXMP, FormatLRTemplate, "../../testdata/xmp", ".xmp"},
+		{"LRTemplate→NP3", FormatLRTemplate, FormatNP3, "../../testdata/lrtemplate", ".lrtemplate"},
+		{"LRTemplate→XMP", FormatLRTemplate, FormatXMP, "../../testdata/lrtemplate", ".lrtemplate"},
 		// DISABLED: costyle format support
 		// {"Costyle→XMP", FormatCostyle, FormatXMP, "../../internal/formats/costyle/testdata/costyle", ".costyle"},
 		// {"Costyle→NP3", FormatCostyle, FormatNP3, "../../internal/formats/costyle/testdata/costyle", ".costyle"},
