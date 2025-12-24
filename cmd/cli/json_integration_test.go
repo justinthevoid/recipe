@@ -51,8 +51,8 @@ func TestConvertJSONOutput(t *testing.T) {
 	if !result.Success {
 		t.Errorf("success = false, want true (error: %s)", result.Error)
 	}
-	if result.DurationMs <= 0 {
-		t.Errorf("duration_ms = %d, want > 0", result.DurationMs)
+	if result.DurationMs < 0 {
+		t.Errorf("duration_ms = %d, want >= 0 (conversions can be <1ms so 0 is valid)", result.DurationMs)
 	}
 	if result.FileSizeBytes <= 0 {
 		t.Errorf("file_size_bytes = %d, want > 0", result.FileSizeBytes)
@@ -146,8 +146,8 @@ func TestBatchJSONOutput(t *testing.T) {
 	if result.ErrorCount != 0 {
 		t.Errorf("error_count = %d, want 0", result.ErrorCount)
 	}
-	if result.DurationMs <= 0 {
-		t.Errorf("duration_ms = %d, want > 0", result.DurationMs)
+	if result.DurationMs < 0 {
+		t.Errorf("duration_ms = %d, want >= 0 (conversions can be <1ms so 0 is valid)", result.DurationMs)
 	}
 	if len(result.Results) != 3 {
 		t.Errorf("len(results) = %d, want 3", len(result.Results))

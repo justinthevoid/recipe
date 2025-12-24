@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package np3
 
 import (
@@ -5,6 +8,9 @@ import (
 
 	"github.com/justin/recipe/internal/models"
 )
+
+// ARCHIVED: These tests are for curve generation functionality that is no longer used.
+// See sprint-change-proposal-2025-12-24.md for rationale.
 
 func TestParametricToControlPoints_Linear(t *testing.T) {
 	// All zeros should produce a nearly linear curve

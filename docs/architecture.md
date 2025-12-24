@@ -998,13 +998,19 @@ type Point struct {
 
 **Parameter Mapping Strategy:**
 
-| NP3 Parameter | XMP Parameter | lrtemplate Parameter | Range |
-|---------------|---------------|----------------------|-------|
-| Contrast (±3) | crs:Contrast2012 | Contrast2012 | -100 to +100 |
-| Saturation (±3) | crs:Saturation | Saturation | -100 to +100 |
-| Hue (±9°) | crs:HueAdjustment* | HueAdjustment* | -180 to +180 |
-| Sharpness (0-9) | crs:Sharpness | Sharpness | 0 to 150 |
-| Brightness (±1) | crs:Exposure2012 | Exposure2012 | -5.0 to +5.0 |
+| NP3 Parameter | XMP Parameter | lrtemplate Parameter | Range | Offset |
+|---------------|---------------|----------------------|-------|--------|
+| Contrast (-100 to +100) | crs:Contrast2012 | Contrast2012 | -100 to +100 | 0x110 |
+| Highlights (-100 to +100) | crs:Highlights2012 | Highlights2012 | -100 to +100 | 0x11A |
+| Shadows (-100 to +100) | crs:Shadows2012 | Shadows2012 | -100 to +100 | 0x124 |
+| White Level (-100 to +100) | crs:Whites2012 | Whites2012 | -100 to +100 | 0x12E |
+| Black Level (-100 to +100) | crs:Blacks2012 | Blacks2012 | -100 to +100 | 0x138 |
+| Saturation (±3) | crs:Saturation | Saturation | -100 to +100 | 0x142 |
+| Hue (±9°) | crs:HueAdjustment* | HueAdjustment* | -180 to +180 | - |
+| Sharpness (0-9) | crs:Sharpness | Sharpness | 0 to 150 | - |
+| Brightness (±1) | crs:Exposure2012 | Exposure2012 | -5.0 to +5.0 | - |
+
+**Note on Tone Parameters:** The Contrast, Highlights, Shadows, White Level, and Black Level parameters are the foundation of our XMP → NP3 conversion strategy. NP3 supports either these basic tone parameters OR a custom tone curve, but not both simultaneously. We prioritize direct parameter mapping for accuracy and simplicity.
 
 **Metadata Dictionary Usage:**
 
@@ -1014,8 +1020,11 @@ For fields that don't map 1:1 between formats, use the metadata dictionary:
 // Preserve unknown NP3 bytes
 recipe.Metadata["np3_unknown_bytes"] = "3A7F..."
 
-// Preserve XMP tone curve when converting to NP3
-recipe.Metadata["xmp_tone_curve"] = toneCurveJSON
+// Preserve XMP tone curves when converting to NP3 (for round-trip fidelity)
+// NP3 limitation: Cannot use tone curve AND basic parameters simultaneously
+// Strategy: Use basic parameters (Highlights/Shadows/etc.), preserve curves in metadata
+recipe.Metadata["xmp_point_curves"] = pointCurveJSON
+recipe.Metadata["xmp_parametric_curve"] = parametricCurveJSON
 
 // Preserve lrtemplate-specific fields
 recipe.Metadata["lrtemplate_version"] = "7.0"

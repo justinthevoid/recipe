@@ -91,7 +91,7 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 			},
 		},
 		{
-			name: "Exposure at upper boundary (1.0)",
+			name: "Exposure at upper boundary (1.0) - now forced to 0",
 			recipe: &models.UniversalRecipe{
 				Sharpness:  0,
 				Contrast:   0,
@@ -100,13 +100,15 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 			},
 			wantErr: false,
 			checkFunc: func(t *testing.T, params *np3Parameters) {
-				if params.brightness != 1.0 {
-					t.Errorf("Brightness: got %f, want 1.0", params.brightness)
+				// After curve generation removal, brightness is always forced to 0
+				// See generate.go line 640: params.brightness = 0.0
+				if params.brightness != 0.0 {
+					t.Errorf("Brightness: got %f, want 0.0 (forced to 0, no NP3 exposure parameter)", params.brightness)
 				}
 			},
 		},
 		{
-			name: "Exposure at lower boundary (-1.0)",
+			name: "Exposure at lower boundary (-1.0) - now forced to 0",
 			recipe: &models.UniversalRecipe{
 				Sharpness:  0,
 				Contrast:   0,
@@ -115,8 +117,10 @@ func TestConvertToNP3ParametersDirectly(t *testing.T) {
 			},
 			wantErr: false,
 			checkFunc: func(t *testing.T, params *np3Parameters) {
-				if params.brightness != -1.0 {
-					t.Errorf("Brightness: got %f, want -1.0", params.brightness)
+				// After curve generation removal, brightness is always forced to 0
+				// See generate.go line 640: params.brightness = 0.0
+				if params.brightness != 0.0 {
+					t.Errorf("Brightness: got %f, want 0.0 (forced to 0, no NP3 exposure parameter)", params.brightness)
 				}
 			},
 		},

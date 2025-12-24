@@ -1,6 +1,11 @@
+//go:build ignore
+// +build ignore
+
 package np3
 
-// curvebaker.go - Converts XMP parametric curve values to NP3 control points
+// curvebaker.go - ARCHIVED: Converts XMP parametric curve values to NP3 control points
+// This file is no longer used. We now use direct parameter mapping instead of curve generation.
+// See sprint-change-proposal-2025-12-24.md for rationale.
 //
 // Lightroom's parametric curves have 4 zones:
 // - Shadows: 0% to ShadowSplit (default 25%)
