@@ -32,13 +32,29 @@ func NewOrchestrator(cfg Config) *Orchestrator {
 
 // FindFiles recursively finds all .NEF and .NRW files in the input path.
 // Matching is case-insensitive.
+// It explicitly excludes files within the OutputPath to avoid processing loops.
 func (o *Orchestrator) FindFiles() ([]string, error) {
 	var files []string
 
-	err := filepath.WalkDir(o.Config.InputPath, func(path string, d fs.DirEntry, err error) error {
+	absOut, err := filepath.Abs(o.Config.OutputPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve absolute output path: %w", err)
+	}
+
+	err = filepath.WalkDir(o.Config.InputPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
+		
+		// Avoid processing the output directory if it's nested inside input
+		absPath, err := filepath.Abs(path)
+		if err == nil && strings.HasPrefix(absPath, absOut) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
 		if d.IsDir() {
 			return nil
 		}
@@ -67,6 +83,10 @@ type BatchResult struct {
 
 // ProcessBatch executes the batch processing logic.
 func (o *Orchestrator) ProcessBatch() (*BatchResult, error) {
+	if o.Config.Recipe == nil {
+		return nil, fmt.Errorf("configuration error: NP3 recipe is required for sidecar generation")
+	}
+
 	files, err := o.FindFiles()
 	if err != nil {
 		return nil, err
