@@ -90,6 +90,7 @@ Gemini 3 Pro (Preview)
 - Added robust error handling in `ProcessBatch` to allow partial success (counting failed files without aborting).
 - Created comprehensive unit tests: `TestOrchestrator_FindFiles`, `TestCopyFile_Metadata`, `TestProcessBatch_PartialFailure`.
 - Verified integration with `nksc` package for sidecar generation.
+- **Fixed validation issues (2026-01-08)**: Added recursion protection to `FindFiles`, strictly enforced NP3 recipe presence, and committed missing dependencies.
 
 ## File List
 - internal/batch/doc.go
