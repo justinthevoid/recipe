@@ -1,6 +1,6 @@
 # Story 1.4: Batch Orchestrator v1 (Basic)
 
-Status: review
+Status: done
 
 ## Story
 
