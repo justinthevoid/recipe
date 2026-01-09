@@ -1,14 +1,61 @@
 package batch_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/justin/recipe/internal/apperr"
 	"github.com/justin/recipe/internal/batch"
+	"github.com/justin/recipe/internal/formats/np3"
 )
+
+func TestOrchestrator_ProcessBatch_ErrorWrapping(t *testing.T) {
+	// Setup input with one file
+	inDir := t.TempDir()
+	nefPath := filepath.Join(inDir, "test.nef")
+	if err := os.WriteFile(nefPath, []byte("fake"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	outDir := filepath.Join(t.TempDir(), "readonly")
+	if err := os.Mkdir(outDir, 0444); err != nil { // Read-only directory
+		t.Fatal(err)
+	}
+	outDir = filepath.Join(outDir, "nested") // Should fail to create
+
+	orch := batch.NewOrchestrator(batch.Config{
+		InputPath:  inDir,
+		OutputPath: outDir,
+		Recipe:     &np3.Metadata{},
+	})
+
+	result, err := orch.ProcessBatch()
+	if err != nil {
+		t.Fatalf("Unexpected ProcessBatch error: %v", err)
+	}
+
+	if result.Failed != 1 {
+		t.Errorf("Expected 1 failure, got %d", result.Failed)
+	}
+
+	if len(result.Errors) == 0 {
+		t.Fatal("Expected errors in result")
+	}
+
+	var appErr *apperr.Error
+	if !errors.As(result.Errors[0], &appErr) {
+		t.Errorf("Error is not apperr.Error: %T %v", result.Errors[0], result.Errors[0])
+	} else {
+		// verify context
+		if appErr.File != "test.nef" {
+			t.Errorf("Expected context file 'test.nef', got '%s'", appErr.File)
+		}
+	}
+}
 
 func TestOrchestrator_FindFiles(t *testing.T) {
 	// Setup temp directory with nested files
