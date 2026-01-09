@@ -3,10 +3,12 @@ package batch
 import (
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/justin/recipe/internal/apperr"
 	"github.com/justin/recipe/internal/formats/nksc"
 	"github.com/justin/recipe/internal/formats/np3"
 )
@@ -16,6 +18,7 @@ type Config struct {
 	InputPath  string
 	OutputPath string
 	Recipe     *np3.Metadata
+	Overwrite  bool
 }
 
 // Orchestrator manages the batch processing of files.
@@ -45,7 +48,7 @@ func (o *Orchestrator) FindFiles() ([]string, error) {
 		if err != nil {
 			return err
 		}
-		
+
 		// Avoid processing the output directory if it's nested inside input
 		absPath, err := filepath.Abs(path)
 		if err == nil && strings.HasPrefix(absPath, absOut) {
@@ -77,6 +80,7 @@ func (o *Orchestrator) FindFiles() ([]string, error) {
 type BatchResult struct {
 	TotalFiles int
 	Processed  int
+	Skipped    int
 	Failed     int
 	Errors     []error
 }
@@ -92,40 +96,73 @@ func (o *Orchestrator) ProcessBatch() (*BatchResult, error) {
 		return nil, err
 	}
 
+	logger := slog.Default()
+
 	result := &BatchResult{
 		TotalFiles: len(files),
 	}
 
 	for _, srcPath := range files {
+		fileName := filepath.Base(srcPath)
+		fileLogger := logger.With("file", fileName)
+
 		// Calculate relative path to maintain structure
 		relPath, err := filepath.Rel(o.Config.InputPath, srcPath)
 		if err != nil {
 			result.Failed++
-			result.Errors = append(result.Errors, fmt.Errorf("failed to get relative path for %s: %w", srcPath, err))
+			result.Errors = append(result.Errors, apperr.New("resolve_path", fileName, err))
 			continue
 		}
 
 		dstPath := filepath.Join(o.Config.OutputPath, relPath)
 		dstDir := filepath.Dir(dstPath)
+		sidecarPath := dstPath + ".nksc"
 
 		// Create output directory structure
 		if err := os.MkdirAll(dstDir, 0755); err != nil {
 			result.Failed++
-			result.Errors = append(result.Errors, fmt.Errorf("failed to create dir for %s: %w", srcPath, err))
+			result.Errors = append(result.Errors, apperr.New("create_dir", fileName, err))
 			continue
 		}
 
-		// Copy file
-		if err := CopyFile(srcPath, dstPath); err != nil {
-			result.Failed++
-			result.Errors = append(result.Errors, fmt.Errorf("failed to copy %s: %w", srcPath, err))
+		// 1. Handle NEF/Image File copying
+		// We ensure the image exists at the destination.
+		// Optimization: Only copy if missing or if we want to ensure freshness (not implemented here for speed).
+		// Note: The Overwrite flag in Config specifically targets the sidecar generation/overwriting behavior
+		// based on the CLI help text ("Overwrite existing NKSC files").
+		// However, for robustness, if the NEF is missing, we MUST copy it.
+		nefExists := false
+		if _, err := os.Stat(dstPath); err == nil {
+			nefExists = true
+		}
+
+		if !nefExists {
+			fileLogger.Debug("copying source image")
+			if err := CopyFile(srcPath, dstPath); err != nil {
+				result.Failed++
+				result.Errors = append(result.Errors, apperr.New("copy_nef", fileName, err))
+				continue
+			}
+		}
+
+		// 2. Handle Sidecar Generation
+		// Check if sidecar exists to respect Overwrite flag
+		sidecarExists := false
+		if _, err := os.Stat(sidecarPath); err == nil {
+			sidecarExists = true
+		}
+
+		if sidecarExists && !o.Config.Overwrite {
+			result.Skipped++
+			fileLogger.Debug("skipping existing sidecar")
 			continue
 		}
 
 		// Generate Sidecar
+		fileLogger.Debug("generating sidecar")
 		if err := o.generateSidecar(srcPath, dstPath); err != nil {
 			result.Failed++
-			result.Errors = append(result.Errors, fmt.Errorf("failed to generate sidecar for %s: %w", srcPath, err))
+			result.Errors = append(result.Errors, apperr.New("generate_sidecar", fileName, err))
 			continue
 		}
 
