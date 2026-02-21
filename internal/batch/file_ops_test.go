@@ -1,6 +1,9 @@
 package batch_test
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,7 +31,7 @@ func TestCopyFile_Metadata(t *testing.T) {
 	}
 
 	// Execute CopyFile
-	err = batch.CopyFile(srcPath, dstPath)
+	err = batch.CopyFile(context.Background(), srcPath, dstPath)
 	if err != nil {
 		t.Fatalf("CopyFile failed: %v", err)
 	}
@@ -57,5 +60,28 @@ func TestCopyFile_Metadata(t *testing.T) {
 	// Check ModTime
 	if !info.ModTime().Equal(mtime) {
 		t.Errorf("expected mtime %v, got %v", mtime, info.ModTime())
+	}
+}
+
+func TestCalculateFileHash(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "hash.txt")
+	content := []byte("hello")
+	err := os.WriteFile(tmpFile, content, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hash, err := batch.CalculateFileHash(tmpFile)
+	if err != nil {
+		t.Fatalf("CalculateFileHash failed: %v", err)
+	}
+
+	// Calculate manually for verification
+	hasher := sha256.New()
+	hasher.Write(content)
+	expected := hex.EncodeToString(hasher.Sum(nil))
+
+	if hash != expected {
+		t.Errorf("Expected %s, got %s", expected, hash)
 	}
 }

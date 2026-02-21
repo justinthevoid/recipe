@@ -1,8 +1,8 @@
 // Package batch implements the parallel worker pool for processing NEF files.
 //
 // It orchestrates the reading of input files, generation of NKSC sidecars,
-// and handling of concurrency limits. The package ensures thread-safe
-// operation and efficient resource utilization (Goroutine pool).
+// handling of concurrency limits, and generation of structured batch manifests.
+// The package ensures thread-safe operation and efficient resource utilization.
 //
 // Architecture:
 //

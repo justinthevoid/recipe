@@ -178,6 +178,22 @@ const (
 	OffsetColorGradingBalance = 0x182 // 386 decimal
 )
 
+// Description Field Offsets
+// The description is a variable-length field (max 256 chars) that appears after Color Grading.
+// When present, it shifts the BI0 marker location.
+const (
+	// OffsetDescriptionLength is where the 4-byte big-endian description length is stored.
+	// If length is 0, no description text follows.
+	OffsetDescriptionLength = 0x188 // 392 decimal
+
+	// OffsetDescriptionText is where the null-terminated description text starts.
+	// Max length: 256 characters (including null terminator)
+	OffsetDescriptionText = 0x18C // 396 decimal
+
+	// MaxDescriptionLength is the maximum length of the description field.
+	MaxDescriptionLength = 256
+)
+
 // Tone Curve Offsets
 const (
 	// OffsetToneCurveEnabled1 and OffsetToneCurveEnabled2 are flags that enable custom tone curve.
@@ -319,9 +335,9 @@ func DecodeHue12(b1, b2 byte) int {
 
 // EncodeHue12 encodes a hue value (0-360) to 2 bytes.
 // Returns: (high byte, low byte)
-// Formula: high byte = (hue >> 8), low byte = hue & 0xFF
-// The high byte only uses the lower 4 bits (0-1 for 0-360 range).
-// This matches the DecodeHue12 logic which masks with 0x0F.
+// Formula: high byte = 0x80 | (hue >> 8), low byte = hue & 0xFF
+// The high byte has 0x80 bias added. DecodeHue12 masks it off with 0x0F.
+// This bias is required for NX Studio to properly recognize the hue value.
 func EncodeHue12(hue int) (byte, byte) {
 	// Clamp to 0-360 range
 	if hue < 0 {
@@ -330,8 +346,8 @@ func EncodeHue12(hue int) (byte, byte) {
 	if hue > 360 {
 		hue = 360
 	}
-	// Split into 12 bits (no bias on high byte)
-	b1 := byte(hue >> 8)
+	// Split into 12 bits with 0x80 bias on high byte
+	b1 := byte(0x80 | (hue >> 8))
 	b2 := byte(hue & 0xFF)
 	return b1, b2
 }

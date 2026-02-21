@@ -1,33 +1,45 @@
 # Architecture
 
+**Last Updated:** 2026-02-04
+**Documentation Generated:** Exhaustive Scan (Full Rescan)
+
 ## Executive Summary
 
-Recipe is a universal photo preset converter built with a privacy-first, client-side architecture. The system provides three interfaces (CLI, TUI, Web) that all share a common conversion engine using a hub-and-spoke pattern with a universal intermediate representation (UniversalRecipe).
+Recipe is a universal photo preset converter built with a privacy-first, client-side architecture. The system provides multiple interfaces (CLI, NX Studio Integration, Web) that all share a common conversion engine using a hub-and-spoke pattern with a universal intermediate representation (UniversalRecipe).
 
 **Key Architectural Characteristics:**
-- **Performance**: <100ms WASM conversions, 10-100x faster than Python v1.0
-- **Privacy**: Zero server uploads, all processing client-side (Web) or local (CLI/TUI)
-- **Accuracy**: 95%+ conversion fidelity via round-trip testing with 1,501 sample files
+- **Performance**: <100ms WASM conversions, sub-millisecond CLI conversions (0.003-0.079ms per file)
+- **Privacy**: Zero server uploads, all processing client-side (Web) or local (CLI)
+- **Accuracy**: 98%+ conversion fidelity for core adjustments via round-trip testing
 - **Simplicity**: Single conversion API (`converter.Convert()`) shared across all interfaces
-- **Zero Dependencies**: Core library uses only Go standard library
+- **Minimal Dependencies**: Core library uses Go standard library + minimal external packages
 
 **Technology Foundation:**
-- Go 1.24+ (enhanced WASM support with go:wasmexport)
-- Vanilla JavaScript (Web interface, no frameworks)
+- Go 1.25.1 (latest WASM support with go:wasmexport)
+- Svelte 5.43.8 + Vite 7.2.4 (Web interface)
 - Cloudflare Pages (static hosting for Web interface)
 - Cobra CLI framework (command-line interface)
-- Bubbletea (terminal user interface)
+- WebAssembly for browser-based conversion
 
-**Project Initialization:**
+**Build Commands:**
 ```bash
-# Initialize Cobra CLI structure
-cobra-cli init
+# Build CLI for current platform
+make cli
 
-# Setup WASM compilation
-GOOS=js GOARCH=wasm go build -o web/recipe.wasm cmd/wasm/main.go
+# Build CLI for all platforms
+make cli-all
 
-# Deploy Web interface
-# Push to GitHub → Cloudflare Pages auto-deploys from main branch
+# Build WASM module (production)
+make wasm
+
+# Build NX Studio integration
+make build-nx
+
+# Run tests
+make test
+
+# Run tests with coverage
+make coverage
 ```
 
 ---
@@ -65,60 +77,105 @@ GOOS=js GOARCH=wasm go build -o web/recipe.wasm cmd/wasm/main.go
 ```
 recipe/
 ├── cmd/                           # Entry points for all interfaces
-│   ├── cli/
-│   │   └── main.go                # Cobra CLI application
-│   ├── tui/
-│   │   └── main.go                # Bubbletea TUI application
-│   └── wasm/
-│       └── main.go                # WASM export entry point
+│   ├── cli/                       # Main CLI application (Cobra)
+│   │   ├── main.go                # Entry point
+│   │   ├── root.go                # Root command definition
+│   │   ├── convert.go             # Convert command
+│   │   ├── batch.go               # Batch conversion command
+│   │   ├── inspect.go             # Preset inspection command
+│   │   ├── diff.go                # Preset diff command
+│   │   └── format.go              # Format detection command
+│   ├── nx/                        # NX Studio integration CLI
+│   │   ├── main.go                # Entry point for recipe-nx
+│   │   ├── apply.go               # Apply recipe to NEF files
+│   │   ├── batch.go               # Batch processing
+│   │   └── verify.go              # Verify applied recipes
+│   ├── wasm/
+│   │   └── main.go                # WASM export entry point
+│   └── debug_curve/               # Development utilities
+│       └── main.go
 │
-├── internal/                      # Private application code
-│   ├── converter/                 # Shared conversion engine
+├── internal/                      # Private application code (65 Go files)
+│   ├── apperr/                    # Application error types
+│   │   └── error.go
+│   ├── batch/                     # Batch processing orchestrator
+│   │   ├── orchestrator.go        # Parallel file processing
+│   │   ├── manifest.go            # Idempotent processing manifest
+│   │   └── file_ops.go            # File operations
+│   ├── converter/                 # Hub-and-spoke conversion engine
 │   │   ├── converter.go           # Convert([]byte, string, string) ([]byte, error)
-│   │   ├── errors.go              # ConversionError type
-│   │   └── converter_test.go
-│   │
+│   │   └── error.go               # ConversionError type
 │   ├── formats/                   # Format parsers/generators
-│   │   ├── np3/
-│   │   │   ├── parse.go           # Parse([]byte) (*UniversalRecipe, error)
-│   │   │   ├── generate.go        # Generate(*UniversalRecipe) ([]byte, error)
-│   │   │   └── np3_test.go
-│   │   ├── xmp/
-│   │   │   ├── parse.go
-│   │   │   ├── generate.go
-│   │   │   └── xmp_test.go
-│   │   └── lrtemplate/
-│   │       ├── parse.go
-│   │       ├── generate.go
-│   │       └── lrtemplate_test.go
-│   │
-│   └── model/                     # Core data structures
-│       ├── recipe.go              # UniversalRecipe struct
-│       └── recipe_test.go
+│   │   ├── np3/                   # Nikon Picture Control (.np3)
+│   │   │   ├── parse.go           # Binary parsing with exact offsets
+│   │   │   ├── generate.go        # Binary generation
+│   │   │   ├── offsets.go         # Byte offset constants
+│   │   │   ├── curvegen.go        # Tone curve generation
+│   │   │   └── metadata.go        # NP3 metadata extraction
+│   │   ├── xmp/                   # Adobe XMP (.xmp)
+│   │   │   ├── parse.go           # XML parsing with struct tags
+│   │   │   └── generate.go        # XML generation
+│   │   ├── lrtemplate/            # Lightroom Classic (.lrtemplate)
+│   │   │   ├── parse.go           # Lua table parsing
+│   │   │   └── generate.go        # Lua generation
+│   │   ├── dcp/                   # DNG Camera Profile (.dcp)
+│   │   │   ├── parse.go           # TIFF-based parsing
+│   │   │   ├── generate.go        # Profile generation
+│   │   │   └── tiff.go            # TIFF structure handling
+│   │   ├── nksc/                  # NX Studio sidecar (.nksc)
+│   │   │   ├── recipe.go          # NKSC recipe wrapper
+│   │   │   ├── mapper.go          # NP3 to NKSC mapping
+│   │   │   └── model.go           # NKSC XML model
+│   │   └── costyle/               # Capture One style (disabled)
+│   ├── inspect/                   # Preset inspection utilities
+│   ├── lut/                       # LUT processing
+│   ├── models/                    # Core data structures
+│   │   └── recipe.go              # UniversalRecipe (157 lines, 50+ fields)
+│   ├── testutil/                  # Test utilities
+│   ├── utils/                     # Shared utilities
+│   └── verify/                    # Verification utilities
 │
-├── web/                           # Web interface (static files)
-│   ├── index.html                 # Main page with drag-drop UI
-│   ├── main.js                    # Vanilla JavaScript client
-│   ├── style.css                  # Vanilla CSS styling
-│   └── recipe.wasm                # Compiled Go WASM binary
+├── web/                           # Svelte web interface
+│   ├── index.html                 # Main HTML entry
+│   ├── package.json               # Svelte 5 + Vite 7
+│   ├── vite.config.js             # Vite configuration
+│   ├── svelte.config.js           # Svelte configuration
+│   ├── public/
+│   │   ├── recipe.wasm            # Compiled WASM binary
+│   │   └── wasm_exec.js           # Go WASM runtime
+│   └── src/
+│       ├── App.svelte             # Main application component
+│       ├── main.js                # Entry point
+│       └── lib/                   # Svelte components and utilities
+│           ├── wasm.js            # WASM initialization
+│           ├── converter.js       # Conversion logic
+│           └── components/        # UI components
 │
-├── testdata/                      # Test fixtures
-│   ├── np3/                       # 22 sample NP3 files
-│   ├── xmp/                       # 913 sample XMP files
-│   └── lrtemplate/                # 544 sample lrtemplate files
+├── testdata/                      # Test fixtures (302 items)
+│   ├── np3/                       # Nikon Picture Control samples
+│   ├── xmp/                       # Adobe XMP samples
+│   ├── lrtemplate/                # Lightroom Classic samples
+│   ├── dcp/                       # DNG Camera Profile samples
+│   ├── nksc/                      # NX Studio sidecar samples
+│   └── nx-fixtures/               # NX Studio integration fixtures
 │
-├── Makefile                       # Build automation
-├── go.mod
+├── docs/                          # Documentation (25 files)
+├── scripts/                       # Build and utility scripts
+├── bin/                           # Build output directory
+├── Makefile                       # Build automation (139 lines)
+├── go.mod                         # Go 1.25.1
 ├── go.sum
-└── README.md
+├── README.md                      # Main documentation (35KB)
+└── CHANGELOG.md                   # Version history
 ```
 
 **Key Design Decisions:**
-- **cmd/** separates three interfaces (CLI, TUI, WASM) but all use `internal/converter`
+- **cmd/** separates interfaces (cli, nx, wasm) - all use `internal/converter`
 - **internal/** prevents external imports, enforces API boundaries
 - **internal/converter** is the single source of truth for conversion logic
-- **internal/formats** follows identical pattern for each format (parse.go, generate.go, test)
-- **web/** is pure static files - no build tools, no npm, just HTML/JS/CSS
+- **internal/formats** follows identical pattern for each format (parse.go, generate.go)
+- **internal/batch** provides parallel processing with idempotency via manifests
+- **web/** uses Svelte 5 + Vite 7 for modern component-based UI
 
 ---
 
@@ -137,13 +194,25 @@ recipe/
 
 ## Technology Stack Details
 
-### Core Technology: Go 1.24.0+
+### Core Technology: Go 1.25.1
 
 **Selection Rationale:**
 - **go:wasmexport**: Direct memory access for WASM exports (zero reflection overhead)
-- **Reduced WASM Binary Size**: 20-30% smaller than Go 1.23 for WASM builds
+- **Reduced WASM Binary Size**: Optimized WASM builds with `-ldflags="-s -w"`
 - **Enhanced Type Support**: Better TypeScript interop from WASM exports
 - **slog**: Structured logging built into stdlib (Go 1.21+)
+
+**Go Dependencies (go.mod):**
+```go
+require (
+    github.com/google/tiff v0.0.0-20161109161721-4b31f3041d9a  // DCP parsing
+    github.com/lucasb-eyer/go-colorful v1.3.0                  // Color space conversions
+    github.com/spf13/cobra v1.10.1                             // CLI framework
+    golang.org/x/image v0.34.0                                 // Image processing
+    golang.org/x/term v0.36.0                                  // Terminal detection
+    gopkg.in/yaml.v3 v3.0.1                                    // YAML parsing
+)
+```
 
 **Validation:**
 ```bash

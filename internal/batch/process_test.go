@@ -1,6 +1,8 @@
 package batch_test
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +11,37 @@ import (
 	"github.com/justin/recipe/internal/batch"
 	"github.com/justin/recipe/internal/formats/np3"
 )
+
+func TestProcessBatch_Parallel(t *testing.T) {
+	tmpDir := t.TempDir()
+	outDir := t.TempDir()
+
+	// Create 10 files
+	count := 10
+	for i := 0; i < count; i++ {
+		name := fmt.Sprintf("file%d.nef", i)
+		path := filepath.Join(tmpDir, name)
+		if err := os.WriteFile(path, []byte("data"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	orch := batch.NewOrchestrator(batch.Config{
+		InputPath:  tmpDir,
+		OutputPath: outDir,
+		Recipe:     &np3.Metadata{Label: "ParallelTest"},
+		Workers:    4,
+	})
+
+	result, err := orch.ProcessBatch(context.Background())
+	if err != nil {
+		t.Fatalf("ProcessBatch failed: %v", err)
+	}
+
+	if result.Processed != count {
+		t.Errorf("Expected %d processed, got %d", count, result.Processed)
+	}
+}
 
 func TestProcessBatch_PartialFailure(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -34,7 +67,7 @@ func TestProcessBatch_PartialFailure(t *testing.T) {
 		Recipe:     &np3.Metadata{Label: "TestRecipe"},
 	})
 
-	result, err := orch.ProcessBatch()
+	result, err := orch.ProcessBatch(context.Background())
 	if err != nil {
 		t.Fatalf("ProcessBatch failed with fatal error: %v", err)
 	}

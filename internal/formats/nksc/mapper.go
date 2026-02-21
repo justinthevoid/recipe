@@ -11,9 +11,13 @@ import (
 func NewFromNP3(meta *np3.Metadata, targetNEF string) (*NKSC, error) {
 	nksc := NewNKSC()
 
-	// Set the About attribute to the target filename (or generic empty)
-	// Sidecars often reference the original file.
-	nksc.RDF.Description.About = targetNEF
+	// Use targetNEF in future if we find a field that actually needs it.
+	// For now, the reference file shows rdf:about as a static string.
+	// nksc.RDF.Description.About = targetNEF
+
+	// Initialize other boilerplate structures that are expected
+	nksc.RDF.Description.AstXMLPackets = &ParsedResource{ParseType: "Resource"}
+	nksc.RDF.Description.AstGPSVersionID = &ParsedResource{ParseType: "Resource"}
 
 	// Construct the payload string.
 	// We wrap the raw NP3 data into the export data field.
@@ -39,7 +43,7 @@ func NewFromNP3(meta *np3.Metadata, targetNEF string) (*NKSC, error) {
 	// and the specific preset name (Label) is inside the parameters.
 
 	// Add to NKSC
-	nksc.RDF.Description.NineEdits = NineEdits{
+	nksc.RDF.Description.NineEdits = &NineEdits{
 		Seq: Seq{
 			Steps: []Step{step},
 		},

@@ -57,19 +57,13 @@ func GenerateWithWarnings(recipe *models.UniversalRecipe) ([]byte, *models.Conve
 	}
 
 	// Build binary structure
-	// DEBUG: Append version to force fresh import in NX Studio
-	recipe.Name += " v15"
-	
-	// Truncate name to 20 chars to ensure suffix fits in effective display area
-	// Hex dump showed truncation at 20 chars ("Agfachrome RSX 200 v").
-	if len(recipe.Name) > 20 {
-		// We want the suffix " v15" to be visible, so keep the start + suffix?
-		// "Agfachrome... v15"
-		// Start: "Agfachrome RSX 2" (16 chars)
-		recipe.Name = recipe.Name[:16] + " v15"
+	// Truncate name to 20 chars (NP3 name field limit)
+	name := recipe.Name
+	if len(name) > 20 {
+		name = name[:20]
 	}
-	
-	data, err := encodeBinary(params, recipe.Name)
+
+	data, err := encodeBinary(params, name)
 	if err != nil {
 		return nil, result, fmt.Errorf("generate NP3: %w", err)
 	}
@@ -177,7 +171,7 @@ func collectConversionWarnings(recipe *models.UniversalRecipe, result *models.Co
 //
 // Mapping:
 //   - RedHue/RedSaturation → Red and Orange channels
-//   - GreenHue/GreenSaturation → Green and Yellow channels  
+//   - GreenHue/GreenSaturation → Green and Yellow channels
 //   - BlueHue/BlueSaturation → Blue and Cyan channels
 func applyCameraCalibrationToColorBlender(recipe *models.UniversalRecipe, params *np3Parameters) {
 	// CameraProfile is a struct value, check if all fields are zero (no calibration)
@@ -233,6 +227,7 @@ func clampColorBlender(v int) int {
 	}
 	return v
 }
+
 // convertToNP3Parameters converts UniversalRecipe parameters to NP3 ranges.
 //
 // Phase 2 Enhancement: Now converts all 48 parameters using exact offset mappings
@@ -246,6 +241,16 @@ func clampColorBlender(v int) int {
 //   - Tone Curve (3): control points
 func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, error) {
 	params := &np3Parameters{}
+
+	// === Metadata ===
+	// Copy description (max 256 chars for NP3)
+	if recipe.Description != "" {
+		desc := recipe.Description
+		if len(desc) > MaxDescriptionLength {
+			desc = desc[:MaxDescriptionLength]
+		}
+		params.description = desc
+	}
 
 	// === Basic Adjustments (2 parameters) ===
 
@@ -410,13 +415,17 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 
 	// Fallback/Merge: Legacy Split Toning
 	// If specific Color Grading zones are empty, fill them from Split Toning
+	// IMPORTANT: XMP SplitToningSaturation (0-100) has much weaker visual impact than NP3 Chroma.
+	// A scaling factor of ~0.3 produces comparable visual results.
+	// XMP Sat=31 → NP3 Chroma≈10 (visually similar intensity)
+	const splitToningChromaScale = 0.32
 	if params.shadowsZone.Chroma == 0 && recipe.SplitShadowSaturation > 0 {
 		params.shadowsZone.Hue = recipe.SplitShadowHue
-		params.shadowsZone.Chroma = recipe.SplitShadowSaturation
+		params.shadowsZone.Chroma = int(float64(recipe.SplitShadowSaturation) * splitToningChromaScale)
 	}
 	if params.highlightsZone.Chroma == 0 && recipe.SplitHighlightSaturation > 0 {
 		params.highlightsZone.Hue = recipe.SplitHighlightHue
-		params.highlightsZone.Chroma = recipe.SplitHighlightSaturation
+		params.highlightsZone.Chroma = int(float64(recipe.SplitHighlightSaturation) * splitToningChromaScale)
 	}
 	// Map Balance if not set by Color Grading
 	if params.balance == 0 && recipe.SplitBalance != 0 {
@@ -427,7 +436,6 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 	if (recipe.SplitShadowSaturation > 0 || recipe.SplitHighlightSaturation > 0) && params.blending < 10 {
 		params.blending = 50
 	}
-
 
 	// Apply White Balance (Temp/Tint) via Color Grading
 	applyWhiteBalanceToColorGrading(recipe, params)
@@ -571,10 +579,12 @@ func writeChunks(data []byte, params *np3Parameters) {
 	// Chunks 0x03-0x05: Constants
 	offset = writeChunk(data, offset, npChunk{id: 0x03, length: 2, value: []byte{0x00, 0x20}})
 	offset = writeChunk(data, offset, npChunk{id: 0x04, length: 2, value: []byte{0x00, 0x00}})
-	
+
 	// Chunk 0x05: Base Picture Control ID
 	baseID := params.basePictureControlID
-	if baseID == 0 { baseID = 1 } // Default to Standard if not set
+	if baseID == 0 {
+		baseID = 1
+	} // Default to Standard if not set
 	offset = writeChunk(data, offset, npChunk{id: 0x05, length: 2, value: []byte{0xff, baseID}})
 
 	// Chunks 0x06-0x07: Sharpening and Clarity parameters
@@ -780,6 +790,7 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	writeAdvancedAdjustments(data, params)
 	writeColorBlender(data, params)
 	writeColorGrading(data, params)
+	writeDescription(data, params)
 	writeToneCurve(data, params)
 
 	// Return the complete 1050-byte buffer (matching real .np3 files)
@@ -948,16 +959,20 @@ func writeBasicAdjustments(data []byte, params *np3Parameters) {
 }
 
 // writeEffects writes film grain parameters to exact offsets.
+// NOTE: Grain writing is disabled because offset 102 conflicts with TLV chunk 0x08
+// which affects Quick Sharp functionality in NX Studio. Grain is not fully
+// supported in NP3 format anyway (uses enum Large/Small vs XMP numeric values).
 func writeEffects(data []byte, params *np3Parameters) {
-	// Grain Amount (offset 102)
-	if len(data) > OffsetGrainAmount {
-		data[OffsetGrainAmount] = EncodeScaled4(params.grainAmount)
-	}
+	// Grain Amount (offset 102) - DISABLED: conflicts with chunk 0x08 value bytes
+	// Writing here corrupts Quick Sharp settings, causing it to show +2 instead of 0.
+	// if len(data) > OffsetGrainAmount {
+	// 	data[OffsetGrainAmount] = EncodeScaled4(params.grainAmount)
+	// }
 
-	// Grain Size (offset 222)
-	if len(data) > OffsetGrainSize {
-		data[OffsetGrainSize] = EncodeSigned8(params.grainSize)
-	}
+	// Grain Size (offset 222) - DISABLED: Grain not supported in NP3
+	// if len(data) > OffsetGrainSize {
+	// 	data[OffsetGrainSize] = EncodeSigned8(params.grainSize)
+	// }
 }
 
 // writeAdvancedAdjustments writes 7 advanced parameters to exact offsets using Scaled4 and Signed8 encodings.
@@ -1116,6 +1131,53 @@ func writeColorGrading(data []byte, params *np3Parameters) {
 	}
 }
 
+// writeDescription writes the variable-length description field.
+// Structure:
+//   - Offset 392 (0x188): 4-byte big-endian length
+//   - Offset 396 (0x18C): null-terminated description text (max 256 chars)
+//
+// Note: When description is present, it shifts subsequent data (BI0 marker, etc.)
+// For now, we only write description if the file buffer is large enough and
+// we're not using rawData preservation (which already has correct layout).
+func writeDescription(data []byte, params *np3Parameters) {
+	// Only write description if we have one and enough buffer space
+	if params.description == "" {
+		// Write zero length to indicate no description
+		if len(data) > OffsetDescriptionLength+3 {
+			data[OffsetDescriptionLength] = 0
+			data[OffsetDescriptionLength+1] = 0
+			data[OffsetDescriptionLength+2] = 0
+			data[OffsetDescriptionLength+3] = 0
+		}
+		return
+	}
+
+	descBytes := []byte(params.description)
+	descLen := len(descBytes)
+	if descLen > MaxDescriptionLength {
+		descLen = MaxDescriptionLength
+		descBytes = descBytes[:descLen]
+	}
+
+	// Check if buffer is large enough for description
+	endOffset := OffsetDescriptionText + descLen + 1 // +1 for null terminator
+	if len(data) < endOffset {
+		return
+	}
+
+	// Write 4-byte big-endian length at offset 392
+	data[OffsetDescriptionLength] = byte(descLen >> 24)
+	data[OffsetDescriptionLength+1] = byte(descLen >> 16)
+	data[OffsetDescriptionLength+2] = byte(descLen >> 8)
+	data[OffsetDescriptionLength+3] = byte(descLen)
+
+	// Write description text at offset 396
+	copy(data[OffsetDescriptionText:], descBytes)
+
+	// Add null terminator
+	data[OffsetDescriptionText+descLen] = 0
+}
+
 // writeToneCurve writes tone curve control points using the BI0 marker structure.
 //
 // CRITICAL: NX Studio requires specific byte patterns to enable custom tone curves:
@@ -1139,7 +1201,7 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 	// - TEST block at 395: 06 54 45 53 54 00 00 00 00 00 00 00 02 00 00 02
 	// - BI0 at 409
 	// - No Extended LUT (curve is in BI0 control points only)
-	
+
 	// Enable Flags at 389/390: Set to 0x01
 	if len(data) > OffsetToneCurveEnabled2 {
 		data[OffsetToneCurveEnabled1] = 0x01
@@ -1163,7 +1225,7 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 		data[407] = 0x00
 		data[408] = 0x02
 	}
-	
+
 	// BI0 Marker at 409
 	bi0 := OffsetBI0Marker // 409
 
@@ -1188,7 +1250,6 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 			pointCount = len(params.toneCurvePoints)
 		}
 		data[bi0+9] = uint8(pointCount)
-
 
 		// Padding at BI0+10 (1 byte only)
 		data[bi0+10] = 0x00
@@ -1245,7 +1306,7 @@ func applyWhiteBalanceToColorGrading(recipe *models.UniversalRecipe, params *np3
 	// Calculate WB vector (Polar coordinates)
 	// Temp: + = Warm (Orange ~40°), - = Cool (Blue ~220°)
 	// Tint: + = Magenta (~300°), - = Green (~120°)
-	
+
 	type colorVector struct {
 		hue    float64 // degrees
 		chroma float64 // strength
@@ -1311,7 +1372,7 @@ func applyWhiteBalanceToColorGrading(recipe *models.UniversalRecipe, params *np3
 			zone.Chroma = 100
 		}
 	}
-	
+
 	// Ensure Blending is sufficient to make this visible if it wasn't already
 	if params.blending < 50 {
 		params.blending = 50 // Ensure grading is applied
@@ -1384,7 +1445,7 @@ func applyDehaze(recipe *models.UniversalRecipe, params *np3Parameters) {
 //
 // Solution:
 // We construct a compensation curve C such that: C(NikonBase(x)) ≈ XMPCurve(AdobeBase(x))
-// This ensures that when Nikon applies its base, followed by our curve, the result matches 
+// This ensures that when Nikon applies its base, followed by our curve, the result matches
 // what Lightroom produces (XMP curve on top of Adobe base).
 //
 // See: docs/analysis/visual-accuracy-root-cause-analysis.md
@@ -1422,7 +1483,9 @@ func ApplyFlexibleColorBaselineCompensation(lut []int) []int {
 			}
 		}
 		adobeLUT[i] = int(outputNorm * 255.0)
-		if adobeLUT[i] > 255 { adobeLUT[i] = 255 } // Safety clamp
+		if adobeLUT[i] > 255 {
+			adobeLUT[i] = 255
+		} // Safety clamp
 	}
 
 	// 3. Generate Estimated Nikon Base LUT (Input -> NikonOutput)
@@ -1433,7 +1496,7 @@ func ApplyFlexibleColorBaselineCompensation(lut []int) []int {
 	for i := 0; i < 256; i++ {
 		var offset float64
 		inputVal := float64(i)
-		
+
 		if inputVal < 64 {
 			// Shadows (0-63): Fade 120 -> 100
 			ratio := inputVal / 64.0
@@ -1449,7 +1512,9 @@ func ApplyFlexibleColorBaselineCompensation(lut []int) []int {
 		}
 
 		val := adobeLUT[i] + int(offset)
-		if val > 255 { val = 255 }
+		if val > 255 {
+			val = 255
+		}
 		nikonLUT[i] = val
 	}
 
@@ -1463,10 +1528,10 @@ func ApplyFlexibleColorBaselineCompensation(lut []int) []int {
 
 	// Gather points
 	for i := 0; i < 256; i++ {
-		inputToCurve := nikonLUT[i]        // This is what the curve receives from Nikon Base
-		
-		adobeOut := adobeLUT[i]            // This is what Adobe Base produces for same input
-		target := lut[adobeOut]            // This is our desired final output (XMP applied to Adobe Base)
+		inputToCurve := nikonLUT[i] // This is what the curve receives from Nikon Base
+
+		adobeOut := adobeLUT[i] // This is what Adobe Base produces for same input
+		target := lut[adobeOut] // This is our desired final output (XMP applied to Adobe Base)
 
 		// Map inputToCurve -> target
 		// Since multiple inputs i might map to same inputToCurve, we take the last one (safe assumption for monotonic)
@@ -1507,22 +1572,22 @@ func ApplyFlexibleColorBaselineCompensation(lut []int) []int {
 					break
 				}
 			}
-			
+
 			if nextValidIdx != -1 {
 				// Interpolate
 				dist := float64(nextValidIdx - (i - 1)) // distance from prev valid
 				currDist := float64(i - (i - 1))
 				t := currDist / dist
-				
+
 				// Simpler fill: Just connect last valid to next valid
-				// We need the index of point BEFORE the gap. 
+				// We need the index of point BEFORE the gap.
 				// The loop structure: we are at `i` which is -1.
 				// Previous index `i-1` MUST be valid (or we are before firstValidIdx).
 				// We handled before firstValidIdx separately.
 				prevValidIdx := i - 1
 				prevVal := compensatedLUT[prevValidIdx]
-				
-				compensatedLUT[i] = int(float64(prevVal) + t*float64(nextVal - prevVal))
+
+				compensatedLUT[i] = int(float64(prevVal) + t*float64(nextVal-prevVal))
 			} else {
 				// No more valid points, clamp to last value
 				compensatedLUT[i] = lastVal
@@ -1532,7 +1597,7 @@ func ApplyFlexibleColorBaselineCompensation(lut []int) []int {
 
 	// Fill beginning (0 to firstValidIdx)
 	// Extrapolate slope? Or clamp to 0?
-	// Nikon adds brightness, so input 0 -> Nikon 75. 
+	// Nikon adds brightness, so input 0 -> Nikon 75.
 	// Curve inputs 0-74 are impossible inputs from Base.
 	// But mathematically we should probably clamp to 0 or extend slope.
 	// Clamping 0 is safest for "Black remains Black".

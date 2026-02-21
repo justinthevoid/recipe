@@ -1,13 +1,17 @@
 package batch
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 )
 
 // CopyFile copies file content from src to dst, preserving mode and modification time.
-func CopyFile(src, dst string) error {
+// It respects the provided context for cancellation.
+func CopyFile(ctx context.Context, src, dst string) error {
 	sFile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("failed to open source: %w", err)
@@ -25,18 +29,32 @@ func CopyFile(src, dst string) error {
 	}
 
 	// We close explicitly later, but defer ensures cleanup on error
-	// Note: dFile.Close() usually returns error if already closed? Go docs say "returns an error, if any".
-	// But calling it twice is generally safe logic-wise if we don't check second error or if os.File handles it.
-	// Actually os.File.Close() returns error if already closed (PathError).
-	// But defer ignores return value.
 	defer dFile.Close()
 
-	if _, err := io.Copy(dFile, sFile); err != nil {
-		return fmt.Errorf("failed to copy content: %w", err)
+	// Copy using buffer and checking context
+	buf := make([]byte, 32*1024)
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		n, err := sFile.Read(buf)
+		if n > 0 {
+			if _, wErr := dFile.Write(buf[:n]); wErr != nil {
+				return fmt.Errorf("failed to write: %w", wErr)
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read: %w", err)
+		}
 	}
 
-	// Close before metadata operations to ensure flush and release (important for Windows)
-	// We assign the error check here.
+	// Close before metadata operations to ensure flush and release
 	if err := dFile.Close(); err != nil {
 		return fmt.Errorf("failed to close dest file: %w", err)
 	}
@@ -52,4 +70,20 @@ func CopyFile(src, dst string) error {
 	}
 
 	return nil
+}
+
+// CalculateFileHash calculates the SHA256 hash of a file.
+func CalculateFileHash(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file for hashing: %w", err)
+	}
+	defer file.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", fmt.Errorf("failed to hash file content: %w", err)
+	}
+
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }

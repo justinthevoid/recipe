@@ -61,6 +61,7 @@ type CameraProfile struct {
 type UniversalRecipe struct {
 	// Metadata
 	Name         string `json:"name,omitempty" xml:"name,omitempty"`                 // Recipe name
+	Description  string `json:"description,omitempty" xml:"description,omitempty"`   // Recipe description (max 256 chars for NP3)
 	SourceFormat string `json:"sourceFormat,omitempty" xml:"sourceFormat,omitempty"` // Origin format: "np3", "xmp", "lrtemplate"
 
 	// Basic Adjustments
@@ -86,10 +87,10 @@ type UniversalRecipe struct {
 	MidRangeSharpening float64 `json:"midRangeSharpening,omitempty" xml:"midRangeSharpening,omitempty"` // Mid-range sharpening: -5.0 to +5.0 (NP3-specific)
 
 	// White Balance
-	Temperature *int `json:"temperature,omitempty" xml:"temperature,omitempty"` // Temperature in Kelvin (nullable)
-	Tint        int  `json:"tint,omitempty" xml:"tint,omitempty"`               // Tint: -150 to +150
-	IncrementalTemperature int `json:"incrementalTemperature,omitempty" xml:"incrementalTemperature,omitempty"` // Incremental Temp: -100 to +100
-	IncrementalTint        int `json:"incrementalTint,omitempty" xml:"incrementalTint,omitempty"`               // Incremental Tint: -100 to +100
+	Temperature            *int `json:"temperature,omitempty" xml:"temperature,omitempty"`                       // Temperature in Kelvin (nullable)
+	Tint                   int  `json:"tint,omitempty" xml:"tint,omitempty"`                                     // Tint: -150 to +150
+	IncrementalTemperature int  `json:"incrementalTemperature,omitempty" xml:"incrementalTemperature,omitempty"` // Incremental Temp: -100 to +100
+	IncrementalTint        int  `json:"incrementalTint,omitempty" xml:"incrementalTint,omitempty"`               // Incremental Tint: -100 to +100
 
 	// HSL Adjustments (8 colors)
 	Red     ColorAdjustment `json:"red,omitempty" xml:"red,omitempty"`         // Red HSL adjustments
