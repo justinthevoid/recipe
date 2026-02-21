@@ -526,6 +526,75 @@ This differs from the naive 12-bit encoding - the high byte includes a 0x80 bias
 
 ---
 
-**Document Status**: Phase 5 Complete - Full NX Studio TLV chunk support with type indicators
-**Last Updated**: 2025-11-08 (Phase 5 - NX Studio compatibility achieved)
-**Next Review**: Post-deployment monitoring for edge cases
+## Phase 6: Deep Dive Findings (Feb 2026)
+
+### Description Field (Variable-Length)
+
+The NP3 format supports an optional description field (max 256 characters) for preset comments.
+
+| Field | Offset | Size | Format |
+|-------|--------|------|--------|
+| **Description Length** | 392 (0x188) | 4 bytes | Big-endian uint32 |
+| **Description Text** | 396 (0x18C) | Variable | Null-terminated UTF-8 |
+
+**Example** (Filmstill's Velvia.NP3):
+```
+Offset 0x18C: "Facebook : Nikon Imaging Cloud Recipes\n
+              Instagram : @Nikonrecipes / @Filmstill__\n
+              Threads/Reddit : @Filmstill__"
+```
+
+**Important**: When description is present, it shifts the BI0 tone curve marker location.
+
+### File Size Variants (Observed)
+
+| Size | Example Files | Notes |
+|------|---------------|-------|
+| 392 bytes | Junk.NP3, Ricoh GRiiix.NP3 | Minimal, no description, no tone curve |
+| 426 bytes | Modern Kodachrome.NP3 | Basic preset |
+| 466 bytes | Grain Test.NP3 | With grain settings |
+| 510 bytes | Filmstill's Velvia.NP3 | With description (110 chars) |
+| 978 bytes | Armitage series | With BI0 tone curve |
+| 1012 bytes | Most extended presets | Standard extended |
+| 1124 bytes | ARTE B&W.NP3 | Extended with more data |
+| 1140 bytes | KOLORA.NP3 | Extended with 256-point LUT + description |
+
+### Quick Sharp (UI-Only Parameter)
+
+**Quick Sharp** is NOT stored in NP3 files. It's a UI convenience slider (-2 to +2) in NX Studio that simultaneously adjusts:
+- Sharpening
+- Mid-range Sharpening  
+- Clarity
+
+Our implementation correctly maps the individual components. Quick Sharp value can be derived if needed:
+```go
+quickSharp := (sharpening + midRangeSharpening + clarity) / 3.0
+```
+
+### Gamma Parameter (Investigation Needed)
+
+Gamma is visible in NX Studio's tone curve panel (range: 0.05 to 6.0, default 1.00).
+- **Status**: Unknown offset - may be derived from tone curve shape or stored in an unmapped location
+- **Impact**: Low - most presets use default gamma
+
+### BI0 Marker Location
+
+The BI0 marker location varies based on file content:
+- **Without description**: Fixed at offset 0x18E (398)
+- **With description**: Offset = 0x18C + description_length + padding
+
+### Implementation Updates (Feb 2026)
+
+```
+✅ Description field parsing (extractDescription)
+✅ Description field generation (writeDescription)
+✅ Description added to UniversalRecipe model
+✅ Removed hardcoded debug ' v15' suffix
+✅ All tests passing (62/62 files)
+```
+
+---
+
+**Document Status**: Phase 6 Complete - Description field support + deep dive audit
+**Last Updated**: 2026-02-04 (Phase 6 - Description field mapping)
+**Next Review**: When Gamma parameter investigation is needed

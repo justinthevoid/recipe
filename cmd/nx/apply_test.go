@@ -305,4 +305,3 @@ func TestApplyCmd_ExportGuideFlow_DryRun(t *testing.T) {
 		t.Error("expected message about skipping export guide")
 	}
 }
-

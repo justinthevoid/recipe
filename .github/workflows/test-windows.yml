@@ -1,0 +1,75 @@
+name: Windows Acceptance Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cmd/nx/**"
+      - "internal/**"
+      - "scripts/**"
+      - ".github/workflows/test-windows.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "cmd/nx/**"
+      - "internal/**"
+      - "scripts/**"
+      - ".github/workflows/test-windows.yml"
+
+jobs:
+  test-windows:
+    name: Windows Validation
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: false # Explicitly disabled per Story 3.2
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Verify ImageMagick
+        run: magick --version
+
+      - name: Download Fixtures
+        # Dependency on Story 3.2 - verify if script exists before running
+        run: |
+          if (Test-Path "scripts/download_fixtures.go") {
+            go run scripts/download_fixtures.go
+          } else {
+            Write-Host "Warning: scripts/download_fixtures.go not found. Skipping fixture download."
+          }
+        env:
+          FIXTURE_CORPUS_URL: ${{ secrets.FIXTURE_CORPUS_URL }}
+
+      - name: Setup NX Studio
+        env:
+          NX_STUDIO_INSTALLER_URL: ${{ secrets.NX_STUDIO_INSTALLER_URL }}
+        run: |
+          if (Test-Path "scripts/setup-nx-studio-ci.ps1") {
+              ./scripts/setup-nx-studio-ci.ps1
+          } else {
+              Write-Host "Warning: scripts/setup-nx-studio-ci.ps1 not found. Skipping NX Studio setup."
+          }
+
+      - name: Build recipe-nx
+        run: go build -v -o recipe-nx.exe ./cmd/nx
+
+      - name: Verify recipe-nx binary
+        run: ./recipe-nx.exe --help
+
+      - name: Run Unit Tests
+        run: go test -v ./internal/... ./cmd/nx/...
+
+      - name: Run Acceptance Tests
+        run: go test -v ./internal/formats/nksc/... -tags=acceptance
+        env:
+          NX_STUDIO_PATH: "C:\\Program Files\\Nikon\\NX Studio\\NX Studio.exe"

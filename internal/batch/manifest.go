@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+// Manifest constants.
+const (
+	ManifestVersion = "1.0"
+
+	StatusSuccess = "success"
+	StatusError   = "error"
+	StatusSkipped = "skipped"
+)
+
 // BatchManifest represents the complete report of a batch processing run.
 type BatchManifest struct {
 	Version string       `json:"version"`
@@ -28,10 +37,15 @@ type BatchSummary struct {
 
 // FileResult represents the outcome of processing a single file.
 type FileResult struct {
-	InputPath    string `json:"input_path"`
-	Status       string `json:"status"` // "success" or "error"
-	OutputPath   string `json:"output_path,omitempty"`
-	ErrorMessage string `json:"error,omitempty"`
+	InputPath    string    `json:"input_path"`
+	Status       string    `json:"status"` // "success", "error", "skipped"
+	OutputPath   string    `json:"output_path,omitempty"`
+	ErrorMessage string    `json:"error,omitempty"`
+	ErrorCode    string    `json:"error_code,omitempty"`
+	Size         int64     `json:"file_size,omitempty"`
+	ModTime      time.Time `json:"mod_time,omitempty"`
+	PayloadHash  string    `json:"payload_hash,omitempty"`
+	NP3Hash      string    `json:"np3_hash,omitempty"`
 }
 
 // WriteManifest writes the manifest to the specified path using an atomic write pattern.
@@ -65,4 +79,20 @@ func WriteManifest(path string, manifest *BatchManifest) error {
 	}
 
 	return nil
+}
+
+// ReadManifest reads a manifest file from the specified path.
+func ReadManifest(path string) (*BatchManifest, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open manifest: %w", err)
+	}
+	defer file.Close()
+
+	var manifest BatchManifest
+	if err := json.NewDecoder(file).Decode(&manifest); err != nil {
+		return nil, fmt.Errorf("failed to decode manifest: %w", err)
+	}
+
+	return &manifest, nil
 }

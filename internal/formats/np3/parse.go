@@ -203,13 +203,18 @@ type np3Parameters struct {
 	blending       int                     // Offset 384, direct value: 0 to 100
 	balance        int                     // Offset 386, Signed8 encoding: -100 to +100
 
+	// Description (variable-length field, max 256 chars)
+	// Offset 392: 4-byte big-endian length
+	// Offset 396: null-terminated description text
+	description string
+
 	// Tone Curve (exact offset extraction)
 	toneCurvePointCount int              // Offset 404, direct value: 0-255
 	toneCurvePoints     []toneCurvePoint // Offset 405, 2 bytes per point
 	toneCurveRaw        []uint16         // Offset 460, 257 × 16-bit big-endian
 
 	// Tone Curve (Control Points for generation)
-	toneCurve    []ControlPoint // Slice of 20 control points
+	toneCurve []ControlPoint // Slice of 20 control points
 
 	// Base Picture Control ID (e.g. 1=Standard, 40=Flexible Color)
 	basePictureControlID uint8
@@ -372,6 +377,7 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	extractAdvancedAdjustments(data, params)
 	extractColorBlender(data, params)
 	extractColorGrading(data, params)
+	extractDescription(data, params)
 	extractToneCurve(data, params)
 
 	// FALLBACK: Use heuristic-based parameter estimation for missing/invalid offsets
@@ -968,6 +974,56 @@ func extractColorGrading(data []byte, params *np3Parameters) {
 	}
 }
 
+// extractDescription reads the variable-length description field.
+// Structure:
+//   - Offset 392 (0x188): 4-byte big-endian length
+//   - Offset 396 (0x18C): null-terminated description text (max 256 chars)
+//
+// The description field is optional. If length is 0, no description is present.
+// When present, this field shifts the BI0 marker location.
+func extractDescription(data []byte, params *np3Parameters) {
+	// Check if we have enough data for the length field
+	if len(data) < OffsetDescriptionText {
+		return
+	}
+
+	// Read 4-byte big-endian length at offset 392
+	if len(data) < OffsetDescriptionLength+4 {
+		return
+	}
+	length := int(data[OffsetDescriptionLength])<<24 |
+		int(data[OffsetDescriptionLength+1])<<16 |
+		int(data[OffsetDescriptionLength+2])<<8 |
+		int(data[OffsetDescriptionLength+3])
+
+	// Validate length
+	if length <= 0 || length > MaxDescriptionLength {
+		return
+	}
+
+	// Check if we have enough data for the description text
+	endOffset := OffsetDescriptionText + length
+	if len(data) < endOffset {
+		return
+	}
+
+	// Extract description text (null-terminated)
+	descBytes := data[OffsetDescriptionText:endOffset]
+	// Find null terminator
+	nullIdx := -1
+	for i, b := range descBytes {
+		if b == 0 {
+			nullIdx = i
+			break
+		}
+	}
+	if nullIdx >= 0 {
+		params.description = string(descBytes[:nullIdx])
+	} else {
+		params.description = string(descBytes)
+	}
+}
+
 // extractToneCurve reads tone curve parameters using exact byte offsets.
 // The tone curve has two representations:
 //  1. Control Points: Variable count (0-127) of (x, y) coordinate pairs
@@ -1126,21 +1182,48 @@ func lutToParametric(lut []uint16) (shadows, darks, lights, highlights int) {
 func extractToneCurve(data []byte, params *np3Parameters) {
 	// Tone Curve Point Count
 	// Standard NP3 files (NX Studio) often have 0x00 at OffsetToneCurvePointCount (404)
-	// and store the actual count in the BI0 structure (offset 418).
-	// We must check both locations.
-	
-	// Initial check at 404
+	// and store the actual count in the BI0 structure.
+	// We must search for BI0 marker dynamically because description field shifts its location.
+
+	// Initial check at 404 (may be 0 if BI0 structure is used)
 	if ValidateOffset(OffsetToneCurvePointCount) && len(data) > OffsetToneCurvePointCount {
 		params.toneCurvePointCount = int(data[OffsetToneCurvePointCount])
 	}
 
-	// Check for BI0 marker at offset 409 (standard for valid NP3 files)
-	// If present, points start at BI0+11 (offset 420), NOT 405 (matches working file structure)
-	pointsOffset := OffsetToneCurvePoints
-	if len(data) > OffsetBI0Marker+3 && data[OffsetBI0Marker] == 'B' && data[OffsetBI0Marker+1] == 'I' && data[OffsetBI0Marker+2] == '0' {
+	// Find BI0 marker dynamically - it can be at different offsets depending on description length
+	// Search range: 0x188 (after color grading) to 0x300 (reasonable upper bound)
+	bi0Offset := -1
+	searchStart := 0x188 // Start after color grading section
+	searchEnd := len(data) - 3
+	if searchEnd > 0x500 {
+		searchEnd = 0x500 // Don't search too far
+	}
+
+	for i := searchStart; i < searchEnd; i++ {
+		if data[i] == 'B' && data[i+1] == 'I' && data[i+2] == '0' {
+			bi0Offset = i
+			break
+		}
+	}
+
+	// Set points offset based on BI0 location
+	pointsOffset := OffsetToneCurvePoints // Default fallback
+	if bi0Offset >= 0 {
+		// BI0 structure found - points start at BI0+11
+		pointsOffset = bi0Offset + 11
+
+		// Sync point count from BI0 header (BI0+9)
+		if len(data) > bi0Offset+9 {
+			bi0Count := int(data[bi0Offset+9])
+			if bi0Count > 0 && bi0Count <= 127 {
+				params.toneCurvePointCount = bi0Count
+			}
+		}
+	} else if len(data) > OffsetBI0Marker+3 && data[OffsetBI0Marker] == 'B' && data[OffsetBI0Marker+1] == 'I' && data[OffsetBI0Marker+2] == '0' {
+		// Fallback: check fixed offset 409 (for files without description)
+		bi0Offset = OffsetBI0Marker
 		pointsOffset = OffsetBI0Marker + 11
-		
-		// Sync point count from BI0 header (offset 418)
+
 		if len(data) > OffsetBI0Marker+9 {
 			bi0Count := int(data[OffsetBI0Marker+9])
 			if bi0Count > 0 {
@@ -1154,17 +1237,31 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 		pointsEnd := pointsOffset + (params.toneCurvePointCount * 2)
 
 		if len(data) >= pointsEnd {
-			params.toneCurvePoints = make([]toneCurvePoint, params.toneCurvePointCount)
+			params.toneCurvePoints = make([]toneCurvePoint, 0, params.toneCurvePointCount)
 			for i := 0; i < params.toneCurvePointCount; i++ {
 				offset := pointsOffset + (i * 2)
-				// FIXED: Read X (Input) and Y (Output) directly.
-				// Writer writes [X, Y]. Previous swap logic inverted the curve axes!
-				params.toneCurvePoints[i] = toneCurvePoint{
+				pt := toneCurvePoint{
 					position: offset,
 					value1:   data[offset],   // Input (X)
 					value2:   data[offset+1], // Output (Y)
 				}
+				params.toneCurvePoints = append(params.toneCurvePoints, pt)
 			}
+
+			// Validate and filter garbage end points
+			// Pattern: last point has output=0 after previous point had high output (>200)
+			// This indicates padding/null terminator was read as a curve point
+			for len(params.toneCurvePoints) > 2 {
+				last := params.toneCurvePoints[len(params.toneCurvePoints)-1]
+				prev := params.toneCurvePoints[len(params.toneCurvePoints)-2]
+				// If last point drops to 0 output after a high output, remove it
+				if last.value2 == 0 && prev.value2 > 200 {
+					params.toneCurvePoints = params.toneCurvePoints[:len(params.toneCurvePoints)-1]
+				} else {
+					break
+				}
+			}
+			params.toneCurvePointCount = len(params.toneCurvePoints)
 		}
 	}
 
@@ -1195,14 +1292,10 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 	*/
 
 	// LUT extraction strategies (re-enabled)
-	// Strategy 1: Extended KOLORA format (1100+ bytes) - search for 'BI0' marker
-	if len(data) >= 1100 {
-		for i := 0x200; i < len(data)-4 && i < 0x280; i++ {
-			if data[i] == 'B' && data[i+1] == 'I' && data[i+2] == '0' {
-				lutOffset = i + 0x41 // LUT starts 0x41 bytes after 'BI0'
-				break
-			}
-		}
+	// Strategy 1: Use dynamically found BI0 offset for extended files
+	// LUT starts 0x41 bytes after BI0 marker
+	if bi0Offset >= 0 && len(data) >= bi0Offset+0x41+514 {
+		lutOffset = bi0Offset + 0x41
 	}
 
 	// Strategy 2: Standard format (978-1099 bytes)
@@ -1444,6 +1537,11 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 	// Set preset name if available
 	if params.name != "" {
 		builder.WithName(params.name)
+	}
+
+	// Set description if available
+	if params.description != "" {
+		builder.WithDescription(params.description)
 	}
 
 	// Heuristic: Determine Camera Profile from preset name

@@ -35,6 +35,7 @@ func newRootCmd() *cobra.Command {
 	batchCmd := newBatchCmd()
 	batchCmd.AddCommand(newApplyCmd())
 	cmd.AddCommand(batchCmd)
+	cmd.AddCommand(newVerifyCmd())
 
 	return cmd
 }

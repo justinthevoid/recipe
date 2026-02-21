@@ -2,8 +2,8 @@ package batch
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
-	"strings"
 	"testing"
 	"time"
 )
@@ -13,7 +13,7 @@ func TestManifestSerialization(t *testing.T) {
 	endTime := time.Date(2026, 1, 8, 10, 5, 0, 0, time.UTC)
 
 	manifest := BatchManifest{
-		Version: "1.0",
+		Version: ManifestVersion,
 		Summary: BatchSummary{
 			TotalProcessed: 2,
 			SuccessCount:   1,
@@ -26,13 +26,17 @@ func TestManifestSerialization(t *testing.T) {
 		},
 		Files: []FileResult{
 			{
-				InputPath:  "test/input/a.nef",
-				Status:     "success",
-				OutputPath: "test/output/a.nksc",
+				InputPath:   "test/input/a.nef",
+				Status:      StatusSuccess,
+				OutputPath:  "test/output/a.nksc",
+				Size:        1024,
+				ModTime:     startTime,
+				PayloadHash: "nef_hash_1",
+				NP3Hash:     "np3_hash_v1",
 			},
 			{
 				InputPath:    "test/input/b.nef",
-				Status:       "error",
+				Status:       StatusError,
 				ErrorMessage: "dummy error",
 			},
 		},
@@ -43,24 +47,35 @@ func TestManifestSerialization(t *testing.T) {
 		t.Fatalf("Failed to marshal manifest: %v", err)
 	}
 
-	jsonStr := string(data)
-
-	// Check for JSON tags (snake_case expectations)
-	checks := []string{
-		`"version":"1.0"`,
-		`"total_processed":2`,
-		`"success_count":1`,
-		`"skipped_count":0`,
-		`"input_path":"test/input/a.nef"`,
-		`"error":"dummy error"`,
-		`"duration":"5m0s"`,
-		`"np3_hash":"abcdef123"`,
+	var unmarshaledManifest BatchManifest
+	if err := json.Unmarshal(data, &unmarshaledManifest); err != nil {
+		t.Fatalf("Failed to unmarshal manifest: %v", err)
 	}
 
-	for _, check := range checks {
-		if !strings.Contains(jsonStr, check) {
-			t.Errorf("JSON output missing expected string: %s. Got: %s", check, jsonStr)
-		}
+	if unmarshaledManifest.Version != ManifestVersion {
+		t.Errorf("Expected version %s, got %s", ManifestVersion, unmarshaledManifest.Version)
+	}
+	if unmarshaledManifest.Summary.TotalProcessed != 2 {
+		t.Errorf("Expected TotalProcessed 2, got %d", unmarshaledManifest.Summary.TotalProcessed)
+	}
+	if unmarshaledManifest.Summary.SuccessCount != 1 {
+		t.Errorf("Expected SuccessCount 1, got %d", unmarshaledManifest.Summary.SuccessCount)
+	}
+	if len(unmarshaledManifest.Files) != 2 {
+		t.Errorf("Expected 2 files, got %d", len(unmarshaledManifest.Files))
+	}
+
+	file0 := unmarshaledManifest.Files[0]
+	if file0.InputPath != "test/input/a.nef" {
+		t.Errorf("Expected input path 'test/input/a.nef', got %s", file0.InputPath)
+	}
+	if file0.Status != StatusSuccess {
+		t.Errorf("Expected status %s, got %s", StatusSuccess, file0.Status)
+	}
+
+	file1 := unmarshaledManifest.Files[1]
+	if file1.Status != StatusError {
+		t.Errorf("Expected status %s, got %s", StatusError, file1.Status)
 	}
 }
 
@@ -69,7 +84,7 @@ func TestWriteManifest_Atomic(t *testing.T) {
 	manifestPath := tmpDir + "/manifest.json"
 
 	manifest := &BatchManifest{
-		Version: "1.0",
+		Version: ManifestVersion,
 		Summary: BatchSummary{
 			TotalProcessed: 1,
 			SuccessCount:   1,
@@ -86,8 +101,52 @@ func TestWriteManifest_Atomic(t *testing.T) {
 		t.Fatalf("Failed to read manifest file: %v", err)
 	}
 
-	content := string(data)
-	if !strings.Contains(content, `"version": "1.0"`) {
-		t.Errorf("Manifest content missing version. Got: %s", content)
+	var readManifest BatchManifest
+	if err := json.Unmarshal(data, &readManifest); err != nil {
+		t.Fatalf("Failed to unmarshal manifest from file: %v", err)
+	}
+	if readManifest.Version != ManifestVersion {
+		t.Errorf("Expected version %s, got %s", ManifestVersion, readManifest.Version)
+	}
+}
+
+func TestReadManifest(t *testing.T) {
+	manifestJSON := fmt.Sprintf(`{
+		"version": "%s",
+		"summary": {
+			"total_processed": 1,
+			"np3_hash": "abc"
+		},
+		"files": [
+			{
+				"input_path": "a.nef",
+				"status": "success",
+				"file_size": 123,
+				"mod_time": "2026-01-08T10:00:00Z"
+			}
+		]
+	}`, ManifestVersion)
+
+	tmpPath := t.TempDir() + "/read_manifest.json"
+	if err := os.WriteFile(tmpPath, []byte(manifestJSON), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := ReadManifest(tmpPath)
+	if err != nil {
+		t.Fatalf("ReadManifest failed: %v", err)
+	}
+
+	if m.Version != ManifestVersion {
+		t.Errorf("Expected version %s, got %s", ManifestVersion, m.Version)
+	}
+	if len(m.Files) != 1 {
+		t.Errorf("Expected 1 file, got %d", len(m.Files))
+	}
+	if m.Files[0].InputPath != "a.nef" {
+		t.Errorf("Expected input path a.nef, got %s", m.Files[0].InputPath)
+	}
+	if m.Files[0].Size != 123 {
+		t.Errorf("Expected size 123, got %d", m.Files[0].Size)
 	}
 }

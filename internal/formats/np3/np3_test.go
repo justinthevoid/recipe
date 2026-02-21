@@ -483,8 +483,7 @@ func TestGenerate(t *testing.T) {
 		nameEnd = len(nameBytes)
 	}
 	extractedName := string(nameBytes[:nameEnd])
-	// Note: Generate() adds " v15" suffix to force fresh import in NX Studio (debug feature)
-	expectedName := "Test Preset v15"
+	expectedName := "Test Preset"
 	if extractedName != expectedName {
 		t.Errorf("Name not correctly encoded: expected '%s', got '%s'", expectedName, extractedName)
 	}
@@ -893,11 +892,11 @@ func TestGenerateWithWarnings_NoWarnings(t *testing.T) {
 // TestCameraCalibrationMapping tests that Camera Calibration values are applied to Color Blender
 func TestCameraCalibrationMapping(t *testing.T) {
 	recipe := &models.UniversalRecipe{
-		Red: models.ColorAdjustment{Hue: -5, Saturation: -3, Luminance: 5},
+		Red:  models.ColorAdjustment{Hue: -5, Saturation: -3, Luminance: 5},
 		Blue: models.ColorAdjustment{Hue: 0, Saturation: -3, Luminance: 3},
 		CameraProfile: models.CameraProfile{
-			RedHue: 10,        // Should add +5 to Red.Hue (10 * 0.5)
-			BlueHue: 20,       // Should add +10 to Blue.Hue (20 * 0.5)
+			RedHue:  10, // Should add +5 to Red.Hue (10 * 0.5)
+			BlueHue: 20, // Should add +10 to Blue.Hue (20 * 0.5)
 		},
 	}
 
@@ -914,15 +913,15 @@ func TestCameraCalibrationMapping(t *testing.T) {
 	// Expected: Red.Hue = -5 + (10 * 0.5) = 0
 	expectedRedHue := -5 + 5 // -5 + int(10 * 0.5)
 	if parsed.Red.Hue != expectedRedHue {
-		t.Errorf("Red.Hue = %d, expected %d (original=-5, calibration=+10@0.5x)", 
-parsed.Red.Hue, expectedRedHue)
+		t.Errorf("Red.Hue = %d, expected %d (original=-5, calibration=+10@0.5x)",
+			parsed.Red.Hue, expectedRedHue)
 	}
 
 	// Expected: Blue.Hue = 0 + (20 * 0.5) = 10
 	expectedBlueHue := 0 + 10 // 0 + int(20 * 0.5)
 	if parsed.Blue.Hue != expectedBlueHue {
 		t.Errorf("Blue.Hue = %d, expected %d (original=0, calibration=+20@0.5x)",
-parsed.Blue.Hue, expectedBlueHue)
+			parsed.Blue.Hue, expectedBlueHue)
 	}
 
 	t.Logf("Red.Hue: %d (expected %d)", parsed.Red.Hue, expectedRedHue)

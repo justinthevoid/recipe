@@ -57,12 +57,13 @@ func (r *NKSCRecipe) Write(path string) error {
 
 	// Construct the full XMP packet
 	// Header
-	const xmlHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+	// const xmlHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
 	// XMP Packet Marker (with BOM)
 	const xmpBegin = "<?xpacket begin=\"\xEF\xBB\xBF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n"
 	const xmpEnd = "\n<?xpacket end=\"w\"?>"
 
-	fullContent := []byte(xmlHeader + xmpBegin + string(data) + xmpEnd)
+	// NX Studio output does not include the XML declaration, only the XMP packet wrapper.
+	fullContent := []byte(xmpBegin + string(data) + xmpEnd)
 
 	// Atomic write
 	dir := filepath.Dir(path)

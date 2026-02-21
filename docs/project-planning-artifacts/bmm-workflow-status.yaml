@@ -1,9 +1,0 @@
-# BMAD workflow status
-# Tracks latest outputs for key workflows
-
-workflow_status:
-  product-brief:
-    outputFile: docs/project-planning-artifacts/product-brief-recipe-2026-01-06.md
-    completedAt: 2026-01-06T20:57:21-05:00
-    project: recipe
-    date: "2026-01-06"

@@ -30,6 +30,12 @@ func (b *RecipeBuilder) WithName(name string) *RecipeBuilder {
 	return b
 }
 
+// WithDescription sets the recipe description.
+func (b *RecipeBuilder) WithDescription(description string) *RecipeBuilder {
+	b.recipe.Description = description
+	return b
+}
+
 // WithSourceFormat sets the source format.
 func (b *RecipeBuilder) WithSourceFormat(format string) *RecipeBuilder {
 	b.recipe.SourceFormat = format

@@ -1,6 +1,7 @@
 package batch_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,7 +46,7 @@ func BenchmarkProcessBatch(b *testing.B) {
 				})
 				b.StartTimer()
 
-				if _, err := orch.ProcessBatch(); err != nil {
+				if _, err := orch.ProcessBatch(context.Background()); err != nil {
 					b.Fatalf("Run failed: %v", err)
 				}
 			}
