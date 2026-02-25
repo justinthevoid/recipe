@@ -1,7 +1,7 @@
 interface VsCodeApi {
-    postMessage(message: unknown): void;
-    getState(): unknown;
-    setState(state: unknown): void;
+	postMessage(message: unknown): void;
+	getState(): unknown;
+	setState(state: unknown): void;
 }
 
 declare function acquireVsCodeApi(): VsCodeApi;
@@ -11,23 +11,23 @@ declare function acquireVsCodeApi(): VsCodeApi;
  * `acquireVsCodeApi()` can only be called once per webview lifecycle.
  */
 class VsCodeWrapper {
-    private readonly api: VsCodeApi;
+	private readonly api: VsCodeApi;
 
-    constructor() {
-        this.api = acquireVsCodeApi();
-    }
+	constructor() {
+		this.api = acquireVsCodeApi();
+	}
 
-    postMessage(message: unknown): void {
-        this.api.postMessage(message);
-    }
+	postMessage(message: unknown): void {
+		this.api.postMessage(message);
+	}
 
-    getState<T>(): T | undefined {
-        return this.api.getState() as T | undefined;
-    }
+	getState<T>(): T | undefined {
+		return this.api.getState() as T | undefined;
+	}
 
-    setState<T>(state: T): void {
-        this.api.setState(state);
-    }
+	setState<T>(state: T): void {
+		this.api.setState(state);
+	}
 }
 
 /** Singleton instance — safe because acquireVsCodeApi() is called exactly once. */
