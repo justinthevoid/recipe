@@ -1,5 +1,5 @@
 <script>
-import { onMount, afterUpdate } from "svelte";
+import { afterUpdate, onMount } from "svelte";
 
 export let data = { r: [], g: [], b: [] };
 export let height = 100;

@@ -1,5 +1,5 @@
 <script>
-import { wasmState, addFile } from "../stores";
+import { addFile, wasmState } from "../stores";
 
 let isDragging = false;
 let fileInput;

@@ -1,7 +1,7 @@
 <script>
-import { files, settings, updateFileStatus, previewFile, currentRecipe } from "../stores";
 import { convertFile } from "../converter";
 import { detectFormatFromExtension } from "../format-detector";
+import { currentRecipe, files, previewFile, settings, updateFileStatus } from "../stores";
 
 let converting = false;
 let error = null;

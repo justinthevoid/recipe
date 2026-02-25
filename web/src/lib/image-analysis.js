@@ -39,8 +39,8 @@ export async function analyzeImage(imgElement) {
 			const bHist = new Array(256).fill(0);
 			const lHist = new Array(256).fill(0);
 
-			let totalPixels = width * height;
-			let maxCount = 0;
+			const totalPixels = width * height;
+			const maxCount = 0;
 
 			for (let i = 0; i < data.length; i += 4) {
 				const r = data[i];

@@ -1,16 +1,16 @@
 <script>
 import { onMount } from "svelte";
-import { initializeWASM } from "./lib/wasm";
-import Hero from "./lib/components/Hero.svelte";
-import FormatGrid from "./lib/components/FormatGrid.svelte";
-import HowItWorks from "./lib/components/HowItWorks.svelte";
-import FAQ from "./lib/components/FAQ.svelte";
-import Footer from "./lib/components/Footer.svelte";
-import Modal from "./lib/components/Modal.svelte";
-import UploadZone from "./lib/components/UploadZone.svelte";
-import FileList from "./lib/components/FileList.svelte";
 import ActionPanel from "./lib/components/ActionPanel.svelte";
+import FAQ from "./lib/components/FAQ.svelte";
+import FileList from "./lib/components/FileList.svelte";
+import Footer from "./lib/components/Footer.svelte";
+import FormatGrid from "./lib/components/FormatGrid.svelte";
+import Hero from "./lib/components/Hero.svelte";
+import HowItWorks from "./lib/components/HowItWorks.svelte";
+import Modal from "./lib/components/Modal.svelte";
 import PreviewModal from "./lib/components/PreviewModal.svelte";
+import UploadZone from "./lib/components/UploadZone.svelte";
+import { initializeWASM } from "./lib/wasm";
 
 let showLegalModal = false;
 

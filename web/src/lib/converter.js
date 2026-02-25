@@ -132,7 +132,7 @@ function validateConvertedData(data, format) {
 				console.log("Validation: NP3 output valid (magic bytes correct)");
 				break;
 
-			case "xmp":
+			case "xmp": {
 				// Check XMP starts with XML declaration
 				const xmpHeader = new TextDecoder().decode(data.slice(0, 5));
 				if (!xmpHeader.startsWith("<?xml")) {
@@ -140,8 +140,9 @@ function validateConvertedData(data, format) {
 				}
 				console.log("Validation: XMP output valid (XML structure correct)");
 				break;
+			}
 
-			case "lrtemplate":
+			case "lrtemplate": {
 				// Check lrtemplate starts with Lua syntax "s = {"
 				const lrtemplateHeader = new TextDecoder().decode(data.slice(0, 10)).trim();
 				if (!lrtemplateHeader.startsWith("s = {")) {
@@ -149,6 +150,7 @@ function validateConvertedData(data, format) {
 				}
 				console.log("Validation: lrtemplate output valid (Lua syntax correct)");
 				break;
+			}
 
 			default:
 				throw new Error(`Unknown format: ${format}`);

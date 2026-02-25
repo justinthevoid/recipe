@@ -115,11 +115,11 @@ export function calculateColorMatrix(temp, tint, saturation) {
 
 // sRGB <-> Linear conversions for physically accurate exposure
 function sRGBtoLinear(x) {
-	return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+	return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
 }
 
 function linearToSRGB(x) {
-	return x <= 0.0031308 ? x * 12.92 : 1.055 * Math.pow(x, 1.0 / 2.4) - 0.055;
+	return x <= 0.0031308 ? x * 12.92 : 1.055 * x ** (1.0 / 2.4) - 0.055;
 }
 
 /**
@@ -156,12 +156,12 @@ export function calculateTransferTable(
 	const cDark = (curveDarks || 0) / 100;
 	const cShad = (curveShadows || 0) / 100;
 
-	const exposureMult = Math.pow(2, exp);
-	const slopeFactor = Math.pow(2, cont);
+	const exposureMult = 2 ** exp;
+	const slopeFactor = 2 ** cont;
 	const k = 4 * slopeFactor;
 
 	for (let i = 0; i <= steps; i++) {
-		let x = i / steps; // 0.0 to 1.0 (sRGB signal)
+		const x = i / steps; // 0.0 to 1.0 (sRGB signal)
 
 		// 1. Convert to Linear Space
 		let lin = sRGBtoLinear(x);
@@ -191,7 +191,7 @@ export function calculateTransferTable(
 			res += shad * 0.2 * shadowFactor * Math.sin(res * Math.PI);
 
 			// Blacks affect the very bottom
-			const blackFactor = Math.pow(1 - res, 4);
+			const blackFactor = (1 - res) ** 4;
 			res += blk * 0.15 * blackFactor;
 		}
 
@@ -202,7 +202,7 @@ export function calculateTransferTable(
 			res += high * 0.2 * highlightFactor * Math.sin(res * Math.PI);
 
 			// Whites affect the very top
-			const whiteFactor = Math.pow(res, 4);
+			const whiteFactor = res ** 4;
 			res += wht * 0.15 * whiteFactor;
 		}
 
