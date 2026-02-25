@@ -1,6 +1,6 @@
 <script>
-    import { files } from "../stores";
-    import FileCard from "./FileCard.svelte";
+import { files } from "../stores";
+import FileCard from "./FileCard.svelte";
 </script>
 
 {#if $files.length > 0}

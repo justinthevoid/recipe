@@ -1,24 +1,24 @@
 <script>
-    import { currentRecipe } from "../../stores";
+import { currentRecipe } from "../../stores";
 
-    const colors = [
-        { id: "Red", label: "Red", color: "#ff4d4d" },
-        { id: "Orange", label: "Orange", color: "#ff9f4d" },
-        { id: "Yellow", label: "Yellow", color: "#ffd700" },
-        { id: "Green", label: "Green", color: "#4dff4d" },
-        { id: "Aqua", label: "Aqua", color: "#4dffff" },
-        { id: "Blue", label: "Blue", color: "#4d4dff" },
-        { id: "Purple", label: "Purple", color: "#9f4dff" },
-        { id: "Magenta", label: "Magenta", color: "#ff4dff" },
-    ];
+const colors = [
+	{ id: "Red", label: "Red", color: "#ff4d4d" },
+	{ id: "Orange", label: "Orange", color: "#ff9f4d" },
+	{ id: "Yellow", label: "Yellow", color: "#ffd700" },
+	{ id: "Green", label: "Green", color: "#4dff4d" },
+	{ id: "Aqua", label: "Aqua", color: "#4dffff" },
+	{ id: "Blue", label: "Blue", color: "#4d4dff" },
+	{ id: "Purple", label: "Purple", color: "#9f4dff" },
+	{ id: "Magenta", label: "Magenta", color: "#ff4dff" },
+];
 
-    let activeColor = "Red";
+let activeColor = "Red";
 
-    function ensureColorStruct(colorId) {
-        if (!$currentRecipe[colorId]) {
-            $currentRecipe[colorId] = { Hue: 0, Saturation: 0, Luminance: 0 };
-        }
-    }
+function ensureColorStruct(colorId) {
+	if (!$currentRecipe[colorId]) {
+		$currentRecipe[colorId] = { Hue: 0, Saturation: 0, Luminance: 0 };
+	}
+}
 </script>
 
 <div class="color-blender">

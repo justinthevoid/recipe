@@ -1,47 +1,47 @@
 <script>
-    import { wasmState, addFile } from "../stores";
+import { wasmState, addFile } from "../stores";
 
-    let isDragging = false;
-    let fileInput;
+let isDragging = false;
+let fileInput;
 
-    function handleDragOver(e) {
-        e.preventDefault();
-        isDragging = true;
-    }
+function handleDragOver(e) {
+	e.preventDefault();
+	isDragging = true;
+}
 
-    function handleDragLeave(e) {
-        e.preventDefault();
-        isDragging = false;
-    }
+function handleDragLeave(e) {
+	e.preventDefault();
+	isDragging = false;
+}
 
-    function handleDrop(e) {
-        e.preventDefault();
-        isDragging = false;
-        if (e.dataTransfer.files) {
-            processFiles(e.dataTransfer.files);
-        }
-    }
+function handleDrop(e) {
+	e.preventDefault();
+	isDragging = false;
+	if (e.dataTransfer.files) {
+		processFiles(e.dataTransfer.files);
+	}
+}
 
-    function handleFileSelect(e) {
-        if (e.target.files) {
-            processFiles(e.target.files);
-        }
-    }
+function handleFileSelect(e) {
+	if (e.target.files) {
+		processFiles(e.target.files);
+	}
+}
 
-    function processFiles(fileList) {
-        Array.from(fileList).forEach((file) => {
-            // Basic validation (can be expanded)
-            const ext = file.name.split(".").pop().toLowerCase();
-            if (["np3", "xmp", "lrtemplate", "costyle", "dcp"].includes(ext)) {
-                addFile(file);
-            } else {
-                // Handle invalid file (maybe toast notification?)
-                console.warn("Skipping invalid file:", file.name);
-            }
-        });
-        // Reset input
-        if (fileInput) fileInput.value = "";
-    }
+function processFiles(fileList) {
+	Array.from(fileList).forEach((file) => {
+		// Basic validation (can be expanded)
+		const ext = file.name.split(".").pop().toLowerCase();
+		if (["np3", "xmp", "lrtemplate", "costyle", "dcp"].includes(ext)) {
+			addFile(file);
+		} else {
+			// Handle invalid file (maybe toast notification?)
+			console.warn("Skipping invalid file:", file.name);
+		}
+	});
+	// Reset input
+	if (fileInput) fileInput.value = "";
+}
 </script>
 
 <div

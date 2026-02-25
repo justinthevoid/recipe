@@ -1,6 +1,6 @@
 <script>
-    export let isOpen = false;
-    export let onClose;
+export let isOpen = false;
+export let onClose;
 </script>
 
 {#if isOpen}

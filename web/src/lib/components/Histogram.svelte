@@ -1,62 +1,62 @@
 <script>
-    import { onMount, afterUpdate } from "svelte";
+import { onMount, afterUpdate } from "svelte";
 
-    export let data = { r: [], g: [], b: [] };
-    export let height = 100;
+export let data = { r: [], g: [], b: [] };
+export let height = 100;
 
-    let canvas;
-    let ctx;
+let canvas;
+let ctx;
 
-    $: if (canvas && data) {
-        drawHistogram();
-    }
+$: if (canvas && data) {
+	drawHistogram();
+}
 
-    function drawHistogram() {
-        if (!canvas || !data.r.length) return;
+function drawHistogram() {
+	if (!canvas || !data.r.length) return;
 
-        const ctx = canvas.getContext("2d");
-        const w = canvas.width;
-        const h = canvas.height;
+	const ctx = canvas.getContext("2d");
+	const w = canvas.width;
+	const h = canvas.height;
 
-        ctx.clearRect(0, 0, w, h);
+	ctx.clearRect(0, 0, w, h);
 
-        // Find max value to normalize height
-        const maxVal = Math.max(...data.r, ...data.g, ...data.b);
+	// Find max value to normalize height
+	const maxVal = Math.max(...data.r, ...data.g, ...data.b);
 
-        if (maxVal === 0) return;
+	if (maxVal === 0) return;
 
-        // Draw Channel helper
-        const drawChannel = (hist, color) => {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(0, h);
+	// Draw Channel helper
+	const drawChannel = (hist, color) => {
+		ctx.fillStyle = color;
+		ctx.beginPath();
+		ctx.moveTo(0, h);
 
-            for (let i = 0; i < 256; i++) {
-                const x = (i / 255) * w;
-                const val = hist[i];
-                const barHeight = (val / maxVal) * h;
-                const y = h - barHeight;
-                ctx.lineTo(x, y);
-            }
+		for (let i = 0; i < 256; i++) {
+			const x = (i / 255) * w;
+			const val = hist[i];
+			const barHeight = (val / maxVal) * h;
+			const y = h - barHeight;
+			ctx.lineTo(x, y);
+		}
 
-            ctx.lineTo(w, h);
-            ctx.closePath();
-            ctx.fill();
-        };
+		ctx.lineTo(w, h);
+		ctx.closePath();
+		ctx.fill();
+	};
 
-        // Use additive blending for RGB overlap
-        ctx.globalCompositeOperation = "screen";
+	// Use additive blending for RGB overlap
+	ctx.globalCompositeOperation = "screen";
 
-        drawChannel(data.r, "rgba(255, 50, 50, 0.8)");
-        drawChannel(data.g, "rgba(50, 255, 50, 0.8)");
-        drawChannel(data.b, "rgba(50, 50, 255, 0.8)");
+	drawChannel(data.r, "rgba(255, 50, 50, 0.8)");
+	drawChannel(data.g, "rgba(50, 255, 50, 0.8)");
+	drawChannel(data.b, "rgba(50, 50, 255, 0.8)");
 
-        ctx.globalCompositeOperation = "source-over";
-    }
+	ctx.globalCompositeOperation = "source-over";
+}
 
-    onMount(() => {
-        drawHistogram();
-    });
+onMount(() => {
+	drawHistogram();
+});
 </script>
 
 <div class="histogram-container" style="height: {height}px">
