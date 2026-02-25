@@ -7,36 +7,36 @@ package np3
 // the format-specific attributes needed for faithful reproduction or referencing.
 type Metadata struct {
 	// RawBytes contains the complete binary content of the NP3 file.
-	RawBytes []byte
+	RawBytes []byte `json:"rawBytes"`
 
 	// Version is the internal format version (e.g., "0200").
-	Version string
+	Version string `json:"version"`
 
 	// Label is the user-defined name of the Picture Control.
-	Label string
+	Label string `json:"label"`
 
 	// Base details
-	BaseFlag uint8
+	BaseFlag uint8 `json:"baseFlag"`
 
 	// Basic Parameters
-	Sharpening  float64
-	Clarity     float64
-	GrainAmount float64
+	Sharpening  float64 `json:"sharpening"`
+	Clarity     float64 `json:"clarity"`
+	GrainAmount float64 `json:"grainAmount"`
 
 	// Advanced Parameters
-	GrainSize          int
-	MidRangeSharpening float64
-	Contrast           int
-	Highlights         int
-	Shadows            int
-	WhiteLevel         int
-	BlackLevel         int
-	Saturation         int
+	GrainSize          int     `json:"grainSize"`
+	MidRangeSharpening float64 `json:"midRangeSharpening"`
+	Contrast           int     `json:"contrast"`
+	Highlights         int     `json:"highlights"`
+	Shadows            int     `json:"shadows"`
+	WhiteLevel         int     `json:"whiteLevel"`
+	BlackLevel         int     `json:"blackLevel"`
+	Saturation         int     `json:"saturation"`
 
 	// Heuristic/Legacy
-	Hue        int
-	Brightness int
+	Hue        int `json:"hue"`
+	Brightness int `json:"brightness"`
 
 	// Tone Curve
-	ToneCurvePoints []ControlPoint
+	ToneCurvePoints []ControlPoint `json:"toneCurvePoints"`
 }
