@@ -1,13 +1,13 @@
 <script>
-import { previewFile, currentRecipe } from "../stores";
 import { extractFullRecipe, generatePreset } from "../converter";
 import { detectFormatFromExtension } from "../format-detector";
-import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
 import { analyzeImage, calculateAutoExposure } from "../image-analysis";
-import Histogram from "./Histogram.svelte";
+import { currentRecipe, previewFile } from "../stores";
+import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
 import ColorBlender from "./editor/ColorBlender.svelte";
 import ColorGrading from "./editor/ColorGrading.svelte";
 import ToneCurve from "./editor/ToneCurve.svelte";
+import Histogram from "./Histogram.svelte";
 
 let isOpen = false;
 let file = null;
