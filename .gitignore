@@ -9,6 +9,9 @@ legacy/
 *.tiff
 *.nef
 .legacy/
+coverage/
+.reverse-engineering/
+.DS_Store
 
 # Test coverage reports
 coverage.out
