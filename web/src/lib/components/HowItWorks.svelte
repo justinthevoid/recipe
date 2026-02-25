@@ -1,5 +1,5 @@
 <script>
-    // How it works section
+// How it works section
 </script>
 
 <section

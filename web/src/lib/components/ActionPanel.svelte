@@ -1,142 +1,126 @@
 <script>
-    import {
-        files,
-        settings,
-        updateFileStatus,
-        previewFile,
-        currentRecipe,
-    } from "../stores";
-    import { convertFile } from "../converter";
-    import { detectFormatFromExtension } from "../format-detector";
+import { files, settings, updateFileStatus, previewFile, currentRecipe } from "../stores";
+import { convertFile } from "../converter";
+import { detectFormatFromExtension } from "../format-detector";
 
-    let converting = false;
-    let error = null;
+let converting = false;
+let error = null;
 
-    // Supported target formats
-    const formats = [
-        { value: "xmp", label: "XMP (Adobe/Lightroom)" },
-        { value: "lrtemplate", label: "LRTEMPLATE (Legacy Lightroom)" },
-        { value: "np3", label: "NP3 (Nikon)" },
-        { value: "costyle", label: "COSTYLE (Capture One)" },
-        { value: "dcp", label: "DCP (DNG Profile)" },
-    ];
+// Supported target formats
+const formats = [
+	{ value: "xmp", label: "XMP (Adobe/Lightroom)" },
+	{ value: "lrtemplate", label: "LRTEMPLATE (Legacy Lightroom)" },
+	{ value: "np3", label: "NP3 (Nikon)" },
+	{ value: "costyle", label: "COSTYLE (Capture One)" },
+	{ value: "dcp", label: "DCP (DNG Profile)" },
+];
 
-    // Default target format
-    if (!$settings.targetFormat) {
-        settings.update((s) => ({ ...s, targetFormat: "xmp" }));
-    }
+// Default target format
+if (!$settings.targetFormat) {
+	settings.update((s) => ({ ...s, targetFormat: "xmp" }));
+}
 
-    async function handleConvert() {
-        if (converting || $files.length === 0) return;
+async function handleConvert() {
+	if (converting || $files.length === 0) return;
 
-        converting = true;
-        error = null;
-        const targetFormat = $settings.targetFormat;
+	converting = true;
+	error = null;
+	const targetFormat = $settings.targetFormat;
 
-        try {
-            // Process files sequentially
-            for (const fileData of $files) {
-                if (fileData.status === "complete") continue; // Skip already converted
+	try {
+		// Process files sequentially
+		for (const fileData of $files) {
+			if (fileData.status === "complete") continue; // Skip already converted
 
-                updateFileStatus(fileData.id, { status: "processing" });
+			updateFileStatus(fileData.id, { status: "processing" });
 
-                try {
-                    const buffer = await fileData.file.arrayBuffer();
-                    const bytes = new Uint8Array(buffer);
-                    const sourceFormat = detectFormatFromExtension(
-                        fileData.name,
-                    );
+			try {
+				const buffer = await fileData.file.arrayBuffer();
+				const bytes = new Uint8Array(buffer);
+				const sourceFormat = detectFormatFromExtension(fileData.name);
 
-                    const outputData = await convertFile(
-                        bytes,
-                        sourceFormat,
-                        targetFormat,
-                        fileData.name,
-                    );
+				const outputData = await convertFile(bytes, sourceFormat, targetFormat, fileData.name);
 
-                    // Create download URL
-                    const blob = new Blob([outputData], {
-                        type: "application/octet-stream",
-                    });
-                    const url = URL.createObjectURL(blob);
+				// Create download URL
+				const blob = new Blob([outputData], {
+					type: "application/octet-stream",
+				});
+				const url = URL.createObjectURL(blob);
 
-                    // Generate new filename
-                    const newName =
-                        fileData.name.replace(/\.[^/.]+$/, "") +
-                        "." +
-                        targetFormat;
+				// Generate new filename
+				const newName = fileData.name.replace(/\.[^/.]+$/, "") + "." + targetFormat;
 
-                    updateFileStatus(fileData.id, {
-                        status: "complete",
-                        outputUrl: url,
-                        outputName: newName,
-                    });
-                } catch (e) {
-                    console.error(e);
-                    updateFileStatus(fileData.id, {
-                        status: "error",
-                        error: e.message,
-                    });
-                }
-            }
-        } catch (e) {
-            error = e.message;
-        } finally {
-            converting = false;
-        }
-    }
+				updateFileStatus(fileData.id, {
+					status: "complete",
+					outputUrl: url,
+					outputName: newName,
+				});
+			} catch (e) {
+				console.error(e);
+				updateFileStatus(fileData.id, {
+					status: "error",
+					error: e.message,
+				});
+			}
+		}
+	} catch (e) {
+		error = e.message;
+	} finally {
+		converting = false;
+	}
+}
 
-    function downloadAll() {
-        // Simple implementation: trigger click on all download links
-        // A better approach would be to zip them, but for now this works for small batches
-        $files.forEach((f) => {
-            if (f.status === "complete" && f.outputUrl) {
-                const a = document.createElement("a");
-                a.href = f.outputUrl;
-                a.download = f.outputName;
-                a.click();
-            }
-        });
-    }
+function downloadAll() {
+	// Simple implementation: trigger click on all download links
+	// A better approach would be to zip them, but for now this works for small batches
+	$files.forEach((f) => {
+		if (f.status === "complete" && f.outputUrl) {
+			const a = document.createElement("a");
+			a.href = f.outputUrl;
+			a.download = f.outputName;
+			a.click();
+		}
+	});
+}
 
-    function createNewPreset() {
-        const defaultRecipe = {
-            Name: "New Preset",
-            Exposure: 0,
-            Contrast: 0,
-            Highlights: 0,
-            Shadows: 0,
-            Whites: 0,
-            Blacks: 0,
-            Clarity: 0,
-            Dehaze: 0,
-            Vibrance: 0,
-            Saturation: 0,
-            Temperature: 0,
-            Tint: 0,
-            ColorGrading: {
-                Highlights: { Hue: 0, Chroma: 0, Brightness: 0 },
-                Midtone: { Hue: 0, Chroma: 0, Brightness: 0 },
-                Shadows: { Hue: 0, Chroma: 0, Brightness: 0 },
-                Blending: 50,
-                Balance: 0,
-            },
-            ToneCurveHighlights: 0,
-            ToneCurveLights: 0,
-            ToneCurveDarks: 0,
-            ToneCurveShadows: 0,
-        };
+function createNewPreset() {
+	const defaultRecipe = {
+		Name: "New Preset",
+		Exposure: 0,
+		Contrast: 0,
+		Highlights: 0,
+		Shadows: 0,
+		Whites: 0,
+		Blacks: 0,
+		Clarity: 0,
+		Dehaze: 0,
+		Vibrance: 0,
+		Saturation: 0,
+		Temperature: 0,
+		Tint: 0,
+		ColorGrading: {
+			Highlights: { Hue: 0, Chroma: 0, Brightness: 0 },
+			Midtone: { Hue: 0, Chroma: 0, Brightness: 0 },
+			Shadows: { Hue: 0, Chroma: 0, Brightness: 0 },
+			Blending: 50,
+			Balance: 0,
+		},
+		ToneCurveHighlights: 0,
+		ToneCurveLights: 0,
+		ToneCurveDarks: 0,
+		ToneCurveShadows: 0,
+	};
 
-        // Create a mock file object
-        const newFile = {
-            name: "New Preset.np3",
-            isNew: true,
-            arrayBuffer: async () => new ArrayBuffer(0),
-        };
+	// Create a mock file object
+	const newFile = {
+		name: "New Preset.np3",
+		isNew: true,
+		arrayBuffer: async () => new ArrayBuffer(0),
+	};
 
-        previewFile.set(newFile);
-        // currentRecipe will be set by PreviewModal based on isNew flag
-    }
+	previewFile.set(newFile);
+	// currentRecipe will be set by PreviewModal based on isNew flag
+}
 </script>
 
 <div class="action-panel glass-card">

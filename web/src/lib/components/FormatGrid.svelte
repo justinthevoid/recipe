@@ -1,5 +1,5 @@
 <script>
-    // Supported formats grid
+// Supported formats grid
 </script>
 
 <section class="section">

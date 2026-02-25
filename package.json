@@ -1,15 +1,15 @@
 {
-    "name": "recipe",
-    "private": true,
-    "workspaces": [
-        "extension",
-        "webview"
-    ],
-    "scripts": {
-        "dev": "bun run --filter '*' dev",
-        "build": "bun run build:go && bun run --filter '@recipe/webview' build && bun run --filter '@recipe/extension' build",
-        "build:go": "go build -o extension/bin/np3tool ./cmd/np3tool/",
-        "build:extension": "bun run --filter '@recipe/extension' build",
-        "build:webview": "bun run --filter '@recipe/webview' build"
-    }
+	"name": "recipe",
+	"private": true,
+	"workspaces": [
+		"extension",
+		"webview"
+	],
+	"scripts": {
+		"dev": "bun run --filter '*' dev",
+		"build": "bun run build:go && bun run --filter '@recipe/webview' build && bun run --filter '@recipe/extension' build",
+		"build:go": "go build -o extension/bin/np3tool ./cmd/np3tool/",
+		"build:extension": "bun run --filter '@recipe/extension' build",
+		"build:webview": "bun run --filter '@recipe/webview' build"
+	}
 }

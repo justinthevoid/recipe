@@ -1,9 +1,9 @@
 <script>
-    import { currentRecipe } from "../../stores";
+import { currentRecipe } from "../../stores";
 
-    // Parametric Curve sliders
-    // ToneCurveShadows, ToneCurveDarks, ToneCurveLights, ToneCurveHighlights
-    // Range: -100 to +100
+// Parametric Curve sliders
+// ToneCurveShadows, ToneCurveDarks, ToneCurveLights, ToneCurveHighlights
+// Range: -100 to +100
 </script>
 
 <div class="tone-curve">

@@ -1,5 +1,5 @@
 <script>
-    // Hero section component
+// Hero section component
 </script>
 
 <header class="hero">

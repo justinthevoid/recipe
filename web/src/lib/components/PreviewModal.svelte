@@ -1,259 +1,254 @@
 <script>
-    import { previewFile, currentRecipe } from "../stores";
-    import { extractFullRecipe, generatePreset } from "../converter";
-    import { detectFormatFromExtension } from "../format-detector";
-    import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
-    import { analyzeImage, calculateAutoExposure } from "../image-analysis";
-    import Histogram from "./Histogram.svelte";
-    import ColorBlender from "./editor/ColorBlender.svelte";
-    import ColorGrading from "./editor/ColorGrading.svelte";
-    import ToneCurve from "./editor/ToneCurve.svelte";
+import { previewFile, currentRecipe } from "../stores";
+import { extractFullRecipe, generatePreset } from "../converter";
+import { detectFormatFromExtension } from "../format-detector";
+import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
+import { analyzeImage, calculateAutoExposure } from "../image-analysis";
+import Histogram from "./Histogram.svelte";
+import ColorBlender from "./editor/ColorBlender.svelte";
+import ColorGrading from "./editor/ColorGrading.svelte";
+import ToneCurve from "./editor/ToneCurve.svelte";
 
-    let isOpen = false;
-    let file = null;
-    let loading = false;
-    let error = null;
-    let isSaving = false;
+let isOpen = false;
+let file = null;
+let loading = false;
+let error = null;
+let isSaving = false;
 
-    // Editor Tabs
-    let activeTab = "basic"; // basic, color, grading, curves
+// Editor Tabs
+let activeTab = "basic"; // basic, color, grading, curves
 
-    // Slider state
-    let sliderPosition = 50;
+// Slider state
+let sliderPosition = 50;
 
-    // Filter values
-    let colorMatrix = "";
-    let transferTable = "";
+// Filter values
+let colorMatrix = "";
+let transferTable = "";
 
-    // Image State
-    const defaultImages = [
-        "/images/portrait-original.jpg",
-        "/images/landscape-original.jpg",
-        "/images/product-original.jpg",
-    ];
-    let currentImageIndex = 0;
-    let customImage = null;
-    let fileInput;
-    let imgElement; // Reference to the "Before" image for analysis
+// Image State
+const defaultImages = [
+	"/images/portrait-original.jpg",
+	"/images/landscape-original.jpg",
+	"/images/product-original.jpg",
+];
+let currentImageIndex = 0;
+let customImage = null;
+let fileInput;
+let imgElement; // Reference to the "Before" image for analysis
 
-    // Analysis State
-    let histogramData = { r: [], g: [], b: [] };
-    let imageStats = null;
-    let isAnalyzing = false;
+// Analysis State
+let histogramData = { r: [], g: [], b: [] };
+let imageStats = null;
+let isAnalyzing = false;
 
-    $: currentImageSrc = customImage || defaultImages[currentImageIndex];
+$: currentImageSrc = customImage || defaultImages[currentImageIndex];
 
-    // Subscribe to store
-    previewFile.subscribe(async (f) => {
-        file = f;
-        isOpen = !!f;
-        if (f) {
-            await loadPreview(f);
-        } else {
-            reset();
-        }
-    });
+// Subscribe to store
+previewFile.subscribe(async (f) => {
+	file = f;
+	isOpen = !!f;
+	if (f) {
+		await loadPreview(f);
+	} else {
+		reset();
+	}
+});
 
-    // React to recipe changes
-    currentRecipe.subscribe((recipe) => {
-        if (recipe) {
-            updateFilters(recipe);
-        }
-    });
+// React to recipe changes
+currentRecipe.subscribe((recipe) => {
+	if (recipe) {
+		updateFilters(recipe);
+	}
+});
 
-    function close() {
-        previewFile.set(null);
-        currentRecipe.set(null);
-    }
+function close() {
+	previewFile.set(null);
+	currentRecipe.set(null);
+}
 
-    function reset() {
-        loading = false;
-        error = null;
-        sliderPosition = 50;
-        colorMatrix = "";
-        transferTable = "";
-        histogramData = { r: [], g: [], b: [] };
-        // Don't reset custom image or index so user preference persists during session
-    }
+function reset() {
+	loading = false;
+	error = null;
+	sliderPosition = 50;
+	colorMatrix = "";
+	transferTable = "";
+	histogramData = { r: [], g: [], b: [] };
+	// Don't reset custom image or index so user preference persists during session
+}
 
-    async function loadPreview(f) {
-        loading = true;
-        error = null;
-        try {
-            if (f.isNew) {
-                const defaultRecipe = {
-                    name: "New Preset",
-                    exposure: 0,
-                    contrast: 0,
-                    highlights: 0,
-                    shadows: 0,
-                    whites: 0,
-                    blacks: 0,
-                    clarity: 0,
-                    dehaze: 0,
-                    vibrance: 0,
-                    saturation: 0,
-                    temperature: 0,
-                    tint: 0,
-                    colorGrading: {
-                        highlights: { hue: 0, chroma: 0, brightness: 0 },
-                        midtone: { hue: 0, chroma: 0, brightness: 0 },
-                        shadows: { hue: 0, chroma: 0, brightness: 0 },
-                        blending: 50,
-                        balance: 0,
-                    },
-                    toneCurveHighlights: 0,
-                    toneCurveLights: 0,
-                    toneCurveDarks: 0,
-                    toneCurveShadows: 0,
-                };
-                currentRecipe.set(defaultRecipe);
-                loading = false;
-                return;
-            }
+async function loadPreview(f) {
+	loading = true;
+	error = null;
+	try {
+		if (f.isNew) {
+			const defaultRecipe = {
+				name: "New Preset",
+				exposure: 0,
+				contrast: 0,
+				highlights: 0,
+				shadows: 0,
+				whites: 0,
+				blacks: 0,
+				clarity: 0,
+				dehaze: 0,
+				vibrance: 0,
+				saturation: 0,
+				temperature: 0,
+				tint: 0,
+				colorGrading: {
+					highlights: { hue: 0, chroma: 0, brightness: 0 },
+					midtone: { hue: 0, chroma: 0, brightness: 0 },
+					shadows: { hue: 0, chroma: 0, brightness: 0 },
+					blending: 50,
+					balance: 0,
+				},
+				toneCurveHighlights: 0,
+				toneCurveLights: 0,
+				toneCurveDarks: 0,
+				toneCurveShadows: 0,
+			};
+			currentRecipe.set(defaultRecipe);
+			loading = false;
+			return;
+		}
 
-            // Read file
-            const buffer = await f.arrayBuffer();
-            const bytes = new Uint8Array(buffer);
-            const format = detectFormatFromExtension(f.name);
+		// Read file
+		const buffer = await f.arrayBuffer();
+		const bytes = new Uint8Array(buffer);
+		const format = detectFormatFromExtension(f.name);
 
-            // Extract full recipe
-            const recipe = await extractFullRecipe(bytes, format);
-            console.log("Loaded Recipe:", recipe);
-            currentRecipe.set(recipe);
-        } catch (e) {
-            console.error(e);
-            error = e.message;
-        } finally {
-            loading = false;
-        }
-    }
+		// Extract full recipe
+		const recipe = await extractFullRecipe(bytes, format);
+		console.log("Loaded Recipe:", recipe);
+		currentRecipe.set(recipe);
+	} catch (e) {
+		console.error(e);
+		error = e.message;
+	} finally {
+		loading = false;
+	}
+}
 
-    function updateFilters(recipe) {
-        if (!recipe) return;
-        console.log("Updating Filters with:", recipe);
+function updateFilters(recipe) {
+	if (!recipe) return;
+	console.log("Updating Filters with:", recipe);
 
-        // Extract values for SVG filters
-        const temp = recipe.temperature || 0;
-        const tint = recipe.tint || 0;
-        const saturation = recipe.saturation || 0;
-        const exposure = recipe.exposure || 0;
-        const contrast = recipe.contrast || 0;
-        const highlights = recipe.highlights || 0;
-        const shadows = recipe.shadows || 0;
-        const whites = recipe.whites || 0;
-        const blacks = recipe.blacks || 0;
+	// Extract values for SVG filters
+	const temp = recipe.temperature || 0;
+	const tint = recipe.tint || 0;
+	const saturation = recipe.saturation || 0;
+	const exposure = recipe.exposure || 0;
+	const contrast = recipe.contrast || 0;
+	const highlights = recipe.highlights || 0;
+	const shadows = recipe.shadows || 0;
+	const whites = recipe.whites || 0;
+	const blacks = recipe.blacks || 0;
 
-        const curveHighlights = recipe.toneCurveHighlights || 0;
-        const curveLights = recipe.toneCurveLights || 0;
-        const curveDarks = recipe.toneCurveDarks || 0;
-        const curveShadows = recipe.toneCurveShadows || 0;
+	const curveHighlights = recipe.toneCurveHighlights || 0;
+	const curveLights = recipe.toneCurveLights || 0;
+	const curveDarks = recipe.toneCurveDarks || 0;
+	const curveShadows = recipe.toneCurveShadows || 0;
 
-        colorMatrix = calculateColorMatrix(temp, tint, saturation);
-        transferTable = calculateTransferTable(
-            exposure,
-            contrast,
-            highlights,
-            shadows,
-            whites,
-            blacks,
-            curveHighlights,
-            curveLights,
-            curveDarks,
-            curveShadows,
-        );
+	colorMatrix = calculateColorMatrix(temp, tint, saturation);
+	transferTable = calculateTransferTable(
+		exposure,
+		contrast,
+		highlights,
+		shadows,
+		whites,
+		blacks,
+		curveHighlights,
+		curveLights,
+		curveDarks,
+		curveShadows,
+	);
 
-        console.log("Transfer Table:", transferTable);
-    }
+	console.log("Transfer Table:", transferTable);
+}
 
-    // Image Analysis Trigger
-    async function handleImageLoad() {
-        if (!imgElement) return;
-        isAnalyzing = true;
-        try {
-            const result = await analyzeImage(imgElement);
-            histogramData = result.histogram;
-            imageStats = result;
-        } catch (e) {
-            console.error("Analysis failed", e);
-        } finally {
-            isAnalyzing = false;
-        }
-    }
+// Image Analysis Trigger
+async function handleImageLoad() {
+	if (!imgElement) return;
+	isAnalyzing = true;
+	try {
+		const result = await analyzeImage(imgElement);
+		histogramData = result.histogram;
+		imageStats = result;
+	} catch (e) {
+		console.error("Analysis failed", e);
+	} finally {
+		isAnalyzing = false;
+	}
+}
 
-    function autoTone() {
-        if (!histogramData || !imageStats) return;
+function autoTone() {
+	if (!histogramData || !imageStats) return;
 
-        const evShift = calculateAutoExposure(
-            histogramData.l,
-            imageStats.totalPixels,
-        );
+	const evShift = calculateAutoExposure(histogramData.l, imageStats.totalPixels);
 
-        // Apply shift to current exposure
-        currentRecipe.update((r) => {
-            const currentExp = r.exposure || 0;
-            const newExp = currentExp + evShift;
-            return { ...r, exposure: parseFloat(newExp.toFixed(2)) };
-        });
-    }
+	// Apply shift to current exposure
+	currentRecipe.update((r) => {
+		const currentExp = r.exposure || 0;
+		const newExp = currentExp + evShift;
+		return { ...r, exposure: parseFloat(newExp.toFixed(2)) };
+	});
+}
 
-    async function savePreset() {
-        isSaving = true;
-        try {
-            let recipe;
-            currentRecipe.subscribe((r) => (recipe = r))();
+async function savePreset() {
+	isSaving = true;
+	try {
+		let recipe;
+		currentRecipe.subscribe((r) => (recipe = r))();
 
-            if (!recipe) return;
+		if (!recipe) return;
 
-            const np3Data = await generatePreset(recipe);
+		const np3Data = await generatePreset(recipe);
 
-            // Create blob and download
-            const blob = new Blob([np3Data], {
-                type: "application/octet-stream",
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = (recipe.name || "preset") + ".np3";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (e) {
-            console.error("Save failed", e);
-            error = "Failed to save preset: " + e.message;
-        } finally {
-            isSaving = false;
-        }
-    }
+		// Create blob and download
+		const blob = new Blob([np3Data], {
+			type: "application/octet-stream",
+		});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = (recipe.name || "preset") + ".np3";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	} catch (e) {
+		console.error("Save failed", e);
+		error = "Failed to save preset: " + e.message;
+	} finally {
+		isSaving = false;
+	}
+}
 
-    // Image Navigation
-    function nextImage() {
-        customImage = null; // Clear custom image when navigating
-        currentImageIndex = (currentImageIndex + 1) % defaultImages.length;
-    }
+// Image Navigation
+function nextImage() {
+	customImage = null; // Clear custom image when navigating
+	currentImageIndex = (currentImageIndex + 1) % defaultImages.length;
+}
 
-    function prevImage() {
-        customImage = null;
-        currentImageIndex =
-            (currentImageIndex - 1 + defaultImages.length) %
-            defaultImages.length;
-    }
+function prevImage() {
+	customImage = null;
+	currentImageIndex = (currentImageIndex - 1 + defaultImages.length) % defaultImages.length;
+}
 
-    function triggerUpload() {
-        fileInput.click();
-    }
+function triggerUpload() {
+	fileInput.click();
+}
 
-    function handleImageUpload(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                customImage = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    }
+function handleImageUpload(e) {
+	const file = e.target.files[0];
+	if (file) {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			customImage = e.target.result;
+		};
+		reader.readAsDataURL(file);
+	}
+}
 </script>
 
 {#if isOpen}

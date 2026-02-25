@@ -1,32 +1,29 @@
 <script>
-    import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
+import { calculateColorMatrix, calculateTransferTable } from "../svg-logic";
 
-    export let parameters = {};
+export let parameters = {};
 
-    // Helper to safely get parameter values
-    const getVal = (...keys) => {
-        if (!parameters) return 0;
-        for (const key of keys) {
-            if (
-                parameters[key] != null &&
-                typeof parameters[key] === "number"
-            ) {
-                return parameters[key];
-            }
-        }
-        return 0;
-    };
+// Helper to safely get parameter values
+const getVal = (...keys) => {
+	if (!parameters) return 0;
+	for (const key of keys) {
+		if (parameters[key] != null && typeof parameters[key] === "number") {
+			return parameters[key];
+		}
+	}
+	return 0;
+};
 
-    // Reactive values
-    $: temp = getVal("Temperature");
-    $: tint = getVal("Tint");
-    $: saturation = getVal("Saturation");
-    $: exposure = getVal("Exposure", "Exposure2012");
-    $: contrast = getVal("Contrast", "Contrast2012");
+// Reactive values
+$: temp = getVal("Temperature");
+$: tint = getVal("Tint");
+$: saturation = getVal("Saturation");
+$: exposure = getVal("Exposure", "Exposure2012");
+$: contrast = getVal("Contrast", "Contrast2012");
 
-    // Calculate filter attributes
-    $: colorMatrix = calculateColorMatrix(temp, tint, saturation);
-    $: transferTable = calculateTransferTable(exposure, contrast);
+// Calculate filter attributes
+$: colorMatrix = calculateColorMatrix(temp, tint, saturation);
+$: transferTable = calculateTransferTable(exposure, contrast);
 </script>
 
 <svg style="position: absolute; width: 0; height: 0; overflow: hidden;">

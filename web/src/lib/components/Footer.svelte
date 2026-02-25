@@ -1,6 +1,6 @@
 <script>
-    export let onLegalClick;
-    export let version = "1.0.0";
+export let onLegalClick;
+export let version = "1.0.0";
 </script>
 
 <footer class="app-footer">

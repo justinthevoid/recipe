@@ -1,24 +1,24 @@
 <script>
-    import { currentRecipe } from "../../stores";
+import { currentRecipe } from "../../stores";
 
-    // Ensure ColorGrading struct exists
-    $: if ($currentRecipe && !$currentRecipe.ColorGrading) {
-        $currentRecipe.ColorGrading = {
-            Highlights: { Hue: 0, Chroma: 0, Brightness: 0 },
-            Midtone: { Hue: 0, Chroma: 0, Brightness: 0 },
-            Shadows: { Hue: 0, Chroma: 0, Brightness: 0 },
-            Blending: 0,
-            Balance: 0,
-        };
-    }
+// Ensure ColorGrading struct exists
+$: if ($currentRecipe && !$currentRecipe.ColorGrading) {
+	$currentRecipe.ColorGrading = {
+		Highlights: { Hue: 0, Chroma: 0, Brightness: 0 },
+		Midtone: { Hue: 0, Chroma: 0, Brightness: 0 },
+		Shadows: { Hue: 0, Chroma: 0, Brightness: 0 },
+		Blending: 0,
+		Balance: 0,
+	};
+}
 
-    const zones = [
-        { id: "Shadows", label: "Shadows" },
-        { id: "Midtone", label: "Midtones" },
-        { id: "Highlights", label: "Highlights" },
-    ];
+const zones = [
+	{ id: "Shadows", label: "Shadows" },
+	{ id: "Midtone", label: "Midtones" },
+	{ id: "Highlights", label: "Highlights" },
+];
 
-    let activeZone = "Midtone";
+let activeZone = "Midtone";
 </script>
 
 <div class="color-grading">
