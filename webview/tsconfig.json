@@ -11,6 +11,9 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "paths": {
+            "$lib": [
+                "./src/lib"
+            ],
             "$lib/*": [
                 "./src/lib/*"
             ]
