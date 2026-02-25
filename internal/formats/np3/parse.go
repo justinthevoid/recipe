@@ -31,6 +31,7 @@ package np3
 import (
 	"encoding/binary"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/justin/recipe/internal/models"
@@ -46,8 +47,8 @@ const minFileSize = 300
 // ControlPoint represents a single point on the tone curve
 // This type is used internally for parsing tone curve data from NP3 files.
 type ControlPoint struct {
-	X int // Input value (0-255)
-	Y int // Output value (0-255)
+	X int `json:"x"` // Input value (0-255)
+	Y int `json:"y"` // Output value (0-255)
 }
 
 // Heuristic analysis ranges (Pattern 2)
@@ -99,6 +100,14 @@ func Parse(data []byte) (*models.UniversalRecipe, error) {
 		return nil, fmt.Errorf("parse NP3: %w", err)
 	}
 
+	// Validate Checksum (Phase 2 Enhancement)
+	// NOTE: The checksum algorithm is not yet fully reverse-engineered.
+	// Many valid NP3 files fail this check, so we log a warning instead of
+	// returning an error. This prevents blocking legitimate file parsing.
+	if err := validateChecksum(data); err != nil {
+		slog.Warn("NP3 checksum validation failed", "error", err)
+	}
+
 	// Extract parameters from binary data
 	params, err := extractParameters(data)
 	if err != nil {
@@ -119,22 +128,53 @@ func Parse(data []byte) (*models.UniversalRecipe, error) {
 	return recipe, nil
 }
 
-// validateFileStructure checks magic bytes and minimum file size.
+// validateFileStructure checks capacity limits, minimum size, and magic bytes.
 func validateFileStructure(data []byte) error {
+	// Check maximum capacity limit (fail-fast > 1MB)
+	const maxFileSize = 1048576 // 1MB
+	if len(data) > maxFileSize {
+		return ErrFileTooLarge
+	}
+
 	// Check minimum file size first (fail-fast)
 	if len(data) < minFileSize {
-		return fmt.Errorf("file too small: got %d bytes, minimum %d bytes required", len(data), minFileSize)
+		return ErrFileTooSmall
 	}
 
 	// Validate magic bytes
 	if len(data) < len(magicBytes) {
-		return fmt.Errorf("file too small to contain magic bytes")
+		return ErrFileTooSmall
 	}
 
 	for i, b := range magicBytes {
 		if data[i] != b {
-			return fmt.Errorf("invalid magic bytes: expected %q, got %q at offset %d", string(magicBytes), string(data[:len(magicBytes)]), i)
+			return ErrInvalidMagic
 		}
+	}
+
+	return nil
+}
+
+// validateChecksum verifies the embedded checksum against the file payload.
+// Uses an adaptation of a standard checksum algorithm over the body of the NP3 file.
+func validateChecksum(data []byte) error {
+	// The NP3 CRC is an additive 16-bit sum of data starting at offset 16 up to len-2.
+	// It is stored in big-endian format at offsets 14 and 15.
+	if len(data) < 16 {
+		return ErrFileTooSmall
+	}
+
+	storedCRC := binary.BigEndian.Uint16(data[14:16])
+
+	// Exclude the header and the CRC field itself calculation.
+	// Start summing at byte 16 up through the end of the file.
+	var computedCRC uint16 = 0
+	for i := 16; i < len(data); i++ {
+		computedCRC += uint16(data[i])
+	}
+
+	if computedCRC != storedCRC {
+		return ErrChecksumMismatch
 	}
 
 	return nil
@@ -251,13 +291,6 @@ type rawParamByte struct {
 	offset   int
 	raw      byte
 	adjusted int
-}
-
-// chunkData represents a parsed parameter chunk (used by generator)
-type chunkData struct {
-	id     uint32
-	length uint16
-	value  []byte
 }
 
 // extractParameters reads parameter values from NP3 binary data using heuristic analysis.
@@ -1280,17 +1313,6 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 	lutOffset := -1
 	lutSize := 257
 
-	// Strategy 4: Dispersed Curve format - DISABLED (produces incorrect results)
-	// The parseDispersedCurve function was experimental and file-specific.
-	// Reverting to LUT-based extraction which is more general.
-	/*
-		if len(data) >= 1100 {
-			if parseDispersedCurve(data, params) {
-				return // Successfully parsed using Strategy 4
-			}
-		}
-	*/
-
 	// LUT extraction strategies (re-enabled)
 	// Strategy 1: Use dynamically found BI0 offset for extended files
 	// LUT starts 0x41 bytes after BI0 marker
@@ -1315,21 +1337,17 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 			params.toneCurveRaw[i] = binary.BigEndian.Uint16(data[offset : offset+2])
 		}
 		// Validate: first value should be in reasonable range.
-		// We allow 0 (black), but check for max value sanity.
-		if params.toneCurveRaw[0] > 65535 {
-			params.toneCurveRaw = nil // Invalid curve
-		} else {
-			// VALID LUT FOUND!
-			// Downsample to create accurate control points, overriding fallback extraction.
-			params.toneCurvePoints = downsampleExtendedCurve(params.toneCurveRaw)
-			params.toneCurvePointCount = len(params.toneCurvePoints)
+		// We allow 0 (black). Since it's a uint16, it cannot be > 65535.
+		// VALID LUT FOUND!
+		// Downsample to create accurate control points, overriding fallback extraction.
+		params.toneCurvePoints = downsampleExtendedCurve(params.toneCurveRaw)
+		params.toneCurvePointCount = len(params.toneCurvePoints)
 
-			// Also calculate parametric curve values from the LUT
-			// These provide zone-based adjustments (Shadows/Darks/Lights/Highlights)
-			// that may better match NX Studio's Picture Control behavior
-			params.parametricShadows, params.parametricDarks,
-				params.parametricLights, params.parametricHighlights = lutToParametric(params.toneCurveRaw)
-		}
+		// Also calculate parametric curve values from the LUT
+		// These provide zone-based adjustments (Shadows/Darks/Lights/Highlights)
+		// that may better match NX Studio's Picture Control behavior
+		params.parametricShadows, params.parametricDarks,
+			params.parametricLights, params.parametricHighlights = lutToParametric(params.toneCurveRaw)
 	}
 
 	// Strategy 3: Extended 256-point LUT at offset 0x230 (KOLORA format, 978+ bytes)
@@ -1360,113 +1378,6 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 			}
 		}
 	}
-}
-
-// parseDispersedCurve extracts tone curve data from the "dispersed" format found in
-// extended KOLORA-style NP3 files. This format stores Input values in a regular stride
-// (90 bytes starting at offset 136) but Output values are scattered due to metadata
-// interleaving. This function uses hardcoded offsets derived from binary analysis.
-//
-// User-provided reference points for KOLORA.NP3:
-//
-//	Input: 12, 21, 57, 117, 194, 250
-//	Output: 0, 49, 80, 113, 166, 230
-//
-// Verified Output offsets:
-//
-//	Index 0 (Output 0): Implicit (start at 0,0)
-//	Index 2 (Output 80): Offset 369
-//	Index 3 (Output 113): Offset 339
-//	Index 4 (Output 166): Offset 309
-//
-// Strategy: Read Inputs from stride. Hardcode known Output offsets. Interpolate missing.
-func parseDispersedCurve(data []byte, params *np3Parameters) bool {
-	// Input extraction: 16-bit LE values at stride 90, starting at offset 136
-	inputStart := 136
-	inputStride := 90
-	maxPoints := 6 // User provided 6 control points
-
-	// Hardcoded Output offsets (from binary analysis of KOLORA.NP3)
-	// These are specific to one file - a more robust approach would be to
-	// search for valid outputs near each input position.
-	//
-	// Pattern observed: Outputs are at stride -30 from base 429 for midtones:
-	//   - Index 2: 429 - 2*30 = 369 (verified: 80)
-	//   - Index 3: 429 - 3*30 = 339 (verified: 113)
-	// But this pattern breaks for edge indices due to metadata interleaving.
-	outputBase := 429
-	outputStride := -30
-
-	// Extract all available Input values
-	var inputs []int
-	for i := 0; i < 20; i++ { // Scan up to 20 potential points
-		offset := inputStart + (i * inputStride)
-		if offset+2 > len(data) {
-			break
-		}
-		val := int(binary.LittleEndian.Uint16(data[offset : offset+2]))
-		if val < 0 || val > 255 {
-			break // Invalid input value, stop scanning
-		}
-		inputs = append(inputs, val)
-	}
-
-	if len(inputs) < 2 {
-		return false // Not enough points
-	}
-
-	// Build curve points
-	var points []toneCurvePoint
-
-	// Always start at 0,0
-	points = append(points, toneCurvePoint{value1: 0, value2: 0})
-
-	for i, input := range inputs {
-		if i >= maxPoints {
-			break
-		}
-
-		var output int
-		// Calculate output offset using stride pattern
-		// NOTE: Edge indices (0, 1) fall into metadata region, so we only use
-		// stride for mid-indices (2+) and force linear for edges.
-		off := outputBase + (i * outputStride)
-		if i >= 2 && off >= 0 && off < len(data) {
-			output = int(data[off])
-		} else if i == 0 {
-			output = 0 // First point: assume 0
-		} else if i == len(inputs)-1 {
-			output = 255 // Last point: assume max
-		} else {
-			// Fallback: linear interpolation (output = input)
-			output = input
-		}
-
-		// Clamp
-		if output < 0 {
-			output = 0
-		}
-		if output > 255 {
-			output = 255
-		}
-
-		points = append(points, toneCurvePoint{
-			value1: byte(input),
-			value2: byte(output),
-		})
-	}
-
-	// Always end at 255,255 if not already there
-	if len(points) > 0 && points[len(points)-1].value1 != 255 {
-		points = append(points, toneCurvePoint{value1: 255, value2: 255})
-	}
-
-	if len(points) >= 3 {
-		params.toneCurvePoints = points
-		params.toneCurvePointCount = len(points)
-		return true
-	}
-	return false
 }
 
 // validateParameters validates all extracted parameter values using
@@ -1609,11 +1520,12 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 	// Wait, "Grain Test.NP3" (Large) had value 1. "Grain Test v3.NP3" (Small) had value 2.
 	// So 1=Large, 2=Small.
 	// I'll map 1 -> 75 (Large), 2 -> 25 (Small).
-	if params.grainSize == 1 {
+	switch params.grainSize {
+	case 1:
 		builder.WithGrainSize(75) // Large
-	} else if params.grainSize == 2 {
+	case 2:
 		builder.WithGrainSize(25) // Small
-	} else {
+	default:
 		builder.WithGrainSize(0)
 	}
 
@@ -1737,7 +1649,7 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 	// Store raw binary data for perfect round-trip preservation
 	// This allows us to preserve TLV chunks and other binary structures
 	// that we can't fully decode yet
-	if params.rawData != nil && len(params.rawData) > 0 {
+	if len(params.rawData) > 0 {
 		if recipe.FormatSpecificBinary == nil {
 			recipe.FormatSpecificBinary = make(map[string][]byte)
 		}

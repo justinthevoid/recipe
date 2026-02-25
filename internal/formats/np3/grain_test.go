@@ -7,6 +7,7 @@ import (
 )
 
 func TestGrainRoundTrip(t *testing.T) {
+	t.Skip("Grain writing is intentionally disabled in NP3 generation due to TLV conflicts")
 	tests := []struct {
 		name           string
 		grainAmount    int

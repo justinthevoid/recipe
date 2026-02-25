@@ -501,31 +501,6 @@ type npChunk struct {
 	value  []byte // Value bytes (2 bytes typically, more for extended chunks)
 }
 
-// constantChunks defines constant TLV chunks that appear in all NP3 files.
-// These chunks have fixed values across all presets and represent format structure.
-// Chunks 0x06, 0x07, 0x14, 0x16 are variable and handled separately.
-var constantChunks = []npChunk{
-	{id: 0x03, length: 2, value: []byte{0x00, 0x20}}, // Format identifier (value=32)
-	{id: 0x04, length: 2, value: []byte{0x00, 0x00}}, // Reserved (value=0)
-	{id: 0x05, length: 2, value: []byte{0xff, 0x01}}, // Format flag (value=65281)
-	{id: 0x08, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
-	{id: 0x09, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
-	{id: 0x0a, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
-	{id: 0x0b, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
-	{id: 0x0c, length: 2, value: []byte{0xff, 0x00}}, // Default value (value=65280)
-	{id: 0x0d, length: 2, value: []byte{0xff, 0x00}}, // Default value (value=65280)
-	{id: 0x0e, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
-	{id: 0x0f, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281)
-	{id: 0x10, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281)
-	{id: 0x11, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281)
-	{id: 0x12, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281)
-	{id: 0x13, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281)
-	{id: 0x14, length: 2, value: []byte{0xff, 0x01}}, // Default value (value=65281) - ADDED
-	{id: 0x15, length: 2, value: []byte{0xff, 0x0a}}, // Default value (value=65290)
-	{id: 0x17, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
-	{id: 0x18, length: 2, value: []byte{0xff, 0x04}}, // Default value (value=65284)
-}
-
 // writeChunk writes a single TLV chunk at the specified offset.
 // Chunk format: [ChunkID:1][Padding:3][Length:2BE][Value:N][Padding:2]
 // Total size: 10 bytes (for chunks with length=2)
@@ -539,26 +514,6 @@ func writeChunk(data []byte, offset int, chunk npChunk) int {
 
 	// Write value bytes (typically 2 bytes)
 	copy(data[offset+6:offset+6+len(chunk.value)], chunk.value)
-
-	// Write padding after value
-	data[offset+8] = 0x00
-	data[offset+9] = 0x00
-
-	return offset + 10 // Return next chunk offset
-}
-
-// writeChunkMetadataOnly writes chunk structure without overwriting value bytes.
-// Used when heuristic data has already been written to preserve those values.
-// Chunk format: [ChunkID:1][Padding:3][Length:2BE][Value:N][Padding:2]
-func writeChunkMetadataOnly(data []byte, offset int, chunkID byte, length uint16) int {
-	data[offset] = chunkID
-	data[offset+1] = 0x00 // Padding
-	data[offset+2] = 0x00
-	data[offset+3] = 0x00
-	data[offset+4] = byte(length >> 8)   // Length big-endian high byte
-	data[offset+5] = byte(length & 0xff) // Length big-endian low byte
-
-	// Skip offset+6 and offset+7 (value bytes) - preserve existing heuristic data
 
 	// Write padding after value
 	data[offset+8] = 0x00
@@ -712,7 +667,7 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	// If we have raw data from parsing, use it as the base to preserve chunks
 	// Otherwise create a new buffer
 	var data []byte
-	if params.rawData != nil && len(params.rawData) > 0 {
+	if len(params.rawData) > 0 {
 		// Copy raw data to preserve header, chunks, and all structure
 		data = make([]byte, len(params.rawData))
 		copy(data, params.rawData)
@@ -724,7 +679,7 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	}
 
 	// Only write header if we don't have raw data (raw data already has correct header)
-	if params.rawData == nil || len(params.rawData) == 0 {
+	if len(params.rawData) == 0 {
 		// Write magic bytes "NCP" at offset 0-2
 		copy(data[0:3], magicBytes)
 
@@ -746,7 +701,7 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 
 	// Only write legacy data structures if we don't have raw data
 	// (raw data already has correct values and writing would corrupt chunks)
-	if params.rawData == nil || len(params.rawData) == 0 {
+	if len(params.rawData) == 0 {
 		// Phase 2: Legacy heuristic data generation (generateColorData, generateToneCurveData)
 		// has been removed in favor of exact offset writing. The old heuristic approach
 		// wrote data to offsets 100-299 (color) and 150-499 (tone curve), but Phase 2
@@ -768,7 +723,7 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	// Offsets 44-45: Padding (already zeros)
 
 	// Only write TLV chunks if we don't have raw data (raw data already has correct chunks)
-	if params.rawData == nil || len(params.rawData) == 0 {
+	if len(params.rawData) == 0 {
 		// Write TLV chunks at offsets 46-335 (29 chunks × 10 bytes = 290 bytes)
 		// This is required for Nikon NX Studio validation
 		// We write chunks FIRST, then write raw parameter bytes AFTER to avoid overwriting
@@ -777,7 +732,7 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 
 	// Write raw parameter bytes at offsets 71-79 (brightness, hue)
 	// NOTE: Sharpness (previously at 66-70) is now handled by TLV chunks
-	if params.rawData == nil || len(params.rawData) == 0 {
+	if len(params.rawData) == 0 {
 		writeRawParameterBytes(data, params)
 	}
 
