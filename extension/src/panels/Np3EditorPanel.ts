@@ -1,6 +1,4 @@
 import * as vscode from "vscode";
-import * as path from "path";
-import * as fs from "fs";
 import { BinaryManager, type IpcMessage } from "../backend/BinaryManager";
 
 export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
@@ -24,7 +22,7 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 	}
 
 	async resolveCustomEditor(
-		document: vscode.CustomDocument,
+		_document: vscode.CustomDocument,
 		webviewPanel: vscode.WebviewPanel,
 		_token: vscode.CancellationToken,
 	): Promise<void> {

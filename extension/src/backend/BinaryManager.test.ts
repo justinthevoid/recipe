@@ -1,5 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ChildProcess } from "child_process";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as vscode from "vscode";
 
 // Mock vscode module
@@ -70,11 +69,13 @@ describe("BinaryManager", () => {
 			mockSpawn.mockReturnValue(mockProcess);
 
 			// Simulate the process spawning without immediate error
-			mockProcess.on.mockImplementation((event: string, handler: Function) => {
-				// Don't call error handler - successful spawn
-			});
+			mockProcess.on.mockImplementation(
+				(_event: string, _handler: (...args: unknown[]) => void) => {
+					// Don't call error handler - successful spawn
+				},
+			);
 
-			const startPromise = manager.start();
+			void manager.start();
 
 			// Wait for the setTimeout in start()
 			await new Promise((r) => setTimeout(r, 200));
