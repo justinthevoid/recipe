@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/*
+ * Map VS Code CSS variables to CSS custom properties for shadcn-svelte.
+ * This provides native theme integration with the VS Code editor.
+ */
+:root {
+	/* Background colors */
+	--background: var(--vscode-editor-background);
+	--foreground: var(--vscode-editor-foreground);
+	--card: var(--vscode-editorWidget-background);
+	--card-foreground: var(--vscode-editorWidget-foreground);
+	--popover: var(--vscode-editorWidget-background);
+	--popover-foreground: var(--vscode-editorWidget-foreground);
+
+	/* Primary */
+	--primary: var(--vscode-button-background);
+	--primary-foreground: var(--vscode-button-foreground);
+
+	/* Secondary */
+	--secondary: var(--vscode-button-secondaryBackground);
+	--secondary-foreground: var(--vscode-button-secondaryForeground);
+
+	/* Muted */
+	--muted: var(--vscode-input-background);
+	--muted-foreground: var(--vscode-descriptionForeground);
+
+	/* Accent */
+	--accent: var(--vscode-list-activeSelectionBackground);
+	--accent-foreground: var(--vscode-list-activeSelectionForeground);
+
+	/* Destructive */
+	--destructive: var(--vscode-errorForeground);
+	--destructive-foreground: var(--vscode-editor-foreground);
+
+	/* Border */
+	--border: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+	--input: var(--vscode-input-border);
+	--ring: var(--vscode-focusBorder);
+
+	/* Radius */
+	--radius: 0.375rem;
+
+	/* Tailwind v4 compatibility: default border color changed to currentcolor */
+	--tw-border-color: var(--border);
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	font-family: var(--vscode-font-family);
+	font-size: var(--vscode-font-size);
+	color: var(--foreground);
+	background-color: var(--background);
+}

@@ -1,0 +1,39 @@
+{
+    "name": "@recipe/extension",
+    "displayName": "Recipe NP3 Editor",
+    "description": "Visual editor for Nikon NP3 picture control files",
+    "version": "0.0.1",
+    "publisher": "justinthevoid",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.96.0"
+    },
+    "main": "./dist/extension.js",
+    "activationEvents": [
+        "onCustomEditor:recipe.np3Editor"
+    ],
+    "contributes": {
+        "customEditors": [
+            {
+                "viewType": "recipe.np3Editor",
+                "displayName": "Recipe NP3 Editor",
+                "selector": [
+                    {
+                        "filenamePattern": "*.np3"
+                    }
+                ],
+                "priority": "default"
+            }
+        ]
+    },
+    "scripts": {
+        "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+        "dev": "bun run build --watch"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.96.0",
+        "@types/node": "^22.0.0",
+        "esbuild": "^0.24.0",
+        "vitest": "^3.0.0"
+    }
+}
