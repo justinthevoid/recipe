@@ -10,7 +10,7 @@ legacy/
 *.nef
 .legacy/
 coverage/
-.reverse-engineering/
+.archive/.reverse-engineering/
 .DS_Store
 
 # Test coverage reports
