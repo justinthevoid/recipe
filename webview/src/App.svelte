@@ -1,52 +1,49 @@
 <script lang="ts">
-	import { vscode } from "$lib/vscode";
+import { vscode } from "$lib/vscode";
 
-	interface IpcMessage {
-		type: string;
-		payload: Record<string, unknown>;
+interface IpcMessage {
+	type: string;
+	payload: Record<string, unknown>;
+}
+
+let status = $state<string>("Connecting...");
+let toastMessage = $state<string | null>(null);
+let toastType = $state<"error" | "success">("error");
+
+function showToast(message: string, type: "error" | "success" = "error") {
+	toastMessage = message;
+	toastType = type;
+	setTimeout(() => {
+		toastMessage = null;
+	}, 5000);
+}
+
+function handleMessage(event: MessageEvent<IpcMessage>) {
+	const message = event.data;
+
+	switch (message.type) {
+		case "np3.pong":
+			status = `Connected — ${(message.payload as { status: string }).status}`;
+			showToast("Binary connection established", "success");
+			break;
+		case "error":
+			status = "Error";
+			showToast((message.payload as { message: string }).message, "error");
+			break;
+		default:
+			console.log("Unknown message type:", message.type);
 	}
+}
 
-	let status = $state<string>("Connecting...");
-	let toastMessage = $state<string | null>(null);
-	let toastType = $state<"error" | "success">("error");
+$effect(() => {
+	window.addEventListener("message", handleMessage);
+	// Send initial ping
+	vscode.postMessage({ type: "np3.ping", payload: {} });
 
-	function showToast(message: string, type: "error" | "success" = "error") {
-		toastMessage = message;
-		toastType = type;
-		setTimeout(() => {
-			toastMessage = null;
-		}, 5000);
-	}
-
-	function handleMessage(event: MessageEvent<IpcMessage>) {
-		const message = event.data;
-
-		switch (message.type) {
-			case "np3.pong":
-				status = `Connected — ${(message.payload as { status: string }).status}`;
-				showToast("Binary connection established", "success");
-				break;
-			case "error":
-				status = "Error";
-				showToast(
-					(message.payload as { message: string }).message,
-					"error"
-				);
-				break;
-			default:
-				console.log("Unknown message type:", message.type);
-		}
-	}
-
-	$effect(() => {
-		window.addEventListener("message", handleMessage);
-		// Send initial ping
-		vscode.postMessage({ type: "np3.ping", payload: {} });
-
-		return () => {
-			window.removeEventListener("message", handleMessage);
-		};
-	});
+	return () => {
+		window.removeEventListener("message", handleMessage);
+	};
+});
 </script>
 
 <main class="min-h-screen bg-[var(--vscode-editor-background)] text-[var(--vscode-editor-foreground)] p-4">
