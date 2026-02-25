@@ -26,3 +26,8 @@ mem.prof
 node_modules/
 output/Logfile.XML
 */skills/nx-studio/assets/images
+
+# Extension build artifacts
+extension/dist/
+extension/bin/
+bun.lock
