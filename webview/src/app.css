@@ -4,45 +4,47 @@
  * Map VS Code CSS variables to CSS custom properties for shadcn-svelte.
  * This provides native theme integration with the VS Code editor.
  */
-:root {
+@theme {
 	/* Background colors */
-	--background: var(--vscode-editor-background);
-	--foreground: var(--vscode-editor-foreground);
-	--card: var(--vscode-editorWidget-background);
-	--card-foreground: var(--vscode-editorWidget-foreground);
-	--popover: var(--vscode-editorWidget-background);
-	--popover-foreground: var(--vscode-editorWidget-foreground);
+	--color-background: var(--vscode-editor-background);
+	--color-foreground: var(--vscode-editor-foreground);
+	--color-card: var(--vscode-editorWidget-background);
+	--color-card-foreground: var(--vscode-editorWidget-foreground);
+	--color-popover: var(--vscode-editorWidget-background);
+	--color-popover-foreground: var(--vscode-editorWidget-foreground);
 
 	/* Primary */
-	--primary: var(--vscode-button-background);
-	--primary-foreground: var(--vscode-button-foreground);
+	--color-primary: var(--vscode-button-background);
+	--color-primary-foreground: var(--vscode-button-foreground);
 
 	/* Secondary */
-	--secondary: var(--vscode-button-secondaryBackground);
-	--secondary-foreground: var(--vscode-button-secondaryForeground);
+	--color-secondary: var(--vscode-button-secondaryBackground);
+	--color-secondary-foreground: var(--vscode-button-secondaryForeground);
 
 	/* Muted */
-	--muted: var(--vscode-input-background);
-	--muted-foreground: var(--vscode-descriptionForeground);
+	--color-muted: var(--vscode-input-background);
+	--color-muted-foreground: var(--vscode-descriptionForeground);
 
 	/* Accent */
-	--accent: var(--vscode-list-activeSelectionBackground);
-	--accent-foreground: var(--vscode-list-activeSelectionForeground);
+	--color-accent: var(--vscode-list-activeSelectionBackground);
+	--color-accent-foreground: var(--vscode-list-activeSelectionForeground);
 
 	/* Destructive */
-	--destructive: var(--vscode-errorForeground);
-	--destructive-foreground: var(--vscode-editor-foreground);
+	--color-destructive: var(--vscode-errorForeground);
+	--color-destructive-foreground: var(--vscode-editor-foreground);
 
 	/* Border */
-	--border: var(--vscode-widget-border, var(--vscode-editorWidget-border));
-	--input: var(--vscode-input-border);
-	--ring: var(--vscode-focusBorder);
+	--color-border: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+	--color-input: var(--vscode-input-border);
+	--color-ring: var(--vscode-focusBorder);
 
 	/* Radius */
 	--radius: 0.375rem;
+}
 
+:root {
 	/* Tailwind v4 compatibility: default border color changed to currentcolor */
-	--tw-border-color: var(--border);
+	--tw-border-color: var(--color-border);
 }
 
 body {

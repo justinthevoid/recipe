@@ -1,7 +1,7 @@
-import * as vscode from "vscode";
-import * as path from "path";
-import { ChildProcess, spawn } from "child_process";
-import { createInterface, Interface } from "readline";
+import { type ChildProcess, spawn } from "node:child_process";
+import * as path from "node:path";
+import { createInterface, type Interface } from "node:readline";
+import type * as vscode from "vscode";
 
 export interface IpcMessage {
 	type: string;
@@ -24,7 +24,7 @@ export class BinaryManager {
 	constructor(
 		private readonly context: vscode.ExtensionContext,
 		private readonly outputChannel: vscode.OutputChannel,
-	) {}
+	) { }
 
 	private getBinaryPath(): string {
 		const platform = process.platform;
@@ -77,7 +77,7 @@ export class BinaryManager {
 					try {
 						const message: IpcMessage = JSON.parse(line);
 						this.handleResponse(message);
-					} catch (err) {
+					} catch (_err) {
 						this.outputChannel.appendLine(`Failed to parse Go response: ${line}`);
 					}
 				});
@@ -99,7 +99,7 @@ export class BinaryManager {
 		}
 
 		return new Promise<IpcMessage>((resolve, reject) => {
-			const id = `req_${++this.requestCounter}`;
+			const _id = `req_${++this.requestCounter}`;
 
 			const timeout = setTimeout(() => {
 				this.pendingRequests.delete(message.type);
@@ -108,8 +108,8 @@ export class BinaryManager {
 
 			this.pendingRequests.set(message.type, { resolve, reject, timeout });
 
-			const jsonLine = JSON.stringify(message) + "\n";
-			this.process!.stdin!.write(jsonLine, (err) => {
+			const jsonLine = `${JSON.stringify(message)}\n`;
+			this.process?.stdin?.write(jsonLine, (err) => {
 				if (err) {
 					clearTimeout(timeout);
 					this.pendingRequests.delete(message.type);
@@ -117,6 +117,14 @@ export class BinaryManager {
 				}
 			});
 		});
+	}
+
+	async open(filePath: string): Promise<Record<string, unknown>> {
+		const response = await this.send({
+			type: "np3.open",
+			payload: { filePath },
+		});
+		return response.payload;
 	}
 
 	private handleResponse(message: IpcMessage): void {
@@ -139,6 +147,7 @@ export class BinaryManager {
 		// np3.pong → np3.ping, error can match any pending request
 		const mappings: Record<string, string> = {
 			"np3.pong": "np3.ping",
+			"np3.metadata": "np3.open",
 		};
 		return mappings[responseType] || responseType;
 	}
@@ -158,7 +167,7 @@ export class BinaryManager {
 		}
 
 		// Reject all pending requests
-		for (const [type, pending] of this.pendingRequests) {
+		for (const [_type, pending] of this.pendingRequests) {
 			clearTimeout(pending.timeout);
 			pending.reject(new Error("Go binary terminated"));
 		}
