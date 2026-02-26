@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from "svelte/elements";
-	import { type VariantProps, tv } from "tailwind-variants";
+	import { tv, type VariantProps } from "tailwind-variants";
 	import { cn, type WithElementRef } from "$lib/utils.js";
 
 	export const buttonVariants = tv({

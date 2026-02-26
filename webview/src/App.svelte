@@ -1,7 +1,7 @@
 <script lang="ts">
-import { vscode } from "$lib/vscode";
 import CorruptedFileView from "$lib/components/CorruptedFileView.svelte";
 import type { IpcMessage, Np3Error, Np3OpenResponse } from "$lib/types";
+import { vscode } from "$lib/vscode";
 
 let status = $state<string>("Connecting...");
 let toastMessage = $state<string | null>(null);

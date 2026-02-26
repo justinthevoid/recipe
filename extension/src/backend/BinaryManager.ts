@@ -24,7 +24,7 @@ export class BinaryManager {
 	constructor(
 		private readonly context: vscode.ExtensionContext,
 		private readonly outputChannel: vscode.OutputChannel,
-	) { }
+	) {}
 
 	private getBinaryPath(): string {
 		const platform = process.platform;

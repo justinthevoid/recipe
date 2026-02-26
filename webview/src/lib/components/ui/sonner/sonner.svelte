@@ -1,5 +1,13 @@
 <script lang="ts">
-import type { ToasterProps as SonnerProps } from "svelte-sonner";
+import {
+	CircleCheckIcon,
+	InfoIcon,
+	Loader2Icon,
+	OctagonXIcon,
+	TriangleAlertIcon,
+} from "lucide-svelte";
+import { mode } from "mode-watcher";
+import { Toaster as Sonner, type ToasterProps as SonnerProps } from "svelte-sonner";
 
 let { ...restProps }: SonnerProps = $props();
 </script>
