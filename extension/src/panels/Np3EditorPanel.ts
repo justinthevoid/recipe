@@ -22,7 +22,7 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 	}
 
 	async resolveCustomEditor(
-		_document: vscode.CustomDocument,
+		document: vscode.CustomDocument,
 		webviewPanel: vscode.WebviewPanel,
 		_token: vscode.CancellationToken,
 	): Promise<void> {
@@ -37,7 +37,7 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 		const binaryManager = new BinaryManager(this.context, this.outputChannel);
 
 		try {
-			await binaryManager.start();
+			await binaryManager.start(document.uri.fsPath);
 			this.outputChannel.appendLine("Go binary started successfully");
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "Unknown error starting Go binary";
@@ -49,10 +49,20 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 			return;
 		}
 
-		// Forward webview messages to Go binary
+		// Handle webview messages
 		webviewPanel.webview.onDidReceiveMessage(
 			async (message: IpcMessage) => {
-				this.outputChannel.appendLine(`Webview → Go: ${JSON.stringify(message)}`);
+				this.outputChannel.appendLine(`Webview → Extension: ${JSON.stringify(message)}`);
+
+				// Intercept webview.ready to trigger file load
+				if (message.type === "webview.ready") {
+					webviewPanel.webview.postMessage({
+						type: "extension.open",
+						payload: { filePath: document.uri.fsPath },
+					});
+					return;
+				}
+
 				try {
 					const response = await binaryManager.send(message);
 					this.outputChannel.appendLine(`Go → Webview: ${JSON.stringify(response)}`);

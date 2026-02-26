@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { createInterface, type Interface } from "node:readline";
 import type * as vscode from "vscode";
@@ -32,8 +33,23 @@ export class BinaryManager {
 		return path.join(this.context.extensionPath, "bin", binaryName);
 	}
 
-	async start(): Promise<void> {
+	private async createBackup(filePath: string): Promise<void> {
+		const parsedPath = path.parse(filePath);
+		const backupPath = path.join(parsedPath.dir, `${parsedPath.name}${parsedPath.ext}.bak`);
+		await fs.copyFile(filePath, backupPath);
+	}
+
+	async start(filePath: string): Promise<void> {
 		const binaryPath = this.getBinaryPath();
+
+		// Create backup before spawning
+		try {
+			await this.createBackup(filePath);
+		} catch (err) {
+			this.outputChannel.appendLine(
+				`Warning: Failed to create backup for ${filePath}: ${err instanceof Error ? err.message : String(err)}`,
+			);
+		}
 
 		return new Promise<void>((resolve, reject) => {
 			try {
