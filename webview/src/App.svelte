@@ -2,6 +2,7 @@
 import { toast } from "svelte-sonner";
 import CorruptedFileView from "$lib/components/CorruptedFileView.svelte";
 import ParameterSliderUnit from "$lib/components/ParameterSliderUnit.svelte";
+import SchemaDropdown from "$lib/components/SchemaDropdown.svelte";
 import { Toaster } from "$lib/components/ui/sonner";
 import { np3AppStore } from "$lib/state/np3.svelte";
 import type { IpcMessage, Np3Error, Np3OpenResponse, ParameterDefinition } from "$lib/types";
@@ -10,23 +11,47 @@ import { vscode } from "$lib/vscode";
 let status = $state<string>("Connecting...");
 let originalMetadata = $state<Np3OpenResponse | null>(null);
 
-// biome-ignore lint/correctness/noUnusedVariables: used in Svelte template
 function handleParameterChange(key: string, value: number) {
 	if (!np3AppStore.metadata) return;
 	
 	np3AppStore.patch((meta) => {
-		const newMeta = JSON.parse(JSON.stringify(meta));
-		if (!newMeta.recipe) newMeta.recipe = {};
-		newMeta.recipe[key] = value;
+		const newMeta = structuredClone($state.snapshot(meta)) as Np3OpenResponse;
+		if (!newMeta.recipe) newMeta.recipe = {} as Record<string, unknown>;
+		(newMeta.recipe as Record<string, unknown>)[key] = value;
 		return newMeta;
 	});
 
 	vscode.postMessage({ type: "np3.patch", payload: { field: key, value } });
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: used in Svelte template
 function handleResetAll() {
 	vscode.postMessage({ type: "np3.reset", payload: {} });
+}
+
+function handleUndo() {
+	if (!np3AppStore.canUndo) return;
+	np3AppStore.undo();
+	// Sync with backend after undo
+	vscode.postMessage({ type: "np3.sync_request", payload: np3AppStore.metadata });
+}
+
+function handleRedo() {
+	if (!np3AppStore.canRedo) return;
+	np3AppStore.redo();
+	// Sync with backend after redo
+	vscode.postMessage({ type: "np3.sync_request", payload: np3AppStore.metadata });
+}
+
+function handleKeyDown(event: KeyboardEvent) {
+	const isMod = event.ctrlKey || event.metaKey;
+	if (isMod && event.key.toLowerCase() === 'z') {
+		if (event.shiftKey) {
+			handleRedo();
+		} else {
+			handleUndo();
+		}
+		event.preventDefault();
+	}
 }
 
 function handleMessage(event: MessageEvent<IpcMessage>) {
@@ -39,12 +64,12 @@ function handleMessage(event: MessageEvent<IpcMessage>) {
 			break;
 		case "np3.metadata":
 			np3AppStore.loadSuccess(message.payload as Np3OpenResponse);
-			originalMetadata = JSON.parse(JSON.stringify(message.payload));
+			originalMetadata = structuredClone(message.payload as Np3OpenResponse);
 			toast.success("File loaded successfully");
 			break;
 		case "np3.sync":
 			if (message.payload) {
-				np3AppStore.metadata = JSON.parse(JSON.stringify(message.payload));
+				np3AppStore.metadata = structuredClone(message.payload as Np3OpenResponse);
 			}
 			break;
 		case "np3.patch_error":
@@ -61,11 +86,9 @@ function handleMessage(event: MessageEvent<IpcMessage>) {
 			toast.error(errorPayload.message);
 			break;
 		}
-		// A mock trigger from extension to simulate opening a file
 		case "extension.open": {
 			const filePath = (message.payload as { filePath: string }).filePath;
 			np3AppStore.currentFilename = filePath.split(/[\\/]/).pop() || filePath;
-			// Pass message to Go backend
 			vscode.postMessage({ type: "np3.open", payload: { filePath } });
 			break;
 		}
@@ -74,21 +97,20 @@ function handleMessage(event: MessageEvent<IpcMessage>) {
 	}
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: used in Svelte template
 function handleRetry() {
-    // Retry loading current file if possible, or clear state
 	np3AppStore.clearError();
+	vscode.postMessage({ type: "webview.ready", payload: {} });
 }
 
 $effect(() => {
 	window.addEventListener("message", handleMessage as EventListener);
-	// Send initial ping
+	window.addEventListener("keydown", handleKeyDown);
 	vscode.postMessage({ type: "np3.ping", payload: {} });
-	// Tell extension host we are ready to receive the file to open
 	vscode.postMessage({ type: "webview.ready", payload: {} });
 
 	return () => {
 		window.removeEventListener("message", handleMessage as EventListener);
+		window.removeEventListener("keydown", handleKeyDown);
 	};
 });
 </script>
@@ -110,13 +132,35 @@ $effect(() => {
 			</div>
 		</div>
 		{#if np3AppStore.isLoaded && !np3AppStore.isCorrupted}
-			<button
-				type="button"
-				class="px-3 py-1.5 bg-(--vscode-button-background) text-(--vscode-button-foreground) text-sm font-medium rounded hover:opacity-90 transition-opacity"
-				onclick={handleResetAll}
-			>
-				Reset All
-			</button>
+			<div class="flex items-center gap-2">
+				<div class="flex items-center gap-1 border-r border-border pr-2 mr-2">
+					<button
+						type="button"
+						class="p-1.5 hover:bg-(--vscode-toolbar-hoverBackground) rounded disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+						onclick={handleUndo}
+						disabled={!np3AppStore.canUndo}
+						title="Undo (Ctrl+Z)"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Undo</title><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+					</button>
+					<button
+						type="button"
+						class="p-1.5 hover:bg-(--vscode-toolbar-hoverBackground) rounded disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+						onclick={handleRedo}
+						disabled={!np3AppStore.canRedo}
+						title="Redo (Ctrl+Shift+Z)"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Redo</title><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+					</button>
+				</div>
+				<button
+					type="button"
+					class="px-3 py-1.5 bg-(--vscode-button-background) text-(--vscode-button-foreground) text-sm font-medium rounded hover:opacity-90 transition-opacity"
+					onclick={handleResetAll}
+				>
+					Reset All
+				</button>
+			</div>
 		{/if}
 	</header>
 
@@ -132,12 +176,21 @@ $effect(() => {
 						<h2 class="text-lg font-medium mb-2">Basic</h2>
 						<div class="flex flex-col gap-4">
 							{#each parameters.filter(p => p.group === 'Basic') as param}
-								<ParameterSliderUnit 
-									definition={param} 
-									value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
-									originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
-									onchange={handleParameterChange}
-								/>
+								{#if param.type === 'continuous'}
+									<ParameterSliderUnit 
+										definition={param} 
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{:else if param.type === 'discrete'}
+									<SchemaDropdown
+										definition={param}
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{/if}
 							{/each}
 						</div>
 					</div>
@@ -145,12 +198,21 @@ $effect(() => {
 						<h2 class="text-lg font-medium mb-2">Tone Curve</h2>
 						<div class="flex flex-col gap-4">
 							{#each parameters.filter(p => p.group === 'Tone Curve') as param}
-								<ParameterSliderUnit 
-									definition={param} 
-									value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
-									originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
-									onchange={handleParameterChange}
-								/>
+								{#if param.type === 'continuous'}
+									<ParameterSliderUnit 
+										definition={param} 
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{:else if param.type === 'discrete'}
+									<SchemaDropdown
+										definition={param}
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{/if}
 							{/each}
 						</div>
 					</div>
@@ -158,12 +220,21 @@ $effect(() => {
 						<h2 class="text-lg font-medium mb-2">Detail</h2>
 						<div class="flex flex-col gap-4">
 							{#each parameters.filter(p => p.group === 'Detail') as param}
-								<ParameterSliderUnit 
-									definition={param} 
-									value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
-									originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
-									onchange={handleParameterChange}
-								/>
+								{#if param.type === 'continuous'}
+									<ParameterSliderUnit 
+										definition={param} 
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{:else if param.type === 'discrete'}
+									<SchemaDropdown
+										definition={param}
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{/if}
 							{/each}
 						</div>
 					</div>
@@ -175,12 +246,21 @@ $effect(() => {
 						<h2 class="text-lg font-medium mb-2">Color Mixer</h2>
 						<div class="flex flex-col gap-4">
 							{#each parameters.filter(p => p.group === 'Color Mixer') as param}
-								<ParameterSliderUnit 
-									definition={param} 
-									value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
-									originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
-									onchange={handleParameterChange}
-								/>
+								{#if param.type === 'continuous'}
+									<ParameterSliderUnit 
+										definition={param} 
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{:else if param.type === 'discrete'}
+									<SchemaDropdown
+										definition={param}
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{/if}
 							{/each}
 						</div>
 					</div>
@@ -188,12 +268,21 @@ $effect(() => {
 						<h2 class="text-lg font-medium mb-2">Geometry</h2>
 						<div class="flex flex-col gap-4">
 							{#each parameters.filter(p => p.group === 'Geometry') as param}
-								<ParameterSliderUnit 
-									definition={param} 
-									value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
-									originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
-									onchange={handleParameterChange}
-								/>
+								{#if param.type === 'continuous'}
+									<ParameterSliderUnit 
+										definition={param} 
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{:else if param.type === 'discrete'}
+									<SchemaDropdown
+										definition={param}
+										value={Number(np3AppStore.metadata?.recipe?.[param.key] ?? param.defaultValue)}
+										originalValue={Number(originalMetadata?.recipe?.[param.key] ?? param.defaultValue)}
+										onchange={handleParameterChange}
+									/>
+								{/if}
 							{/each}
 						</div>
 					</div>

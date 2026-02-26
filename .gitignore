@@ -38,3 +38,4 @@ extension/dist/
 *.exe
 *.exe~
 *.so
+np3tool

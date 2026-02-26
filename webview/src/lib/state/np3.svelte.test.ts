@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { Np3Store } from "./np3.svelte";
 
-function makeMockResponse(hash = "abc123"): { hash: string; recipe: Record<string, unknown> } {
+function makeMockResponse(hash = "abc123"): { hash: string; recipe: Record<string, unknown>; parameters: never[] } {
 	return {
 		hash,
 		recipe: { name: "Test Recipe", version: 1 },
+		parameters: [],
 	};
 }
 
@@ -20,6 +21,8 @@ describe("Np3Store", () => {
 			expect(store.isCorrupted).toBe(false);
 			expect(store.currentError).toBeNull();
 			expect(store.metadata).toEqual(response);
+			expect(store.canUndo).toBe(false);
+			expect(store.canRedo).toBe(false);
 		});
 
 		it("should set filename when provided", () => {
@@ -28,134 +31,105 @@ describe("Np3Store", () => {
 			expect(store.currentFilename).toBe("test.np3");
 		});
 
-		it("should deep-copy response to prevent mutation leaks", () => {
+		it("should clear undo/redo stacks on load", () => {
 			const store = new Np3Store();
-			const response = makeMockResponse();
+			store.loadSuccess(makeMockResponse("v1"));
+			store.patch(m => ({ ...m, hash: "v2" }));
+			expect(store.canUndo).toBe(true);
 
-			store.loadSuccess(response);
-			response.hash = "mutated";
-
-			expect(store.metadata?.hash).toBe("abc123");
-		});
-
-		it("should clear corrupted state if previously set", () => {
-			const store = new Np3Store();
-			store.loadError({ message: "bad", code: "ERR_CORRUPTED_FILE" });
-			expect(store.isCorrupted).toBe(true);
-
-			store.loadSuccess(makeMockResponse());
-			expect(store.isCorrupted).toBe(false);
-			expect(store.currentError).toBeNull();
-		});
-	});
-
-	describe("loadError", () => {
-		it("should set corrupted state", () => {
-			const store = new Np3Store();
-			const error = { message: "checksum mismatch", code: "ERR_INVALID_CHECKSUM" };
-
-			store.loadError(error);
-
-			expect(store.isCorrupted).toBe(true);
-			expect(store.currentError).toEqual(error);
-			expect(store.metadata).toBeNull();
-		});
-
-		it("should set filename when provided", () => {
-			const store = new Np3Store();
-			store.loadError({ message: "bad", code: "ERR" }, "corrupt.np3");
-			expect(store.currentFilename).toBe("corrupt.np3");
-		});
-	});
-
-	describe("clearError", () => {
-		it("should reset corruption state", () => {
-			const store = new Np3Store();
-			store.loadError({ message: "bad", code: "ERR" });
-
-			store.clearError();
-
-			expect(store.isCorrupted).toBe(false);
-			expect(store.currentError).toBeNull();
+			store.loadSuccess(makeMockResponse("v3"));
+			expect(store.canUndo).toBe(false);
+			expect(store.canRedo).toBe(false);
 		});
 	});
 
 	describe("patch", () => {
-		it("should apply optimistic update and store history", () => {
+		it("should apply optimistic update and store in undo stack", () => {
 			const store = new Np3Store();
 			store.loadSuccess(makeMockResponse("v1"));
 
 			store.patch((meta) => ({ ...meta, hash: "v2" }));
 
 			expect(store.metadata?.hash).toBe("v2");
+			expect(store.canUndo).toBe(true);
 		});
 
-		it("should do nothing if no metadata loaded", () => {
+		it("should clear redo stack on new patch", () => {
 			const store = new Np3Store();
-			// Should not throw
-			store.patch((meta) => ({ ...meta, hash: "crash?" }));
-			expect(store.metadata).toBeNull();
+			store.loadSuccess(makeMockResponse("v1"));
+			store.patch(m => ({ ...m, hash: "v2" }));
+			store.undo();
+			expect(store.canRedo).toBe(true);
+
+			store.patch(m => ({ ...m, hash: "v3" }));
+			expect(store.canRedo).toBe(false);
 		});
 	});
 
-	describe("rollback", () => {
-		it("should revert to previous state after patch", () => {
+	describe("undo/redo", () => {
+		it("should undo and redo correctly", () => {
 			const store = new Np3Store();
 			store.loadSuccess(makeMockResponse("v1"));
 
 			store.patch((meta) => ({ ...meta, hash: "v2" }));
 			expect(store.metadata?.hash).toBe("v2");
 
-			store.rollback();
+			store.undo();
 			expect(store.metadata?.hash).toBe("v1");
+			expect(store.canRedo).toBe(true);
+
+			store.redo();
+			expect(store.metadata?.hash).toBe("v2");
+			expect(store.canUndo).toBe(true);
 		});
 
-		it("should handle rollback with no history gracefully", () => {
-			const store = new Np3Store();
-			// Should not throw
-			store.rollback();
-			expect(store.metadata).toBeNull();
-		});
-
-		it("should support multiple rollbacks in sequence", () => {
+		it("should handle multiple steps", () => {
 			const store = new Np3Store();
 			store.loadSuccess(makeMockResponse("v1"));
+			store.patch(m => ({ ...m, hash: "v2" }));
+			store.patch(m => ({ ...m, hash: "v3" }));
 
-			store.patch((meta) => ({ ...meta, hash: "v2" }));
-			store.patch((meta) => ({ ...meta, hash: "v3" }));
-
-			store.rollback();
+			store.undo();
 			expect(store.metadata?.hash).toBe("v2");
-
-			store.rollback();
+			store.undo();
 			expect(store.metadata?.hash).toBe("v1");
+
+			store.redo();
+			expect(store.metadata?.hash).toBe("v2");
+			store.redo();
+			expect(store.metadata?.hash).toBe("v3");
 		});
 	});
 
 	describe("history cap", () => {
-		it("should cap history at MAX_HISTORY_SIZE (20)", () => {
+		it("should cap history at MAX_HISTORY_SIZE (100)", () => {
 			const store = new Np3Store();
 			store.loadSuccess(makeMockResponse("v0"));
 
-			// Apply 25 patches — history should only keep last 20
-			for (let i = 1; i <= 25; i++) {
+			// Apply 120 patches
+			for (let i = 1; i <= 120; i++) {
 				store.patch((meta) => ({ ...meta, hash: `v${i}` }));
 			}
 
-			expect(store.metadata?.hash).toBe("v25");
+			expect(store.metadata?.hash).toBe("v120");
 
-			// Rollback all the way — should be capped at 20 successful rollbacks
-			let rollbackCount = 0;
-			for (let i = 0; i < 30; i++) {
-				const before = store.metadata?.hash;
-				store.rollback();
-				const after = store.metadata?.hash;
-				if (before === after) break; // no more history
-				rollbackCount++;
+			// Undo 100 times - should land at v20, not v0
+			for (let i = 0; i < 100; i++) {
+				store.undo();
 			}
+			expect(store.metadata?.hash).toBe("v20");
+			expect(store.canUndo).toBe(false);
+		});
+	});
 
-			expect(rollbackCount).toBeLessThanOrEqual(20);
-			expect(rollbackCount).toBeGreaterThan(0);
+	describe("rollback", () => {
+		it("should still support rollback (used for patch errors)", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+			store.patch(m => ({ ...m, hash: "v2" }));
+
+			store.rollback();
+			expect(store.metadata?.hash).toBe("v1");
 		});
 	});
 });

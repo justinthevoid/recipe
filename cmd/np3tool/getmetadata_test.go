@@ -20,7 +20,7 @@ func TestGetMetadataIPC(t *testing.T) {
 	var out bytes.Buffer
 	encoder := json.NewEncoder(&out)
 
-	handleMessage(encoder, &reqMsg)
+	handleMessage(encoder, &Session{}, &reqMsg)
 
 	var respMsg Message
 	if err := json.Unmarshal(out.Bytes(), &respMsg); err != nil {

@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/justin/recipe/internal/formats/np3"
+	"github.com/justin/recipe/internal/models"
 )
 
 // Message represents a JSONL IPC message between the extension host and np3tool.
@@ -39,6 +40,12 @@ type ErrorPayload struct {
 	RawData string `json:"rawData,omitempty"`
 }
 
+// Session holds state for the currently open file
+type Session struct {
+	FilePath string
+	Recipe   *models.UniversalRecipe
+}
+
 func main() {
 	// Configure structured logging to stderr (debug logging for VS Code Output Channel)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
@@ -57,6 +64,7 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)
+	session := &Session{}
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
@@ -68,7 +76,7 @@ func main() {
 			continue
 		}
 
-		handleMessage(encoder, &msg)
+		handleMessage(encoder, session, &msg)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -144,7 +152,7 @@ func marshalPayload(v interface{}) json.RawMessage {
 	return b
 }
 
-func handleMessage(encoder *json.Encoder, msg *Message) {
+func handleMessage(encoder *json.Encoder, session *Session, msg *Message) {
 	switch msg.Type {
 	case "np3.ping":
 		response := Message{
@@ -186,6 +194,9 @@ func handleMessage(encoder *json.Encoder, msg *Message) {
 			return
 		}
 
+		session.FilePath = req.FilePath
+		session.Recipe = recipe
+
 		hash := np3.CalculateMagicHash(data)
 
 		metadata := map[string]interface{}{
@@ -200,6 +211,60 @@ func handleMessage(encoder *json.Encoder, msg *Message) {
 
 		if err := encoder.Encode(response); err != nil {
 			slog.Error("Failed to write metadata response", "error", err)
+		}
+
+	case "np3.patch":
+		if session.FilePath == "" || session.Recipe == nil {
+			sendErrorWithType(encoder, "np3.patch_error", "No file is currently open", "BAD_STATE")
+			return
+		}
+
+		var req struct {
+			Field string  `json:"field"`
+			Value float64 `json:"value"`
+		}
+		if err := json.Unmarshal(msg.Payload, &req); err != nil {
+			sendErrorWithType(encoder, "np3.patch_error", "Invalid payload for patch", "BAD_REQUEST")
+			return
+		}
+
+		// Dynamically update field via JSON round-trip
+		b, _ := json.Marshal(session.Recipe)
+		var m map[string]interface{}
+		json.Unmarshal(b, &m)
+		m[req.Field] = req.Value
+		b2, _ := json.Marshal(m)
+		if err := json.Unmarshal(b2, session.Recipe); err != nil {
+			sendErrorWithType(encoder, "np3.patch_error", fmt.Sprintf("failed to apply patch: %v", err), "PATCH_ERROR")
+			return
+		}
+
+		saveSession(encoder, session, true)
+
+	case "np3.sync_request":
+		if session.FilePath == "" {
+			sendError(encoder, "No file is currently open", "BAD_STATE")
+			return
+		}
+
+		var req struct {
+			Recipe *models.UniversalRecipe `json:"recipe"`
+		}
+		if err := json.Unmarshal(msg.Payload, &req); err != nil {
+			sendError(encoder, "Invalid payload for sync_request", "BAD_REQUEST")
+			return
+		}
+
+		session.Recipe = req.Recipe
+		saveSession(encoder, session, false)
+
+		// Send success sync back
+		response := Message{
+			Type:    "np3.sync",
+			Payload: msg.Payload, // The exact same metadata object sent by frontend
+		}
+		if err := encoder.Encode(response); err != nil {
+			slog.Error("Failed to write sync response", "error", err)
 		}
 
 	default:
@@ -226,5 +291,42 @@ func sendErrorWithData(encoder *json.Encoder, message, code, rawData string) {
 
 	if err := encoder.Encode(response); err != nil {
 		slog.Error("Failed to write error response", "error", err)
+	}
+}
+
+func sendErrorWithType(encoder *json.Encoder, msgType, message, code string) {
+	payload, _ := json.Marshal(ErrorPayload{
+		Message: message,
+		Code:    code,
+	})
+
+	response := Message{
+		Type:    msgType,
+		Payload: payload,
+	}
+
+	if err := encoder.Encode(response); err != nil {
+		slog.Error("Failed to write error response", "error", err)
+	}
+}
+
+func saveSession(encoder *json.Encoder, session *Session, isPatch bool) {
+	data, err := np3.Generate(session.Recipe)
+	if err != nil {
+		if isPatch {
+			sendErrorWithType(encoder, "np3.patch_error", fmt.Sprintf("failed to generate NP3: %v", err), "GENERATE_ERROR")
+		} else {
+			sendError(encoder, fmt.Sprintf("failed to generate NP3: %v", err), "GENERATE_ERROR")
+		}
+		return
+	}
+
+	if err := os.WriteFile(session.FilePath, data, 0644); err != nil {
+		if isPatch {
+			sendErrorWithType(encoder, "np3.patch_error", fmt.Sprintf("failed to write file: %v", err), "IO_ERROR")
+		} else {
+			sendError(encoder, fmt.Sprintf("failed to write file: %v", err), "IO_ERROR")
+		}
+		return
 	}
 }

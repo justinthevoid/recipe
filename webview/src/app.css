@@ -47,6 +47,12 @@
 	--tw-border-color: var(--color-border);
 }
 
+/* Utility: Warning hash-pattern overlay for invalid/corrupt parameter states */
+.warning-hash-pattern {
+	background-color: var(--vscode-editorWarning-background);
+	background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBNLTEgMWwyIC0yTTMgMTFsOCAtOCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utb3BhY2l0eT0iMC4xIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=");
+}
+
 body {
 	margin: 0;
 	padding: 0;
