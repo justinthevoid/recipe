@@ -5,7 +5,15 @@ import { svelteTesting } from "@testing-library/svelte/vite";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-	plugins: [svelte(), svelteTesting(), tailwindcss()],
+	plugins: [
+		svelte({
+			compilerOptions: {
+				generate: "client",
+			},
+		}),
+		svelteTesting(),
+		tailwindcss(),
+	],
 	resolve: {
 		alias: {
 			$lib: path.resolve(__dirname, "src/lib"),

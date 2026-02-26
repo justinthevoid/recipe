@@ -7,6 +7,7 @@ import {
 	TriangleAlertIcon,
 } from "lucide-svelte";
 import { mode } from "mode-watcher";
+// biome-ignore lint/correctness/noUnusedImports: Sonner used as component in Svelte template
 import { Toaster as Sonner, type ToasterProps as SonnerProps } from "svelte-sonner";
 
 let { ...restProps }: SonnerProps = $props();

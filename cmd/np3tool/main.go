@@ -10,6 +10,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,6 +36,7 @@ type PongPayload struct {
 type ErrorPayload struct {
 	Message string `json:"message"`
 	Code    string `json:"code"`
+	RawData string `json:"rawData,omitempty"`
 }
 
 func main() {
@@ -172,13 +174,14 @@ func handleMessage(encoder *json.Encoder, msg *Message) {
 
 		recipe, err := np3.Parse(data)
 		if err != nil {
+			encodedData := base64.StdEncoding.EncodeToString(data)
 			switch err {
 			case np3.ErrChecksumMismatch:
-				sendError(encoder, fmt.Sprintf("failed to parse NP3: %v", err), "ERR_INVALID_CHECKSUM")
+				sendErrorWithData(encoder, fmt.Sprintf("failed to parse NP3: %v", err), "ERR_INVALID_CHECKSUM", encodedData)
 			case np3.ErrInvalidMagic:
-				sendError(encoder, fmt.Sprintf("failed to parse NP3: %v", err), "ERR_CORRUPTED_FILE")
+				sendErrorWithData(encoder, fmt.Sprintf("failed to parse NP3: %v", err), "ERR_CORRUPTED_FILE", encodedData)
 			default:
-				sendError(encoder, fmt.Sprintf("failed to parse NP3: %v", err), "PARSE_ERROR")
+				sendErrorWithData(encoder, fmt.Sprintf("failed to parse NP3: %v", err), "PARSE_ERROR", encodedData)
 			}
 			return
 		}
@@ -206,9 +209,14 @@ func handleMessage(encoder *json.Encoder, msg *Message) {
 }
 
 func sendError(encoder *json.Encoder, message, code string) {
+	sendErrorWithData(encoder, message, code, "")
+}
+
+func sendErrorWithData(encoder *json.Encoder, message, code, rawData string) {
 	payload, _ := json.Marshal(ErrorPayload{
 		Message: message,
 		Code:    code,
+		RawData: rawData,
 	})
 
 	response := Message{

@@ -8,9 +8,16 @@ vi.mock("vscode", () => ({
 	},
 }));
 
+// Mock node:fs/promises
+import * as fs from "node:fs/promises";
+
+vi.mock("node:fs/promises", () => ({
+	copyFile: vi.fn(),
+}));
+
 // Mock child_process
 const mockSpawn = vi.fn();
-vi.mock("child_process", () => ({
+vi.mock("node:child_process", () => ({
 	spawn: (...args: unknown[]) => mockSpawn(...args),
 }));
 
@@ -57,6 +64,9 @@ describe("BinaryManager", () => {
 	});
 
 	describe("start", () => {
+		const testFilePath = "/mock/path/test.np3";
+		const expectedBackupPath = "/mock/path/test.np3.bak";
+
 		it("should spawn the Go binary", async () => {
 			const mockProcess = {
 				on: vi.fn(),
@@ -75,7 +85,7 @@ describe("BinaryManager", () => {
 				},
 			);
 
-			void manager.start();
+			void manager.start(testFilePath);
 
 			// Wait for the setTimeout in start()
 			await new Promise((r) => setTimeout(r, 200));
@@ -86,12 +96,61 @@ describe("BinaryManager", () => {
 			expect(callArgs[0]).toContain("np3tool");
 		});
 
+		it("should create a .bak file before spawning the Go binary", async () => {
+			const mockProcess = {
+				on: vi.fn(),
+				stdin: { write: vi.fn(), end: vi.fn() },
+				stdout: { on: vi.fn() },
+				stderr: { on: vi.fn() },
+				killed: false,
+				kill: vi.fn(),
+			};
+			mockSpawn.mockReturnValue(mockProcess);
+
+			void manager.start(testFilePath);
+
+			await new Promise((r) => setTimeout(r, 200));
+
+			expect(fs.copyFile).toHaveBeenCalledWith(testFilePath, expectedBackupPath);
+			// Check if copyFile was called before spawn
+			const callOrder = vi.mocked(fs.copyFile).mock.invocationCallOrder[0];
+			const spawnOrder = mockSpawn.mock.invocationCallOrder[0];
+			expect(callOrder).toBeLessThan(spawnOrder);
+		});
+
+		it("should gracefully handle backup creation failure without crashing", async () => {
+			const mockProcess = {
+				on: vi.fn(),
+				stdin: { write: vi.fn(), end: vi.fn() },
+				stdout: { on: vi.fn() },
+				stderr: { on: vi.fn() },
+				killed: false,
+				kill: vi.fn(),
+			};
+			mockSpawn.mockReturnValue(mockProcess);
+
+			vi.mocked(fs.copyFile).mockRejectedValueOnce(new Error("EACCES: permission denied"));
+
+			// Should not throw
+			await expect(manager.start(testFilePath)).resolves.toBeUndefined();
+
+			// Wait for setTimeout
+			await new Promise((r) => setTimeout(r, 200));
+
+			expect(mockSpawn).toHaveBeenCalledTimes(1);
+			expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+				expect.stringContaining(
+					"Warning: Failed to create backup for /mock/path/test.np3: EACCES: permission denied",
+				),
+			);
+		});
+
 		it("should reject when spawn fails", async () => {
 			mockSpawn.mockImplementation(() => {
 				throw new Error("ENOENT");
 			});
 
-			await expect(manager.start()).rejects.toThrow("Failed to spawn Go binary");
+			await expect(manager.start(testFilePath)).rejects.toThrow("Failed to spawn Go binary");
 		});
 	});
 

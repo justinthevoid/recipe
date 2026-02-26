@@ -13,7 +13,7 @@ func TestGetMetadataIPC(t *testing.T) {
 	badFile := filepath.Join(tempDir, "nonexistent.np3")
 
 	reqMsg := Message{
-		Type:    "np3.getMetadata",
+		Type:    "np3.open",
 		Payload: []byte(`{"filePath": "` + badFile + `"}`),
 	}
 
