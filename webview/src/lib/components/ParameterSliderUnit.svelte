@@ -167,7 +167,8 @@
 <style>
 /* Remove default webkit styles to ensure custom styling works */
 input[type=range] {
-	-webkit-appearance: none; 
+	-webkit-appearance: none;
+	appearance: none;
 }
 /* L1 fix: Active portion coloring — left of thumb uses button bg, right uses muted track */
 input[type=range].parameter-slider {
@@ -193,5 +194,6 @@ input[type=number]::-webkit-outer-spin-button {
 }
 input[type=number] {
 	-moz-appearance: textfield;
+	appearance: textfield;
 }
 </style>
