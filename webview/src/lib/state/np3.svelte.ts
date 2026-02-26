@@ -1,13 +1,13 @@
 import type { Np3Error, Np3OpenResponse } from "../types";
 
-const MAX_HISTORY_SIZE = 20;
+const MAX_HISTORY_SIZE = 100;
 
 /**
- * Deep-clone helper. Uses JSON serialization because structuredClone
- * cannot handle Svelte 5's $state reactive proxies.
+ * Deep-clone helper. Uses structuredClone and $state.snapshot() 
+ * to handle Svelte 5's $state reactive proxies efficiently.
  */
 function deepClone<T>(value: T): T {
-	return JSON.parse(JSON.stringify(value));
+	return structuredClone($state.snapshot(value)) as T;
 }
 
 export class Np3Store {
@@ -17,8 +17,13 @@ export class Np3Store {
 	metadata = $state<Np3OpenResponse | null>(null);
 	currentFilename = $state<string>("Unknown File");
 
-	// Rollback buffer for optimistic UI (capped at MAX_HISTORY_SIZE entries)
-	#history = $state<Np3OpenResponse[]>([]);
+	// Undo/Redo stacks (capped at MAX_HISTORY_SIZE entries)
+	#undoStack = $state<Np3OpenResponse[]>([]);
+	#redoStack = $state<Np3OpenResponse[]>([]);
+
+	// Derived properties for UI state
+	canUndo = $derived(this.#undoStack.length > 0);
+	canRedo = $derived(this.#redoStack.length > 0);
 
 	loadSuccess(response: Np3OpenResponse, filename?: string) {
 		this.metadata = deepClone(response);
@@ -26,7 +31,8 @@ export class Np3Store {
 		this.isLoaded = true;
 		this.isCorrupted = false;
 		this.currentError = null;
-		this.#history = [deepClone(response)];
+		this.#undoStack = [];
+		this.#redoStack = [];
 	}
 
 	loadError(error: Np3Error, filename?: string) {
@@ -44,22 +50,51 @@ export class Np3Store {
 	patch(updater: (meta: Np3OpenResponse) => Np3OpenResponse) {
 		if (!this.metadata) return;
 
-		// Save current state to history, cap at MAX_HISTORY_SIZE
-		this.#history.push(deepClone(this.metadata));
-		if (this.#history.length > MAX_HISTORY_SIZE) {
-			this.#history = this.#history.slice(-MAX_HISTORY_SIZE);
+		// Save current state to undo stack
+		this.#undoStack.push(deepClone(this.metadata));
+		if (this.#undoStack.length > MAX_HISTORY_SIZE) {
+			this.#undoStack = this.#undoStack.slice(-MAX_HISTORY_SIZE);
 		}
+
+		// Clear redo stack on new change
+		this.#redoStack = [];
 
 		// Apply update optimistically
 		this.metadata = updater(this.metadata);
 	}
 
 	rollback() {
-		if (this.#history.length > 0) {
-			const previous = this.#history.pop();
+		if (this.#undoStack.length > 0) {
+			const previous = this.#undoStack.pop();
 			if (previous) {
 				this.metadata = deepClone(previous);
 			}
+		}
+	}
+
+	undo() {
+		if (!this.metadata || this.#undoStack.length === 0) return;
+
+		// Push current state to redo stack
+		this.#redoStack.push(deepClone(this.metadata));
+
+		// Revert to last undo state
+		const previous = this.#undoStack.pop();
+		if (previous) {
+			this.metadata = deepClone(previous);
+		}
+	}
+
+	redo() {
+		if (!this.metadata || this.#redoStack.length === 0) return;
+
+		// Push current state to undo stack
+		this.#undoStack.push(deepClone(this.metadata));
+
+		// Apply last redo state
+		const next = this.#redoStack.pop();
+		if (next) {
+			this.metadata = deepClone(next);
 		}
 	}
 }

@@ -11,13 +11,14 @@ export interface Np3Error {
 export interface ParameterDefinition {
 	key: string;
 	label: string;
-	type: "continuous";
+	type: "continuous" | "discrete";
 	min: number;
 	max: number;
 	step: number;
 	defaultValue: number;
 	group: string;
 	unit?: string;
+	options?: { label: string; value: number }[];
 }
 
 export interface ParameterValue {
