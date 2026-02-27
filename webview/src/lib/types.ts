@@ -26,23 +26,71 @@ export interface ParameterValue {
 	value: number;
 }
 
+export interface ToneCurvePoint {
+	input: number;
+	output: number;
+}
+
+export interface ColorAdjustment {
+	hue: number;
+	saturation: number;
+	luminance: number;
+}
+
+export interface UniversalRecipe {
+	exposure?: number;
+	contrast?: number;
+	highlights?: number;
+	shadows?: number;
+	vibrance?: number;
+	saturation?: number;
+	pointCurve?: ToneCurvePoint[];
+	[key: string]: number | string | boolean | ToneCurvePoint[] | undefined | null;
+}
+
+export const NP3_SCHEMA_VERSION = 1;
+
 export interface Np3OpenResponse {
 	hash: string;
-	recipe: Record<string, unknown>; // We will define a more precise type if needed later
-	parameters: ParameterDefinition[];
+	recipe: UniversalRecipe;
+	parameterDefinitions: ParameterDefinition[];
+}
+
+export interface Np3SaveAsRequest {
+	filePath: string;
+}
+
+export interface Np3SaveAsResponse {
+	filePath: string;
+}
+
+export interface CopyPastePayload {
+	version: number;
+	recipe: Partial<UniversalRecipe>;
 }
 
 export interface IpcPatchPayload {
 	field: string;
-	value: number;
+	value: number | string;
 }
 
 export interface IpcResetPayload {
 	field?: string;
 }
 
-// Global interface for all IPC messages
+export type IpcPayload =
+	| Np3OpenRequest
+	| Np3OpenResponse
+	| Np3SaveAsRequest
+	| Np3SaveAsResponse
+	| CopyPastePayload
+	| IpcPatchPayload
+	| IpcResetPayload
+	| Np3Error
+	| { filePath: string }
+	| { text: string };
+
 export interface IpcMessage {
 	type: string;
-	payload: Record<string, unknown> | Np3Error | Np3OpenResponse | IpcPatchPayload | IpcResetPayload;
+	payload: IpcPayload;
 }

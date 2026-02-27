@@ -155,6 +155,79 @@ func TestMalformedInput(t *testing.T) {
 	cmd.Wait()
 }
 
+func TestSaveAs(t *testing.T) {
+	binaryPath := buildTestBinary(t)
+
+	// Create a temporary file to act as the source
+	tmpDir := t.TempDir()
+	sourceFile := filepath.Join(tmpDir, "source.np3")
+	targetFile := filepath.Join(tmpDir, "target.np3")
+
+	// Standard NP3 file size is 480 bytes
+	minimalNP3 := make([]byte, 480)
+	copy(minimalNP3, "NCP\x01\x00\x00\x00")
+	if err := os.WriteFile(sourceFile, minimalNP3, 0644); err != nil {
+		t.Fatalf("Failed to create source file: %v", err)
+	}
+
+	cmd := exec.Command(binaryPath)
+	cmd.Stderr = io.Discard
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatalf("Failed to create stdin pipe: %v", err)
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatalf("Failed to create stdout pipe: %v", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("Failed to start binary: %v", err)
+	}
+
+	encoder := json.NewEncoder(stdin)
+	decoder := json.NewDecoder(stdout)
+
+	// 1. Open the file first
+	openReq := Message{Type: "np3.open", Payload: marshalPayload(map[string]string{"filePath": sourceFile})}
+	if err := encoder.Encode(openReq); err != nil {
+		t.Fatalf("Failed to send open message: %v", err)
+	}
+
+	var openResp Message
+	if err := decoder.Decode(&openResp); err != nil {
+		t.Fatalf("Failed to decode open response: %v", err)
+	}
+	if openResp.Type != "np3.metadata" {
+		t.Fatalf("Expected np3.metadata, got %q", openResp.Type)
+	}
+
+	// 2. Trigger Save As
+	saveAsReq := Message{Type: "np3.save_as", Payload: marshalPayload(map[string]string{"filePath": targetFile})}
+	if err := encoder.Encode(saveAsReq); err != nil {
+		t.Fatalf("Failed to send save_as message: %v", err)
+	}
+
+	var saveAsResp Message
+	if err := decoder.Decode(&saveAsResp); err != nil {
+		t.Fatalf("Failed to decode save_as response: %v", err)
+	}
+
+	if saveAsResp.Type != "np3.save_as_success" {
+		t.Fatalf("Expected np3.save_as_success, got %q", saveAsResp.Type)
+	}
+
+	// 3. Verify file exists and has content
+	if _, err := os.Stat(targetFile); os.IsNotExist(err) {
+		t.Errorf("Target file was not created")
+	}
+
+	stdin.Close()
+	cmd.Wait()
+}
+
 func TestGracefulShutdown(t *testing.T) {
 	binaryPath := buildTestBinary(t)
 

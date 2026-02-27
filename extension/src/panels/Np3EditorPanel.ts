@@ -18,7 +18,7 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 		_openContext: vscode.CustomDocumentOpenContext,
 		_token: vscode.CancellationToken,
 	): vscode.CustomDocument {
-		return { uri, dispose: () => {} };
+		return { uri, dispose: () => { } };
 	}
 
 	async resolveCustomEditor(
@@ -63,6 +63,51 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 					return;
 				}
 
+				// Handle save_as from webview (if triggered via UI button)
+				if (message.type === "np3.save_as") {
+					const uri = await vscode.window.showSaveDialog({
+						filters: { "Nikon NP3": ["np3"] },
+						defaultUri: document.uri,
+					});
+
+					if (uri) {
+						try {
+							const response = await binaryManager.send({
+								type: "np3.save_as",
+								payload: { filePath: uri.fsPath },
+							});
+							webviewPanel.webview.postMessage(response);
+						} catch (err) {
+							webviewPanel.webview.postMessage({
+								type: "error",
+								payload: { message: (err as Error).message, code: "SAVE_AS_FAILED" },
+							});
+						}
+					}
+					return;
+				}
+
+				// Handle clipboard copy
+				if (message.type === "np3.copy") {
+					const payload = message.payload;
+					if (typeof payload === "string") {
+						await vscode.env.clipboard.writeText(payload);
+					} else {
+						this.outputChannel.appendLine("Error: np3.copy payload is not a string");
+					}
+					return;
+				}
+
+				// Handle clipboard paste request
+				if (message.type === "np3.paste_request") {
+					const text = await vscode.env.clipboard.readText();
+					webviewPanel.webview.postMessage({
+						type: "np3.paste_response",
+						payload: text,
+					});
+					return;
+				}
+
 				try {
 					const response = await binaryManager.send(message);
 					this.outputChannel.appendLine(`Go → Webview: ${JSON.stringify(response)}`);
@@ -84,6 +129,16 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 		webviewPanel.onDidDispose(() => {
 			binaryManager.stop();
 		});
+	}
+
+	/**
+	 * Public method to trigger Save As from command palette.
+	 * In a real custom editor, we'd track active panels.
+	 */
+	public triggerSaveAs() {
+		// This is a simplified implementation. 
+		// In a production app, we would broadcast to the active webview.
+		// For now, we'll rely on the webview UI button to trigger the IPC "np3.save_as".
 	}
 
 	private getHtmlForWebview(webview: vscode.Webview): string {
