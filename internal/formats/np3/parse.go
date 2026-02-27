@@ -69,9 +69,6 @@ const (
 	heuristicSharpnessStart = 66
 	heuristicSharpnessEnd   = 70
 
-	heuristicBrightnessStart = 71
-	heuristicBrightnessEnd   = 75
-
 	heuristicHueStart = 76
 	heuristicHueEnd   = 79
 )
@@ -413,214 +410,172 @@ func extractParameters(data []byte) (*np3Parameters, error) {
 	extractDescription(data, params)
 	extractToneCurve(data, params)
 
-	// FALLBACK: Use heuristic-based parameter estimation for missing/invalid offsets
-	// This provides ~95% accuracy based on testing against Nikon software
-	// Triggers when: (1) exact extraction produced invalid values (malformed file), or
-	// (2) all key parameters are zero (no data at expected offsets)
+	// FALLBACK: Use heuristic-based parameter estimation ONLY for missing values
+	// or when exact offsets are clearly invalid (e.g. garbage data from older NP2 formats)
 
-	// Check if exact extraction produced invalid values
-	needsFallback := false
+	// Sanitize complex adjustments (reset invalid values)
+	sanitizeColorBlender(params)
+	sanitizeColorGrading(params)
 
-	// Basic Adjustments validation
+	// If the most basic parameters are all zero or invalid, we likely have an older or variant format
+	// that needs heuristic estimation.
+	needsHeuristics := (params.sharpening == 0 && params.clarity == 0 && params.contrast == 0)
+
+	// ALWAYS extract hue from heuristic offsets (76-79) since it doesn't have a reliable exact offset
+	extractHeuristicHue(params, rawParams)
+
+	if needsHeuristics {
+		slog.Debug("NP3 exact offsets invalid or empty, using heuristic estimation", "name", params.name)
+		estimateParameters(params, rawParams, colorData, toneCurve)
+	}
+
+	// Sanitize invalid values immediately before range validation
 	if params.sharpening < -3.0 || params.sharpening > 9.0 {
-		needsFallback = true
 		params.sharpening = 0
 	}
 	if params.clarity < -5.0 || params.clarity > 5.0 {
-		needsFallback = true
 		params.clarity = 0
 	}
-
-	// Advanced Adjustments validation
-	if params.midRangeSharpening < -5.0 || params.midRangeSharpening > 5.0 {
-		needsFallback = true
-		params.midRangeSharpening = 0
-	}
 	if params.contrast < -100 || params.contrast > 100 {
-		needsFallback = true
 		params.contrast = 0
 	}
+	if params.saturation < -100 || params.saturation > 100 {
+		params.saturation = 0
+	}
+	if params.midRangeSharpening < -5.0 || params.midRangeSharpening > 5.0 {
+		params.midRangeSharpening = 0
+	}
 	if params.highlights < -100 || params.highlights > 100 {
-		needsFallback = true
 		params.highlights = 0
 	}
 	if params.shadows < -100 || params.shadows > 100 {
-		needsFallback = true
 		params.shadows = 0
 	}
 	if params.whiteLevel < -100 || params.whiteLevel > 100 {
-		needsFallback = true
 		params.whiteLevel = 0
 	}
 	if params.blackLevel < -100 || params.blackLevel > 100 {
-		needsFallback = true
 		params.blackLevel = 0
-	}
-	if params.saturation < -100 || params.saturation > 100 {
-		needsFallback = true
-		params.saturation = 0
-	}
-
-	// Color Blender validation (8 colors × 3 params = 24 fields)
-	// Reset individual out-of-range values to 0 instead of triggering fallback
-	// This preserves valid Color Blender data while sanitizing garbage bytes
-	if params.redHue < -100 || params.redHue > 100 {
-		params.redHue = 0
-	}
-	if params.redChroma < -100 || params.redChroma > 100 {
-		params.redChroma = 0
-	}
-	if params.redBrightness < -100 || params.redBrightness > 100 {
-		params.redBrightness = 0
-	}
-	if params.orangeHue < -100 || params.orangeHue > 100 {
-		params.orangeHue = 0
-	}
-	if params.orangeChroma < -100 || params.orangeChroma > 100 {
-		params.orangeChroma = 0
-	}
-	if params.orangeBrightness < -100 || params.orangeBrightness > 100 {
-		params.orangeBrightness = 0
-	}
-	if params.yellowHue < -100 || params.yellowHue > 100 {
-		params.yellowHue = 0
-	}
-	if params.yellowChroma < -100 || params.yellowChroma > 100 {
-		params.yellowChroma = 0
-	}
-	if params.yellowBrightness < -100 || params.yellowBrightness > 100 {
-		params.yellowBrightness = 0
-	}
-	if params.greenHue < -100 || params.greenHue > 100 {
-		params.greenHue = 0
-	}
-	if params.greenChroma < -100 || params.greenChroma > 100 {
-		params.greenChroma = 0
-	}
-	if params.greenBrightness < -100 || params.greenBrightness > 100 {
-		params.greenBrightness = 0
-	}
-	if params.cyanHue < -100 || params.cyanHue > 100 {
-		params.cyanHue = 0
-	}
-	if params.cyanChroma < -100 || params.cyanChroma > 100 {
-		params.cyanChroma = 0
-	}
-	if params.cyanBrightness < -100 || params.cyanBrightness > 100 {
-		params.cyanBrightness = 0
-	}
-	if params.blueHue < -100 || params.blueHue > 100 {
-		params.blueHue = 0
-	}
-	if params.blueChroma < -100 || params.blueChroma > 100 {
-		params.blueChroma = 0
-	}
-	if params.blueBrightness < -100 || params.blueBrightness > 100 {
-		params.blueBrightness = 0
-	}
-	if params.purpleHue < -100 || params.purpleHue > 100 {
-		params.purpleHue = 0
-	}
-	if params.purpleChroma < -100 || params.purpleChroma > 100 {
-		params.purpleChroma = 0
-	}
-	if params.purpleBrightness < -100 || params.purpleBrightness > 100 {
-		params.purpleBrightness = 0
-	}
-	if params.magentaHue < -100 || params.magentaHue > 100 {
-		params.magentaHue = 0
-	}
-	if params.magentaChroma < -100 || params.magentaChroma > 100 {
-		params.magentaChroma = 0
-	}
-	if params.magentaBrightness < -100 || params.magentaBrightness > 100 {
-		params.magentaBrightness = 0
-	}
-
-	// Color Grading validation (reset invalid values instead of triggering fallback)
-	// Hue: 0-360, Chroma/Brightness: -100 to +100
-	if params.highlightsZone.Hue < 0 || params.highlightsZone.Hue > 360 {
-		params.highlightsZone.Hue = 0
-	}
-	if params.highlightsZone.Chroma < -100 || params.highlightsZone.Chroma > 100 {
-		params.highlightsZone.Chroma = 0
-	}
-	if params.highlightsZone.Brightness < -100 || params.highlightsZone.Brightness > 100 {
-		params.highlightsZone.Brightness = 0
-	}
-	if params.midtoneZone.Hue < 0 || params.midtoneZone.Hue > 360 {
-		params.midtoneZone.Hue = 0
-	}
-	if params.midtoneZone.Chroma < -100 || params.midtoneZone.Chroma > 100 {
-		params.midtoneZone.Chroma = 0
-	}
-	if params.midtoneZone.Brightness < -100 || params.midtoneZone.Brightness > 100 {
-		params.midtoneZone.Brightness = 0
-	}
-	if params.shadowsZone.Hue < 0 || params.shadowsZone.Hue > 360 {
-		params.shadowsZone.Hue = 0
-	}
-	if params.shadowsZone.Chroma < -100 || params.shadowsZone.Chroma > 100 {
-		params.shadowsZone.Chroma = 0
-	}
-	if params.shadowsZone.Brightness < -100 || params.shadowsZone.Brightness > 100 {
-		params.shadowsZone.Brightness = 0
-	}
-	if params.blending < 0 || params.blending > 100 {
-		params.blending = 0
-	}
-	if params.balance < -100 || params.balance > 100 {
-		params.balance = 0
-	}
-
-	// ALWAYS extract brightness/hue from heuristic offsets (71-79) since these
-	// parameters don't have exact offsets and are only available via heuristic analysis
-	extractHeuristicParameters(params, rawParams)
-
-	// Fall back to full heuristics if exact extraction failed
-	if needsFallback {
-		// Reset all extracted parameters that might be invalid
-		if needsFallback {
-			// NOTE: Color Blender and Color Grading values are NOT reset
-			// They are correctly extracted even when other parameters fail validation
-			// The fallback only applies to basic adjustments estimated from heuristics
-
-			// Reset Tone Curve parameters (preserve toneCurveRaw - from extended KOLORA format)
-			// Fix: Also preserve toneCurvePoints derived from Raw LUT!
-			// params.toneCurvePointCount = 0
-			// params.toneCurvePoints = nil
-			// toneCurveRaw is NOT reset - it's valid even in fallback mode
-		}
-
-		estimateParameters(params, rawParams, colorData, toneCurve)
 	}
 
 	return params, nil
 }
 
-// extractHeuristicParameters extracts brightness and hue from heuristic offsets (71-79).
-// These parameters don't have exact offsets in Phase 2, so they're always extracted
+func sanitizeColorBlender(p *np3Parameters) {
+	if p.redHue < -100 || p.redHue > 100 {
+		p.redHue = 0
+	}
+	if p.redChroma < -100 || p.redChroma > 100 {
+		p.redChroma = 0
+	}
+	if p.redBrightness < -100 || p.redBrightness > 100 {
+		p.redBrightness = 0
+	}
+	if p.orangeHue < -100 || p.orangeHue > 100 {
+		p.orangeHue = 0
+	}
+	if p.orangeChroma < -100 || p.orangeChroma > 100 {
+		p.orangeChroma = 0
+	}
+	if p.orangeBrightness < -100 || p.orangeBrightness > 100 {
+		p.orangeBrightness = 0
+	}
+	if p.yellowHue < -100 || p.yellowHue > 100 {
+		p.yellowHue = 0
+	}
+	if p.yellowChroma < -100 || p.yellowChroma > 100 {
+		p.yellowChroma = 0
+	}
+	if p.yellowBrightness < -100 || p.yellowBrightness > 100 {
+		p.yellowBrightness = 0
+	}
+	if p.greenHue < -100 || p.greenHue > 100 {
+		p.greenHue = 0
+	}
+	if p.greenChroma < -100 || p.greenChroma > 100 {
+		p.greenChroma = 0
+	}
+	if p.greenBrightness < -100 || p.greenBrightness > 100 {
+		p.greenBrightness = 0
+	}
+	if p.cyanHue < -100 || p.cyanHue > 100 {
+		p.cyanHue = 0
+	}
+	if p.cyanChroma < -100 || p.cyanChroma > 100 {
+		p.cyanChroma = 0
+	}
+	if p.cyanBrightness < -100 || p.cyanBrightness > 100 {
+		p.cyanBrightness = 0
+	}
+	if p.blueHue < -100 || p.blueHue > 100 {
+		p.blueHue = 0
+	}
+	if p.blueChroma < -100 || p.blueChroma > 100 {
+		p.blueChroma = 0
+	}
+	if p.blueBrightness < -100 || p.blueBrightness > 100 {
+		p.blueBrightness = 0
+	}
+	if p.purpleHue < -100 || p.purpleHue > 100 {
+		p.purpleHue = 0
+	}
+	if p.purpleChroma < -100 || p.purpleChroma > 100 {
+		p.purpleChroma = 0
+	}
+	if p.purpleBrightness < -100 || p.purpleBrightness > 100 {
+		p.purpleBrightness = 0
+	}
+	if p.magentaHue < -100 || p.magentaHue > 100 {
+		p.magentaHue = 0
+	}
+	if p.magentaChroma < -100 || p.magentaChroma > 100 {
+		p.magentaChroma = 0
+	}
+	if p.magentaBrightness < -100 || p.magentaBrightness > 100 {
+		p.magentaBrightness = 0
+	}
+}
+
+func sanitizeColorGrading(p *np3Parameters) {
+	if p.highlightsZone.Hue < 0 || p.highlightsZone.Hue > 360 {
+		p.highlightsZone.Hue = 0
+	}
+	if p.highlightsZone.Chroma < -100 || p.highlightsZone.Chroma > 100 {
+		p.highlightsZone.Chroma = 0
+	}
+	if p.highlightsZone.Brightness < -100 || p.highlightsZone.Brightness > 100 {
+		p.highlightsZone.Brightness = 0
+	}
+	if p.midtoneZone.Hue < 0 || p.midtoneZone.Hue > 360 {
+		p.midtoneZone.Hue = 0
+	}
+	if p.midtoneZone.Chroma < -100 || p.midtoneZone.Chroma > 100 {
+		p.midtoneZone.Chroma = 0
+	}
+	if p.midtoneZone.Brightness < -100 || p.midtoneZone.Brightness > 100 {
+		p.midtoneZone.Brightness = 0
+	}
+	if p.shadowsZone.Hue < 0 || p.shadowsZone.Hue > 360 {
+		p.shadowsZone.Hue = 0
+	}
+	if p.shadowsZone.Chroma < -100 || p.shadowsZone.Chroma > 100 {
+		p.shadowsZone.Chroma = 0
+	}
+	if p.shadowsZone.Brightness < -100 || p.shadowsZone.Brightness > 100 {
+		p.shadowsZone.Brightness = 0
+	}
+	if p.blending < 0 || p.blending > 100 {
+		p.blending = 0
+	}
+	if p.balance < -100 || p.balance > 100 {
+		p.balance = 0
+	}
+}
+
+// extractHeuristicHue extracts hue from heuristic offsets (76-79).
+// This parameter doesn't have a reliable exact offset, so it's always extracted
 // using the legacy heuristic approach.
-//
-// IMPORTANT: This function reads raw bytes directly from data[], not from rawParams[],
-// because brightness/hue use simple offset encoding (byte - 128), while rawParams[]
-// uses two's complement conversion which gives wrong signs for positive values.
-func extractHeuristicParameters(params *np3Parameters, rawParams []rawParamByte) {
-	// NOTE: We need access to the original data to read raw bytes
-	// Since we don't have it here, we need to extract differently
-	// For now, use the rawParams but fix the conversion
-
-	// BRIGHTNESS: DEPRECATED - DO NOT EXTRACT
-	// Previously extracted from bytes 71-75, but these offsets are actually TLV chunk structure.
-	// NP3 format does NOT have a dedicated Exposure/Brightness parameter at a known offset.
-	// The heuristic extraction was incorrectly interpreting TLV chunk bytes as brightness values.
-	// Result: Random/incorrect brightness values like -0.328125 from chunk data.
-	//
-	// SOLUTION: Always set brightness to 0.0 when parsing NP3.
-	// Brightness/Exposure is NOT a real NP3 parameter - it only exists in XMP/lrtemplate.
-	// This ensures XMP→NP3→XMP conversion doesn't introduce spurious exposure shifts.
-	params.brightness = 0.0
-
+func extractHeuristicHue(params *np3Parameters, rawParams []rawParamByte) {
 	// HUE: Analyze raw parameter bytes 76-79
 	// Encoding: raw_byte = (hue * 128 / 9) + 128
 	// Decoding: hue = (raw_byte - 128) * 9 / 128
@@ -629,7 +584,7 @@ func extractHeuristicParameters(params *np3Parameters, rawParams []rawParamByte)
 	for _, rp := range rawParams {
 		if rp.offset >= heuristicHueStart && rp.offset <= heuristicHueEnd {
 			// Use raw byte and apply simple offset decoding (not two's complement)
-			adjusted := int(rp.raw) - 128
+			adjusted := int(rp.raw) - BiasValue
 			hueSum += adjusted
 			hueCount++
 		}
@@ -651,125 +606,53 @@ func extractHeuristicParameters(params *np3Parameters, rawParams []rawParamByte)
 }
 
 // estimateParameters uses heuristic analysis to estimate photo parameters from extracted data.
-// This mirrors the approach from the legacy Python implementation which achieved
-// 95%+ accuracy through pattern matching and intelligent approximations.
-//
-// Python reference: _estimate_parameters() method in recipe_converter.py
+// This is used for older NP2 formats or variant NP3 files where exact offsets are invalid.
 func estimateParameters(params *np3Parameters, rawParams []rawParamByte, colorData []colorDataPoint, toneCurve []toneCurvePoint) {
-	// CONTRAST: Derived from tone curve complexity
-	// If a custom tone curve is present (extracted from exact offsets), it handles the contrast.
-	// We should NOT estimate contrast from heuristics in this case to avoid double-application.
-	if len(toneCurve) > 0 {
-		params.contrast = 0
-		params.brightness = 0 // Also zero exposure/brightness as requested by user ("where did exposure come from?")
-	} else {
+	// Only estimate parameters that are currently 0 (not successfully extracted via exact offsets)
+
+	// CONTRAST: Derived from tone curve complexity if not set
+	if params.contrast == 0 {
 		// Python: contrast = min(3, max(-3, len(tone_curve_raw) // 20 - 2))
-		// More curve points = higher contrast adjustment
 		curveComplexity := len(toneCurve) / 20
 		params.contrast = curveComplexity - 2
-		if params.contrast > 3 {
-			params.contrast = 3
-		} else if params.contrast < -3 {
-			params.contrast = -3
+		if params.contrast > 100 { // Use new -100..100 range
+			params.contrast = 100
+		} else if params.contrast < -100 {
+			params.contrast = -100
 		}
 	}
 
-	// SATURATION: Only estimate from heuristics if exact offset extraction failed (value is 0)
-	// If saturation is already non-zero, it was successfully extracted from exact offset 322
-	// and should NOT be overwritten with less accurate heuristic estimation
+	// SATURATION: Estimate from color data density if not set
 	if params.saturation == 0 {
-		// Python: saturation = min(3, max(-3, len(color_data) // 15 - 1))
-		// More significant color values = higher saturation
 		colorIntensity := len(colorData) / 15
-		params.saturation = colorIntensity - 1
-		if params.saturation > 3 {
-			params.saturation = 3
-		} else if params.saturation < -3 {
-			params.saturation = -3
+		params.saturation = (colorIntensity - 1) * 33 // Map 0..3 to ~0..100
+		if params.saturation > 100 {
+			params.saturation = 100
+		} else if params.saturation < -100 {
+			params.saturation = -100
 		}
 	}
 
 	// SHARPENING/CLARITY: Analyze raw parameter bytes 66-70
-	// Python: Looks for adjusted values in this range and averages them
-	sharpnessSum := 0
-	sharpnessCount := 0
-	for _, rp := range rawParams {
-		if rp.offset >= heuristicSharpnessStart && rp.offset <= heuristicSharpnessEnd {
-			sharpnessSum += rp.adjusted
-			sharpnessCount++
+	if params.sharpening == 0 && params.clarity == 0 {
+		sharpnessSum := 0
+		sharpnessCount := 0
+		for _, rp := range rawParams {
+			if rp.offset >= heuristicSharpnessStart && rp.offset <= heuristicSharpnessEnd {
+				sharpnessSum += rp.adjusted
+				sharpnessCount++
+			}
 		}
-	}
 
-	if sharpnessCount > 0 {
-		// Average the adjusted values and map to -3.0 to +9.0 range
-		avgSharpness := sharpnessSum / sharpnessCount
-		// Decode using inverse of encoding formula: raw = sharpening * 255 / 9
-		// So: sharpening = adjusted * 9 / 255
-		params.sharpening = float64(avgSharpness) * 9.0 / 255.0
-		if params.sharpening < -3.0 {
-			params.sharpening = -3.0
-		} else if params.sharpening > 9.0 {
-			params.sharpening = 9.0
+		if sharpnessCount > 0 {
+			avgSharpness := sharpnessSum / sharpnessCount
+			params.sharpening = float64(avgSharpness) * 9.0 / BiasValue
+			if params.sharpening < -3.0 {
+				params.sharpening = -3.0
+			} else if params.sharpening > 9.0 {
+				params.sharpening = 9.0
+			}
 		}
-	} else {
-		// Default to middle value
-		params.sharpening = 5.0
-	}
-
-	// BRIGHTNESS: Analyze raw parameter bytes 71-75
-	// Python: Similar to sharpness, looks for adjusted values
-	brightnessSum := 0
-	brightnessCount := 0
-	for _, rp := range rawParams {
-		if rp.offset >= heuristicBrightnessStart && rp.offset <= heuristicBrightnessEnd {
-			brightnessSum += rp.adjusted
-			brightnessCount++
-		}
-	}
-
-	if brightnessCount > 0 {
-		// Average and normalize to -1.0 to +1.0 range
-		avgBrightness := brightnessSum / brightnessCount
-		params.brightness = float64(avgBrightness) / 128.0
-		if params.brightness < -1.0 {
-			params.brightness = -1.0
-		} else if params.brightness > 1.0 {
-			params.brightness = 1.0
-		}
-	} else {
-		params.brightness = 0.0
-	}
-
-	// HUE: Analyze raw parameter bytes 76-79
-	// Python: Looks for hue adjustments in this range
-	hueSum := 0
-	hueCount := 0
-	for _, rp := range rawParams {
-		if rp.offset >= heuristicHueStart && rp.offset <= heuristicHueEnd {
-			hueSum += rp.adjusted
-			hueCount++
-		}
-	}
-
-	if hueCount > 0 {
-		// Average and map to -9 to +9 range
-		avgHue := hueSum / hueCount
-		// Normalize from -128 to +127 range to -9 to +9
-		params.hue = avgHue * 9 / 128
-		if params.hue < -9 {
-			params.hue = -9
-		} else if params.hue > 9 {
-			params.hue = 9
-		}
-	} else {
-		params.hue = 0
-	}
-
-	// FINAL OVERRIDE: If a custom tone curve is present, it handles contrast and exposure.
-	// We force these values to 0 to prevent double-application or conflicts.
-	if len(toneCurve) > 0 {
-		params.contrast = 0
-		params.brightness = 0 // Fixes exposure issue
 	}
 }
 

@@ -17,6 +17,8 @@ import (
 	"log/slog"
 	"os"
 
+	"strings"
+
 	"github.com/justin/recipe/internal/formats/np3"
 	"github.com/justin/recipe/internal/models"
 )
@@ -119,8 +121,9 @@ func runCLI() {
 
 		// Create metadata response
 		metadata := map[string]interface{}{
-			"hash":   hash,
-			"recipe": recipe,
+			"hash":       hash,
+			"recipe":     recipe,
+			"parameters": models.GetNP3ParameterDefinitions(),
 		}
 
 		response := Message{
@@ -200,8 +203,9 @@ func handleMessage(encoder *json.Encoder, session *Session, msg *Message) {
 		hash := np3.CalculateMagicHash(data)
 
 		metadata := map[string]interface{}{
-			"hash":   hash,
-			"recipe": recipe,
+			"hash":       hash,
+			"recipe":     recipe,
+			"parameters": models.GetNP3ParameterDefinitions(),
 		}
 
 		response := Message{
@@ -220,8 +224,8 @@ func handleMessage(encoder *json.Encoder, session *Session, msg *Message) {
 		}
 
 		var req struct {
-			Field string  `json:"field"`
-			Value float64 `json:"value"`
+			Field string `json:"field"`
+			Value any    `json:"value"`
 		}
 		if err := json.Unmarshal(msg.Payload, &req); err != nil {
 			sendErrorWithType(encoder, "np3.patch_error", "Invalid payload for patch", "BAD_REQUEST")
@@ -232,14 +236,71 @@ func handleMessage(encoder *json.Encoder, session *Session, msg *Message) {
 		b, _ := json.Marshal(session.Recipe)
 		var m map[string]interface{}
 		json.Unmarshal(b, &m)
-		m[req.Field] = req.Value
+
+		// Support nested paths like "red.hue"
+		parts := strings.Split(req.Field, ".")
+		curr := m
+		for i := 0; i < len(parts)-1; i++ {
+			if next, ok := curr[parts[i]].(map[string]interface{}); ok {
+				curr = next
+			} else {
+				// If nested object doesn't exist or is not a map, create/overwrite it
+				// This handles cases where optional structs in UniversalRecipe are nil
+				newMap := make(map[string]interface{})
+				curr[parts[i]] = newMap
+				curr = newMap
+			}
+		}
+		curr[parts[len(parts)-1]] = req.Value
+
 		b2, _ := json.Marshal(m)
 		if err := json.Unmarshal(b2, session.Recipe); err != nil {
 			sendErrorWithType(encoder, "np3.patch_error", fmt.Sprintf("failed to apply patch: %v", err), "PATCH_ERROR")
 			return
 		}
 
-		saveSession(encoder, session, true)
+		saveSession(encoder, session)
+
+	case "np3.save_as":
+		var req struct {
+			FilePath string `json:"filePath"`
+		}
+		if err := json.Unmarshal(msg.Payload, &req); err != nil {
+			sendError(encoder, "Invalid payload for save_as", "BAD_REQUEST")
+			return
+		}
+
+		if req.FilePath == "" {
+			sendError(encoder, "Save path cannot be empty", "INVALID_PATH")
+			return
+		}
+
+		if session.Recipe == nil {
+			sendError(encoder, "No active recipe session to save", "BAD_STATE")
+			return
+		}
+
+		data, err := np3.Generate(session.Recipe)
+		if err != nil {
+			sendError(encoder, fmt.Sprintf("failed to generate NP3: %v", err), "GENERATE_ERROR")
+			return
+		}
+
+		if err := os.WriteFile(req.FilePath, data, 0644); err != nil {
+			sendError(encoder, fmt.Sprintf("failed to write file: %v", err), "IO_ERROR")
+			return
+		}
+
+		// Update session to the new file path
+		session.FilePath = req.FilePath
+
+		response := Message{
+			Type:    "np3.save_as_success",
+			Payload: marshalPayload(map[string]string{"filePath": req.FilePath}),
+		}
+		if err := encoder.Encode(response); err != nil {
+			slog.Error("Failed to write save_as_success response", "error", err)
+		}
 
 	case "np3.sync_request":
 		if session.FilePath == "" {
@@ -256,7 +317,7 @@ func handleMessage(encoder *json.Encoder, session *Session, msg *Message) {
 		}
 
 		session.Recipe = req.Recipe
-		saveSession(encoder, session, false)
+		saveSession(encoder, session)
 
 		// Send success sync back
 		response := Message{
@@ -310,23 +371,15 @@ func sendErrorWithType(encoder *json.Encoder, msgType, message, code string) {
 	}
 }
 
-func saveSession(encoder *json.Encoder, session *Session, isPatch bool) {
+func saveSession(encoder *json.Encoder, session *Session) {
 	data, err := np3.Generate(session.Recipe)
 	if err != nil {
-		if isPatch {
-			sendErrorWithType(encoder, "np3.patch_error", fmt.Sprintf("failed to generate NP3: %v", err), "GENERATE_ERROR")
-		} else {
-			sendError(encoder, fmt.Sprintf("failed to generate NP3: %v", err), "GENERATE_ERROR")
-		}
+		sendError(encoder, fmt.Sprintf("failed to generate NP3: %v", err), "GENERATE_ERROR")
 		return
 	}
 
 	if err := os.WriteFile(session.FilePath, data, 0644); err != nil {
-		if isPatch {
-			sendErrorWithType(encoder, "np3.patch_error", fmt.Sprintf("failed to write file: %v", err), "IO_ERROR")
-		} else {
-			sendError(encoder, fmt.Sprintf("failed to write file: %v", err), "IO_ERROR")
-		}
+		sendError(encoder, fmt.Sprintf("failed to write file: %v", err), "IO_ERROR")
 		return
 	}
 }

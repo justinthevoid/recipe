@@ -61,3 +61,11 @@ body {
 	color: var(--color-foreground);
 	background-color: var(--color-background);
 }
+
+.scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}

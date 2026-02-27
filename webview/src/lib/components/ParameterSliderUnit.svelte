@@ -5,12 +5,14 @@
 		definition,
 		value,
 		originalValue,
-		onchange
+		onchange,
+		trackBackground
 	}: {
 		definition: ParameterDefinition;
 		value: number;
 		originalValue: number;
 		onchange: (key: string, value: number) => void;
+		trackBackground?: string;
 	} = $props();
 
 	// H2 fix: Use $state(0) and sync entirely through $effect to avoid
@@ -32,6 +34,28 @@
 			? ((localValue - definition.min) / (definition.max - definition.min)) * 100
 			: 0
 	);
+
+	let isCentered = $derived(definition.min < 0 && definition.max > 0);
+	
+	let zeroPercent = $derived(
+		isCentered ? ((0 - definition.min) / (definition.max - definition.min)) * 100 : 0
+	);
+
+	// Determine gradient based on whether value is positive/negative relative to 0
+	let trackStyle = $derived.by(() => {
+		if (trackBackground) {
+			return trackBackground;
+		}
+		if (!isCentered) {
+			return `linear-gradient(to right, var(--vscode-button-background) ${progressPercent}%, var(--vscode-input-background) ${progressPercent}%)`;
+		}
+		
+		if (localValue > 0) {
+			return `linear-gradient(to right, var(--vscode-input-background) ${zeroPercent}%, var(--vscode-button-background) ${zeroPercent}%, var(--vscode-button-background) ${progressPercent}%, var(--vscode-input-background) ${progressPercent}%)`;
+		} else {
+			return `linear-gradient(to right, var(--vscode-input-background) ${progressPercent}%, var(--vscode-button-background) ${progressPercent}%, var(--vscode-button-background) ${zeroPercent}%, var(--vscode-input-background) ${zeroPercent}%)`;
+		}
+	});
 
 	// 2.7 Emit onchange callback ONLY on pointerup (H4 fix: removed duplicate onchange)
 	// biome-ignore lint/correctness/noUnusedVariables: used in Svelte template
@@ -119,9 +143,9 @@
 
 <div class="flex flex-col gap-1 w-full">
 	<!-- Top row layout -->
-	<div class="flex items-center justify-between">
+	<div class="flex items-center justify-between pointer-events-none">
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="flex items-center gap-1.5 cursor-pointer" ondblclick={handleDoubleClick}>
+		<div class="flex items-center gap-1.5 cursor-pointer pointer-events-auto" ondblclick={handleDoubleClick}>
 			<label for={definition.key} class="text-xs font-medium text-(--vscode-editor-foreground) select-none cursor-pointer">
 				{definition.label}
 			</label>
@@ -132,7 +156,7 @@
 		<input
 			type="number"
 			id="{definition.key}-number"
-			class="w-16 h-6 px-1 text-right text-xs font-mono text-(--vscode-editor-foreground) bg-(--vscode-input-background) border focus:outline-none transition-colors duration-100 {isInputError ? 'border-(--vscode-inputValidation-errorBorder)' : 'border-(--vscode-input-border) focus:border-(--vscode-focusBorder) focus:ring-1 focus:ring-(--vscode-focusBorder)'}"
+			class="w-16 h-6 px-1 text-right text-xs font-mono origin-right pointer-events-auto text-(--vscode-editor-foreground) bg-(--vscode-input-background) border focus:outline-none transition-colors duration-100 {isInputError ? 'border-(--vscode-inputValidation-errorBorder)' : 'border-(--vscode-input-border) focus:border-(--vscode-focusBorder) focus:ring-1 focus:ring-(--vscode-focusBorder)'}"
 			value={localValue}
 			min={definition.min}
 			max={definition.max}
@@ -148,7 +172,7 @@
 		type="range"
 		id={definition.key}
 		class="parameter-slider w-full h-1 appearance-none cursor-pointer rounded-sm"
-		style="--progress: {progressPercent}%"
+		style="background: {trackStyle}"
 		value={localValue}
 		min={definition.min}
 		max={definition.max}
@@ -170,15 +194,8 @@ input[type=range] {
 	-webkit-appearance: none;
 	appearance: none;
 }
-/* L1 fix: Active portion coloring — left of thumb uses button bg, right uses muted track */
-input[type=range].parameter-slider {
-	background: linear-gradient(
-		to right,
-		var(--vscode-button-background) var(--progress, 0%),
-		var(--vscode-input-background) var(--progress, 0%)
-	);
-}
 input[type=range]::-webkit-slider-thumb {
+
 	-webkit-appearance: none;
 	width: 12px;
 	height: 12px;
