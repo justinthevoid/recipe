@@ -9,6 +9,12 @@
 		"vscode": "^1.96.0"
 	},
 	"main": "./dist/extension.js",
+	"capabilities": {
+		"untrustedWorkspaces": {
+			"supported": false,
+			"description": "Requires trust to execute np3tool binary"
+		}
+	},
 	"contributes": {
 		"customEditors": [
 			{
@@ -21,7 +27,49 @@
 				],
 				"priority": "default"
 			}
-		]
+		],
+		"commands": [
+			{
+				"command": "recipe.saveAs",
+				"title": "Recipe: Save As..."
+			},
+			{
+				"command": "recipe.resetAll",
+				"title": "Recipe: Reset All Parameters"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "recipe.saveAs",
+				"key": "ctrl+shift+s",
+				"mac": "cmd+shift+s",
+				"when": "resourceExtname == .np3"
+			}
+		],
+		"menus": {
+			"webview/context": [
+				{
+					"command": "recipe.saveAs",
+					"group": "recipe@1"
+				},
+				{
+					"command": "recipe.resetAll",
+					"group": "recipe@2"
+				}
+			]
+		},
+		"configuration": {
+			"title": "Recipe NP3 Editor",
+			"properties": {
+				"recipe.maxConcurrentPanels": {
+					"type": "number",
+					"default": 5,
+					"minimum": 1,
+					"maximum": 20,
+					"description": "Maximum number of NP3 files that can be open simultaneously. Each open file runs a Go binary process."
+				}
+			}
+		}
 	},
 	"scripts": {
 		"build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
