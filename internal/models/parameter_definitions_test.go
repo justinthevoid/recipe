@@ -7,20 +7,15 @@ import (
 func TestGetNP3ParameterDefinitions(t *testing.T) {
 	defs := GetNP3ParameterDefinitions()
 
-	// Check total count (based on the manual mapping in parameter_definitions.go)
-	// 9 Basic + 7 Tone Curve + 3 Detail + 24 Color Mixer + 4 Geometry = 47 parameters
-	// Wait, I counted 48 earlier. Let me double check.
-	// Basic: 9
+	// Actual counts:
+	// Basic: 9 (sharpness, midRangeSharpening, clarity, contrast, highlights, shadows, whites, blacks, saturation)
 	// Tone Curve: 7
-	// Detail: 3
-	// Color Mixer: 8 colors * 3 = 24
-	// Geometry: 4
-	// Total: 9+7+3+24+4 = 47.
-	// The np3-parameter-mapping-matrix.md mentions 48.
-	// Maybe I missed one or the matrix includes one that is not in my list?
-	// Let me check the matrix again if needed, but for now 47 is what I have implemented.
-
-	expectedCount := 47
+	// Color Mixer: 24 (8 colors × 3)
+	// Detail: 1 (grain)
+	// System: 1 (processVersion)
+	// Color Grading: 11 (3 zones × 3 + blending + balance)
+	// Total: 53
+	expectedCount := 53
 	if len(defs) != expectedCount {
 		t.Errorf("Expected %d parameter definitions, got %d", expectedCount, len(defs))
 	}
@@ -32,11 +27,12 @@ func TestGetNP3ParameterDefinitions(t *testing.T) {
 	}
 
 	expectedGroups := map[string]int{
-		"Basic":       9,
-		"Tone Curve":  7,
-		"Detail":      3,
-		"Color Mixer": 24,
-		"Geometry":    4,
+		"Basic":         9,
+		"Tone Curve":    7,
+		"Color Mixer":   24,
+		"Detail":        1,
+		"System":        1,
+		"Color Grading": 11,
 	}
 
 	for g, count := range expectedGroups {
@@ -52,5 +48,19 @@ func TestGetNP3ParameterDefinitions(t *testing.T) {
 			t.Errorf("Duplicate parameter key found: %s", d.Key)
 		}
 		keys[d.Key] = true
+	}
+
+	// Verify all Basic parameters have Lane: "left"
+	for _, d := range defs {
+		if d.Group == "Basic" && d.Lane != "left" {
+			t.Errorf("Basic parameter %s should have Lane 'left', got %q", d.Key, d.Lane)
+		}
+	}
+
+	// Verify all Color Mixer parameters have Lane: "right"
+	for _, d := range defs {
+		if d.Group == "Color Mixer" && d.Lane != "right" {
+			t.Errorf("Color Mixer parameter %s should have Lane 'right', got %q", d.Key, d.Lane)
+		}
 	}
 }

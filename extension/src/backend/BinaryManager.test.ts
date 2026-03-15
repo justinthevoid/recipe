@@ -13,6 +13,13 @@ import * as fs from "node:fs/promises";
 
 vi.mock("node:fs/promises", () => ({
 	copyFile: vi.fn(),
+	access: vi.fn(),
+	constants: { X_OK: 1 },
+}));
+
+// Mock node:crypto
+vi.mock("node:crypto", () => ({
+	randomUUID: () => "test-uuid-1234",
 }));
 
 // Mock child_process
@@ -61,6 +68,8 @@ describe("BinaryManager", () => {
 		mockContext = createMockContext();
 		mockOutputChannel = createMockOutputChannel();
 		manager = new BinaryManager(mockContext, mockOutputChannel);
+		// By default, binary exists
+		vi.mocked(fs.access).mockResolvedValue(undefined);
 	});
 
 	describe("start", () => {
@@ -68,6 +77,7 @@ describe("BinaryManager", () => {
 		const expectedBackupPath = "/mock/path/test.np3.bak";
 
 		it("should spawn the Go binary", async () => {
+			const lineHandler: ((line: string) => void)[] = [];
 			const mockProcess = {
 				on: vi.fn(),
 				stdin: { write: vi.fn(), end: vi.fn() },
@@ -78,19 +88,34 @@ describe("BinaryManager", () => {
 			};
 			mockSpawn.mockReturnValue(mockProcess);
 
-			// Simulate the process spawning without immediate error
-			mockProcess.on.mockImplementation(
-				(_event: string, _handler: (...args: unknown[]) => void) => {
-					// Don't call error handler - successful spawn
-				},
-			);
+			// Capture readline line handler to simulate pong response
+			const mockCreateInterface = vi.fn(() => ({
+				on: vi.fn((event: string, handler: (line: string) => void) => {
+					if (event === "line") lineHandler.push(handler);
+				}),
+				close: vi.fn(),
+			}));
+			vi.doMock("node:readline", () => ({ createInterface: mockCreateInterface }));
 
-			void manager.start(testFilePath);
+			const startPromise = manager.start(testFilePath);
 
-			// Wait for the setTimeout in start()
-			await new Promise((r) => setTimeout(r, 200));
+			// Wait a tick for the ping to be written
+			await new Promise((r) => setTimeout(r, 50));
 
-			// The binary path should include platform-specific binary name
+			// Simulate pong response
+			if (lineHandler.length > 0) {
+				lineHandler[0](
+					JSON.stringify({
+						type: "np3.pong",
+						payload: { status: "ok", version: "1.0.0" },
+						requestId: "test-uuid-1234",
+					}),
+				);
+			}
+
+			// Wait for start to resolve via pong
+			await new Promise((r) => setTimeout(r, 100));
+
 			expect(mockSpawn).toHaveBeenCalledTimes(1);
 			const callArgs = mockSpawn.mock.calls[0];
 			expect(callArgs[0]).toContain("np3tool");
@@ -112,7 +137,6 @@ describe("BinaryManager", () => {
 			await new Promise((r) => setTimeout(r, 200));
 
 			expect(fs.copyFile).toHaveBeenCalledWith(testFilePath, expectedBackupPath);
-			// Check if copyFile was called before spawn
 			const callOrder = vi.mocked(fs.copyFile).mock.invocationCallOrder[0];
 			const spawnOrder = mockSpawn.mock.invocationCallOrder[0];
 			expect(callOrder).toBeLessThan(spawnOrder);
@@ -131,10 +155,8 @@ describe("BinaryManager", () => {
 
 			vi.mocked(fs.copyFile).mockRejectedValueOnce(new Error("EACCES: permission denied"));
 
-			// Should not throw
-			await expect(manager.start(testFilePath)).resolves.toBeUndefined();
+			void manager.start(testFilePath);
 
-			// Wait for setTimeout
 			await new Promise((r) => setTimeout(r, 200));
 
 			expect(mockSpawn).toHaveBeenCalledTimes(1);
@@ -152,11 +174,16 @@ describe("BinaryManager", () => {
 
 			await expect(manager.start(testFilePath)).rejects.toThrow("Failed to spawn Go binary");
 		});
+
+		it("should reject when binary does not exist", async () => {
+			vi.mocked(fs.access).mockRejectedValueOnce(new Error("ENOENT"));
+
+			await expect(manager.start(testFilePath)).rejects.toThrow("np3tool binary not found");
+		});
 	});
 
 	describe("stop", () => {
 		it("should clean up resources when stopped", () => {
-			// Manager should not throw even when no process is running
 			expect(() => manager.stop()).not.toThrow();
 		});
 	});

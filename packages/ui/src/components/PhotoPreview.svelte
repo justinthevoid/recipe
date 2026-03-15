@@ -333,7 +333,7 @@
 
 			await new Promise<void>((resolve) => {
 				if (debounceTimer) clearTimeout(debounceTimer);
-				debounceTimer = setTimeout(resolve, 50);
+				debounceTimer = setTimeout(resolve, 16);
 			});
 
 			if (myGeneration !== generationCounter) continue;

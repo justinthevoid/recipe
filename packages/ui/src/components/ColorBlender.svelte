@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getNested } from "../state/np3.svelte";
+	import { getNested } from "../utils";
 	import type { ParameterDefinition, UniversalRecipe } from "../types";
 	import ParameterSliderUnit from "./ParameterSliderUnit.svelte";
 
@@ -43,8 +43,6 @@
 	}
 
 	function _getNormalizedKey(key: string, type: string) {
-		// handle legacy or specific key mapping if needed. But currently it's "red.hue", "red.saturation", "red.luminance".
-		// Note: types are capitalized later. The struct uses lower case for subfields: "red.hue", etc.
 		return `${key}.${type.toLowerCase()}`;
 	}
 
@@ -54,7 +52,6 @@
 		       getVal(`${prefix}.luminance`) !== getOrig(`${prefix}.luminance`);
 	}
 
-	// Generate colorful track gradients based on NX Studio
 	function _getHueGradient(h: number) {
 		return `linear-gradient(to right, hsl(${h - 50}, 80%, 50%), hsl(${h}, 80%, 50%), hsl(${h + 50}, 80%, 50%))`;
 	}
@@ -69,19 +66,19 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	<!-- Color Swatch Selection Row (Radio button style) -->
-	<div class="flex items-center justify-between px-1">
+	<!-- Color Swatch Selection Row -->
+	<div class="flex items-center gap-2 px-1">
 		{#each colors as color, i}
 			<button
 				type="button"
-				class="relative flex items-center justify-center rounded-full transition-all {selectedColorIndex === i ? 'w-6 h-6 ring-2 ring-(--vscode-focusBorder) ring-offset-1 ring-offset-(--vscode-sideBar-background)' : 'w-5 h-5 opacity-80 hover:opacity-100 hover:scale-110'}"
-				style="background-color: {color.hex}"
+				class="relative flex-shrink-0 rounded-full transition-all"
+				style="background-color: {color.hex}; width: {selectedColorIndex === i ? '24px' : '20px'}; height: {selectedColorIndex === i ? '24px' : '20px'}; {selectedColorIndex === i ? 'box-shadow: 0 0 0 2px var(--color-interactive);' : 'opacity: 0.8;'}"
 				onclick={() => selectedColorIndex = i}
 				title={color.name}
 				aria-label="Select {color.name}"
 			>
 				{#if isColorDirty(color.key)}
-					<div class="absolute -top-1 -right-1 h-2 w-2 rounded-full border border-(--vscode-sideBar-background) bg-(--vscode-editorOverviewRuler-modifiedForeground)"></div>
+					<div class="absolute -top-1 -right-1 rounded-full" style="width: 8px; height: 8px; background: var(--color-modified); border: 1px solid var(--color-canvas-base);"></div>
 				{/if}
 			</button>
 		{/each}
@@ -94,9 +91,9 @@
 				{@const fieldKey = _getNormalizedKey(selectedColor.key, type)}
 				{@const def = _getParam(fieldKey)}
 				{@const gradient = type === "Hue" ? _getHueGradient(selectedColor.h) : type === "Saturation" ? _getChromaGradient(selectedColor.h) : _getBrightnessGradient(selectedColor.h)}
-				
+
 				{#if def}
-					<ParameterSliderUnit 
+					<ParameterSliderUnit
 						definition={def}
 						value={getVal(fieldKey)}
 						originalValue={getOrig(fieldKey)}
@@ -108,4 +105,3 @@
 		</div>
 	</div>
 </div>
-

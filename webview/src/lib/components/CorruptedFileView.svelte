@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { AlertTriangle, FileWarning, RefreshCcw } from "lucide-svelte";
+	import { AlertTriangle, FileArchive, FileWarning, FolderOpen } from "@lucide/svelte";
 	import { Button } from "$lib/components/ui/button";
 
-	let { error = null, filename = "Unknown File", onRetry = () => {} }: {
+	let { error = null, filename = "Unknown File", onOpenBackup = () => {}, onRevealInFinder = () => {} }: {
 		error: { message: string, code: string, rawData?: string } | null;
 		filename: string;
-		onRetry: () => void;
+		onOpenBackup: () => void;
+		onRevealInFinder: () => void;
 	} = $props();
 
 	let hexDump = $derived.by(() => {
@@ -39,7 +40,7 @@
 				<FileWarning size={64} class="text-(--vscode-errorForeground) opacity-80" />
 				<AlertTriangle size={32} class="absolute -bottom-2 -right-2 text-(--vscode-editorWarning-foreground) fill-background" />
 			</div>
-			
+
 			<div class="flex-1 space-y-4">
 				<div class="space-y-2">
 					<h2 class="text-xl font-semibold text-(--vscode-errorForeground)">File Corrupted or Unsupported</h2>
@@ -52,11 +53,15 @@
 					<p>This .np3 file appears to be damaged or uses an unsupported format version. The internal checksum validation failed.</p>
 					<p>For your safety, the recipe editor operates in read-only mode to prevent further data corruption.</p>
 				</div>
-				
-				<div class="pt-2">
-					<Button variant="outline" class="gap-2 text-(--vscode-button-foreground) bg-(--vscode-button-background) hover:bg-(--vscode-button-hoverBackground) border-none" onclick={onRetry}>
-						<RefreshCcw size={16} />
-						Try Reloading
+
+				<div class="pt-2 flex gap-2">
+					<Button variant="outline" class="gap-2 text-(--vscode-button-foreground) bg-(--vscode-button-background) hover:bg-(--vscode-button-hoverBackground) border-none" onclick={onOpenBackup}>
+						<FileArchive size={16} />
+						Open Backup (.bak)
+					</Button>
+					<Button variant="outline" class="gap-2" onclick={onRevealInFinder}>
+						<FolderOpen size={16} />
+						Reveal in Finder
 					</Button>
 				</div>
 			</div>
