@@ -12,6 +12,7 @@
 coverage/
 examples/
 legacy/
+.archive/
 
 # Test coverage reports
 coverage.html
