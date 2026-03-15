@@ -27,7 +27,8 @@ export default defineConfig({
 		rollupOptions: {
 			output: {
 				entryFileNames: "webview.js",
-				assetFileNames: "webview.css",
+				assetFileNames: (info) =>
+					info.name?.endsWith(".css") ? "webview.css" : "assets/[name]-[hash][extname]",
 				// NO code splitting — single file for CSP
 				manualChunks: undefined,
 			},

@@ -374,6 +374,45 @@ func encodeZ85ForXML(data []byte) string {
 	return result.String()
 }
 
+// Generate3DLUTForPreview creates a 3D RGBA lookup table for WebGL preview rendering.
+// Unlike Generate3DLUT (which outputs RGB float32 triplets for XMP embedding),
+// this outputs RGBA float32 (4 floats per texel, A=1.0) for direct upload to
+// a WebGL RGBA32F TEXTURE_3D. The size parameter controls the LUT cube dimensions.
+//
+// Returns raw bytes of float32 RGBA values. Total size: size³ × 4 × 4 bytes.
+func Generate3DLUTForPreview(recipe *models.UniversalRecipe, size int) ([]byte, error) {
+	if recipe == nil {
+		return nil, fmt.Errorf("recipe cannot be nil")
+	}
+	if size < 2 || size > 65 {
+		return nil, fmt.Errorf("LUT size must be between 2 and 65, got %d", size)
+	}
+
+	totalTexels := size * size * size
+	// RGBA float32 = 4 channels × 4 bytes = 16 bytes per texel
+	lutData := make([]byte, 0, totalTexels*4*4)
+	buf := bytes.NewBuffer(lutData)
+
+	for bIdx := 0; bIdx < size; bIdx++ {
+		for gIdx := 0; gIdx < size; gIdx++ {
+			for rIdx := 0; rIdx < size; rIdx++ {
+				r := float64(rIdx) / float64(size-1)
+				g := float64(gIdx) / float64(size-1)
+				b := float64(bIdx) / float64(size-1)
+
+				rOut, gOut, bOut := applyColorTransform(recipe, r, g, b)
+
+				binary.Write(buf, binary.LittleEndian, float32(rOut))
+				binary.Write(buf, binary.LittleEndian, float32(gOut))
+				binary.Write(buf, binary.LittleEndian, float32(bOut))
+				binary.Write(buf, binary.LittleEndian, float32(1.0)) // Alpha = 1.0
+			}
+		}
+	}
+
+	return buf.Bytes(), nil
+}
+
 // clamp restricts a value to the range [min, max].
 func clamp(value, min, max float64) float64 {
 	if value < min {

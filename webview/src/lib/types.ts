@@ -17,6 +17,7 @@ export interface ParameterDefinition {
 	step: number;
 	defaultValue: number;
 	group: string;
+	lane?: "left" | "right";
 	unit?: string;
 	options?: { label: string; value: number }[];
 }
@@ -37,15 +38,64 @@ export interface ColorAdjustment {
 	luminance: number;
 }
 
+export interface ColorGradingZone {
+	hue: number;
+	chroma: number;
+	brightness: number;
+}
+
+export interface ColorGrading {
+	highlights: ColorGradingZone;
+	midtone: ColorGradingZone;
+	shadows: ColorGradingZone;
+	blending: number;
+	balance: number;
+}
+
 export interface UniversalRecipe {
+	name?: string;
+	description?: string;
+	sourceFormat?: string;
 	exposure?: number;
 	contrast?: number;
 	highlights?: number;
 	shadows?: number;
+	whites?: number;
+	blacks?: number;
 	vibrance?: number;
 	saturation?: number;
+	texture?: number;
+	clarity?: number;
+	dehaze?: number;
+	sharpness?: number;
+	sharpnessRadius?: number;
+	sharpnessDetail?: number;
+	sharpnessMasking?: number;
+	midRangeSharpening?: number;
+	temperature?: number | null;
+	tint?: number;
+	grainAmount?: number;
+	grainSize?: number;
+	grainRoughness?: number;
+	red?: ColorAdjustment;
+	orange?: ColorAdjustment;
+	yellow?: ColorAdjustment;
+	green?: ColorAdjustment;
+	aqua?: ColorAdjustment;
+	blue?: ColorAdjustment;
+	purple?: ColorAdjustment;
+	magenta?: ColorAdjustment;
+	colorGrading?: ColorGrading;
 	pointCurve?: ToneCurvePoint[];
-	[key: string]: number | string | boolean | ToneCurvePoint[] | undefined | null;
+	[key: string]:
+		| number
+		| string
+		| boolean
+		| ToneCurvePoint[]
+		| ColorAdjustment
+		| ColorGrading
+		| undefined
+		| null;
 }
 
 export const NP3_SCHEMA_VERSION = 1;
@@ -78,6 +128,15 @@ export interface IpcResetPayload {
 	field?: string;
 }
 
+export interface ImageDataPayload {
+	data: string;
+	filename: string;
+}
+
+export interface WasmUriPayload {
+	uri: string;
+}
+
 export type IpcPayload =
 	| Np3OpenRequest
 	| Np3OpenResponse
@@ -86,6 +145,8 @@ export type IpcPayload =
 	| CopyPastePayload
 	| IpcPatchPayload
 	| IpcResetPayload
+	| ImageDataPayload
+	| WasmUriPayload
 	| Np3Error
 	| { filePath: string }
 	| { text: string };
@@ -93,4 +154,5 @@ export type IpcPayload =
 export interface IpcMessage {
 	type: string;
 	payload: IpcPayload;
+	requestId?: string;
 }
