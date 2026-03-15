@@ -1,15 +1,18 @@
 <script lang="ts">
 import { toast } from "svelte-sonner";
-import CollapsibleSection from "$lib/components/CollapsibleSection.svelte";
-import ColorBlender from "$lib/components/ColorBlender.svelte";
-import ColorGrading from "$lib/components/ColorGrading.svelte";
+import {
+	CollapsibleSection,
+	ColorBlender,
+	ColorGrading,
+	getNested,
+	ParameterSliderUnit,
+	PhotoPreview,
+	ToneCurveVisual,
+} from "@recipe/ui";
 import CorruptedFileView from "$lib/components/CorruptedFileView.svelte";
-import ParameterSliderUnit from "$lib/components/ParameterSliderUnit.svelte";
-import PhotoPreview from "$lib/components/PhotoPreview.svelte";
 import SchemaDropdown from "$lib/components/SchemaDropdown.svelte";
-import ToneCurveVisual from "$lib/components/ToneCurveVisual.svelte";
 import { Toaster } from "$lib/components/ui/sonner";
-import { getNested, np3AppStore } from "$lib/state/np3.svelte";
+import { np3AppStore } from "$lib/state/np3.svelte";
 import type { IpcMessage, Np3Error, Np3OpenResponse, ParameterDefinition } from "$lib/types";
 import { vscode } from "$lib/vscode";
 import { getWasmStatus, initWasm, wasmGenerateLUT } from "$lib/wasm.svelte";

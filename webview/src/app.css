@@ -40,6 +40,20 @@
 
 	/* Radius */
 	--radius: 0.375rem;
+
+	/* Recipe shared component tokens (bridge to VSCode variables) */
+	--color-interactive: var(--vscode-button-background);
+	--color-interactive-foreground: var(--vscode-button-foreground);
+	--color-canvas-base: var(--vscode-editor-background);
+	--color-surface-elevated: var(--vscode-input-background);
+	--color-surface-hover: var(--vscode-list-hoverBackground);
+	--color-surface-overlay: var(--vscode-notifications-background);
+	--color-focus: var(--vscode-focusBorder);
+	--color-modified: var(--vscode-editorOverviewRuler-modifiedForeground);
+	--color-foreground-muted: var(--vscode-descriptionForeground);
+	--color-success: var(--vscode-testing-iconPassed);
+	--color-warning: var(--vscode-editorWarning-foreground);
+	--color-error: var(--vscode-errorForeground);
 }
 
 :root {

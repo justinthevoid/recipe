@@ -3,19 +3,22 @@
 	"private": true,
 	"workspaces": [
 		"extension",
-		"webview"
+		"webview",
+		"web",
+		"packages/*"
 	],
 	"catalog": {
 		"typescript": "^5.7.0",
-		"vitest": "^3.0.0"
+		"vitest": "^4.0.0"
 	},
 	"scripts": {
-		"lint": "biome check extension/ webview/",
-		"lint:fix": "biome check --write extension/ webview/",
+		"lint": "biome check extension/ webview/ web/",
+		"lint:fix": "biome check --write extension/ webview/ web/",
 		"dev": "bun run --filter '*' dev",
 		"build": "bun run build:go && bun run build:wasm-ext && bun run --filter '@recipe/webview' build && bun run --filter '@recipe/extension' build",
 		"build:go": "go build -o extension/bin/np3tool ./cmd/np3tool/",
 		"build:wasm-ext": "GOROOT=$(go env GOROOT) && GOOS=js GOARCH=wasm go build -ldflags=\"-s -w\" -o extension/dist/webview/recipe.wasm cmd/wasm/main.go && cp \"$GOROOT/lib/wasm/wasm_exec.js\" extension/dist/webview/",
+		"build:wasm-web": "GOROOT=$(go env GOROOT) && GOOS=js GOARCH=wasm go build -ldflags=\"-s -w\" -o web/public/recipe.wasm cmd/wasm/main.go && cp \"$GOROOT/lib/wasm/wasm_exec.js\" web/public/",
 		"build:extension": "bun run --filter '@recipe/extension' build",
 		"build:webview": "bun run --filter '@recipe/webview' build"
 	},

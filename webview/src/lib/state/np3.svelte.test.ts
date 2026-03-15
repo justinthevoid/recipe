@@ -65,6 +65,16 @@ describe("Np3Store", () => {
 			store.patch((m) => ({ ...m, hash: "v3" }));
 			expect(store.canRedo).toBe(false);
 		});
+
+		it("should handle nested patches via patchParameter", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			store.patchParameter("colorGrading.highlights.hue", 180);
+
+			expect(store.metadata?.recipe.colorGrading?.highlights.hue).toBe(180);
+			expect(store.canUndo).toBe(true);
+		});
 	});
 
 	describe("undo/redo", () => {
@@ -154,7 +164,18 @@ describe("Np3Store", () => {
 		it("should reject paste with unknown parameter keys", () => {
 			const store = new Np3Store();
 			const mockResp = makeMockResponse("v1");
-			mockResp.parameterDefinitions = [{ key: "knownParam", label: "Known", type: "continuous", min: 0, max: 100, step: 1, defaultValue: 0, group: "Basic" }];
+			mockResp.parameterDefinitions = [
+				{
+					key: "knownParam",
+					label: "Known",
+					type: "continuous",
+					min: 0,
+					max: 100,
+					step: 1,
+					defaultValue: 0,
+					group: "Basic",
+				},
+			];
 			store.loadSuccess(mockResp);
 
 			const pasteData = {
@@ -210,6 +231,140 @@ describe("Np3Store", () => {
 
 			// Verify if it posts the right message (we'd need to mock vscode global if we wanted to test this strictly)
 			// For now, let's verify it doesn't crash and we can test internal logic if we extract serialization.
+		});
+	});
+
+	describe("undo coalescing (P2-1a)", () => {
+		it("should coalesce rapid patchParameter calls for same key within 300ms", async () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			// Rapid changes to same key — should produce single undo entry
+			store.patchParameter("contrast", 10);
+			store.patchParameter("contrast", 20);
+			store.patchParameter("contrast", 30);
+
+			expect(store.undoStack.length).toBe(1);
+			expect(store.metadata?.recipe.contrast).toBe(30);
+
+			store.undo();
+			expect(store.metadata?.recipe.contrast).toBeUndefined();
+		});
+
+		it("should create separate undo entries for different keys", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			store.patchParameter("contrast", 10);
+			store.patchParameter("saturation", 50);
+
+			expect(store.undoStack.length).toBe(2);
+		});
+
+		it("should use undo groups for slider drags", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			store.beginUndoGroup();
+			store.patchParameter("contrast", 10);
+			store.patchParameter("contrast", 30);
+			store.patchParameter("contrast", 50);
+			store.commitUndoGroup();
+
+			expect(store.undoStack.length).toBe(1);
+			expect(store.metadata?.recipe.contrast).toBe(50);
+
+			store.undo();
+			expect(store.metadata?.recipe.contrast).toBeUndefined();
+		});
+
+		it("should guard rollback during undo group (F5)", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			store.beginUndoGroup();
+			store.patchParameter("contrast", 10);
+			// Rollback during group should close the group first
+			store.rollback();
+
+			expect(store.metadata?.recipe.name).toBe("Test Recipe");
+			expect(store.canUndo).toBe(false);
+		});
+	});
+
+	describe("paste validation hardening (P2-3a)", () => {
+		it("should reject paste data larger than 100KB", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			const largeData = "x".repeat(100_001);
+			const result = store.handlePaste(largeData);
+
+			expect(result).toBe(false);
+			expect(store.currentError?.code).toBe("PASTE_INVALID_DATA");
+			expect(store.currentError?.message).toContain("too large");
+		});
+
+		it("should reject paste with non-string name", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			const data = { version: 1, recipe: { name: 123 } };
+			const result = store.handlePaste(JSON.stringify(data));
+
+			expect(result).toBe(false);
+		});
+
+		it("should reject paste with name longer than 256 chars", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			const data = { version: 1, recipe: { name: "x".repeat(257) } };
+			const result = store.handlePaste(JSON.stringify(data));
+
+			expect(result).toBe(false);
+		});
+
+		it("should reject paste with invalid pointCurve entries", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			const data = {
+				version: 1,
+				recipe: { pointCurve: [{ input: -1, output: 0 }] },
+			};
+			const result = store.handlePaste(JSON.stringify(data));
+
+			expect(result).toBe(false);
+		});
+
+		it("should reject paste with string values for numeric fields", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+
+			const data = {
+				version: 1,
+				recipe: { contrast: "not a number" },
+			};
+			const result = store.handlePaste(JSON.stringify(data));
+
+			expect(result).toBe(false);
+		});
+	});
+
+	describe("dirty tracking", () => {
+		it("should track dirty state via markSaved and computeIsDirty", () => {
+			const store = new Np3Store();
+			store.loadSuccess(makeMockResponse("v1"));
+			store.markSaved();
+
+			expect(store.computeIsDirty()).toBe(false);
+
+			store.patchParameter("contrast", 50);
+			expect(store.computeIsDirty()).toBe(true);
+
+			store.undo();
+			expect(store.computeIsDirty()).toBe(false);
 		});
 	});
 

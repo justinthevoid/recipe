@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { createInterface, type Interface } from "node:readline";
@@ -7,6 +8,7 @@ import type * as vscode from "vscode";
 export interface IpcMessage {
 	type: string;
 	payload: Record<string, unknown>;
+	requestId?: string;
 }
 
 export class BinaryManager {
@@ -20,7 +22,13 @@ export class BinaryManager {
 			timeout: NodeJS.Timeout;
 		}
 	> = new Map();
-	private requestCounter = 0;
+
+	// Crash recovery state (P2-8a)
+	private restartCount = 0;
+	private maxRestarts = 3;
+	private lastFilePath: string | null = null;
+	private intentionalStop = false;
+	onCrash?: (restarted: boolean) => void;
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -40,7 +48,16 @@ export class BinaryManager {
 	}
 
 	async start(filePath: string): Promise<void> {
+		this.lastFilePath = filePath;
+		this.intentionalStop = false;
 		const binaryPath = this.getBinaryPath();
+
+		// Verify binary exists before spawn (P1-6a)
+		try {
+			await fs.access(binaryPath, fs.constants.X_OK);
+		} catch {
+			throw new Error(`np3tool binary not found at ${binaryPath}. Please reinstall the extension.`);
+		}
 
 		// Create backup before spawning
 		try {
@@ -73,6 +90,29 @@ export class BinaryManager {
 			this.process.on("exit", (code, signal) => {
 				this.outputChannel.appendLine(`Go binary exited (code=${code}, signal=${signal})`);
 				this.cleanup();
+
+				// Crash detection and auto-restart (P2-8a)
+				if (!this.intentionalStop && (code !== 0 || signal)) {
+					this.outputChannel.appendLine(
+						`Unexpected exit detected (restart ${this.restartCount}/${this.maxRestarts})`,
+					);
+					if (this.restartCount < this.maxRestarts && this.lastFilePath) {
+						this.restartCount++;
+						this.start(this.lastFilePath)
+							.then(() => {
+								this.outputChannel.appendLine("Auto-restart successful");
+								this.onCrash?.(true);
+							})
+							.catch((err) => {
+								this.outputChannel.appendLine(
+									`Auto-restart failed: ${err instanceof Error ? err.message : String(err)}`,
+								);
+								this.onCrash?.(false);
+							});
+					} else {
+						this.onCrash?.(false);
+					}
+				}
 			});
 
 			// Pipe stderr to output channel (Go debug logging)
@@ -99,13 +139,32 @@ export class BinaryManager {
 				});
 			}
 
-			// Consider started once the process is spawned without immediate error
-			// Use a short delay to catch immediate spawn failures
-			setTimeout(() => {
-				if (this.process && !this.process.killed) {
+			// Send ping and wait for pong as readiness check (P1-6b)
+			const pingId = crypto.randomUUID();
+			const pingTimeout = setTimeout(() => {
+				this.pendingRequests.delete(pingId);
+				reject(new Error("np3tool binary did not respond to ping within 5 seconds"));
+			}, 5000);
+
+			this.pendingRequests.set(pingId, {
+				resolve: (response) => {
+					clearTimeout(pingTimeout);
+					this.restartCount = 0; // Reset on successful start (F8)
+					const version = (response.payload as { version?: string })?.version;
+					if (version) {
+						this.outputChannel.appendLine(`np3tool version: ${version}`);
+					}
 					resolve();
-				}
-			}, 100);
+				},
+				reject: (err) => {
+					clearTimeout(pingTimeout);
+					reject(err);
+				},
+				timeout: pingTimeout,
+			});
+
+			const pingMessage = JSON.stringify({ type: "np3.ping", payload: {}, requestId: pingId });
+			this.process.stdin?.write(`${pingMessage}\n`);
 		});
 	}
 
@@ -115,20 +174,21 @@ export class BinaryManager {
 		}
 
 		return new Promise<IpcMessage>((resolve, reject) => {
-			const _id = `req_${++this.requestCounter}`;
+			const requestId = crypto.randomUUID();
 
 			const timeout = setTimeout(() => {
-				this.pendingRequests.delete(message.type);
+				this.pendingRequests.delete(requestId);
 				reject(new Error(`IPC request timed out: ${message.type}`));
 			}, 10000);
 
-			this.pendingRequests.set(message.type, { resolve, reject, timeout });
+			this.pendingRequests.set(requestId, { resolve, reject, timeout });
 
-			const jsonLine = `${JSON.stringify(message)}\n`;
+			const outgoing = { ...message, requestId };
+			const jsonLine = `${JSON.stringify(outgoing)}\n`;
 			this.process?.stdin?.write(jsonLine, (err) => {
 				if (err) {
 					clearTimeout(timeout);
-					this.pendingRequests.delete(message.type);
+					this.pendingRequests.delete(requestId);
 					reject(new Error(`Failed to write to Go binary: ${err.message}`));
 				}
 			});
@@ -144,31 +204,23 @@ export class BinaryManager {
 	}
 
 	private handleResponse(message: IpcMessage): void {
-		// Map response types to request types (e.g., np3.pong → np3.ping)
-		const requestType = this.getRequestTypeForResponse(message.type);
-		const pending = this.pendingRequests.get(requestType);
-
-		if (pending) {
-			clearTimeout(pending.timeout);
-			this.pendingRequests.delete(requestType);
-			pending.resolve(message);
-		} else {
-			// Broadcast unsolicited messages (e.g., errors)
-			this.outputChannel.appendLine(`Unsolicited Go message: ${JSON.stringify(message)}`);
+		// Match by requestId
+		if (message.requestId) {
+			const pending = this.pendingRequests.get(message.requestId);
+			if (pending) {
+				clearTimeout(pending.timeout);
+				this.pendingRequests.delete(message.requestId);
+				pending.resolve(message);
+				return;
+			}
 		}
-	}
 
-	private getRequestTypeForResponse(responseType: string): string {
-		// Convention: response is the "answer" to a request
-		// np3.pong → np3.ping, error can match any pending request
-		const mappings: Record<string, string> = {
-			"np3.pong": "np3.ping",
-			"np3.metadata": "np3.open",
-		};
-		return mappings[responseType] || responseType;
+		// Broadcast unsolicited messages (e.g., messages without requestId)
+		this.outputChannel.appendLine(`Unsolicited Go message: ${JSON.stringify(message)}`);
 	}
 
 	stop(): void {
+		this.intentionalStop = true;
 		if (this.process && !this.process.killed) {
 			this.process.stdin?.end();
 			this.process.kill();
@@ -183,7 +235,7 @@ export class BinaryManager {
 		}
 
 		// Reject all pending requests
-		for (const [_type, pending] of this.pendingRequests) {
+		for (const [_id, pending] of this.pendingRequests) {
 			clearTimeout(pending.timeout);
 			pending.reject(new Error("Go binary terminated"));
 		}

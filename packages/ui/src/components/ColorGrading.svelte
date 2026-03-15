@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getNested } from "../state/np3.svelte";
+	import { getNested } from "../utils";
 	import type { ParameterDefinition, UniversalRecipe } from "../types";
 	import ParameterSliderUnit from "./ParameterSliderUnit.svelte";
 
@@ -78,7 +78,7 @@
 			>
 				{tab.label}
 				{#if isZoneDirty(tab.id)}
-					<div class="absolute top-1 right-2 h-1.5 w-1.5 rounded-full bg-(--vscode-editorOverviewRuler-modifiedForeground)"></div>
+					<div class="absolute top-1 right-2 h-1.5 w-1.5 rounded-full bg-modified"></div>
 				{/if}
 			</button>
 		{/each}
@@ -88,9 +88,8 @@
 	<div class="p-4 bg-muted/30 rounded border border-border flex flex-col gap-5">
 		{#if currentTab !== "global"}
 			<div class="flex flex-col gap-4">
-				<!-- Hue -->
 				{#if hueDef}
-					<ParameterSliderUnit 
+					<ParameterSliderUnit
 						definition={hueDef}
 						value={currentHue}
 						originalValue={getOrig(hueDef.key)}
@@ -99,9 +98,8 @@
 					/>
 				{/if}
 
-				<!-- Chroma -->
 				{#if chromaDef}
-					<ParameterSliderUnit 
+					<ParameterSliderUnit
 						definition={chromaDef}
 						value={getVal(chromaDef.key)}
 						originalValue={getOrig(chromaDef.key)}
@@ -110,9 +108,8 @@
 					/>
 				{/if}
 
-				<!-- Brightness -->
 				{#if brightnessDef}
-					<ParameterSliderUnit 
+					<ParameterSliderUnit
 						definition={brightnessDef}
 						value={getVal(brightnessDef.key)}
 						originalValue={getOrig(brightnessDef.key)}
@@ -124,7 +121,7 @@
 		{:else}
 			<div class="flex flex-col gap-4">
 				{#if blendDef}
-					<ParameterSliderUnit 
+					<ParameterSliderUnit
 						definition={blendDef}
 						value={getVal(blendDef.key)}
 						originalValue={getOrig(blendDef.key)}
@@ -133,7 +130,7 @@
 				{/if}
 
 				{#if balanceDef}
-					<ParameterSliderUnit 
+					<ParameterSliderUnit
 						definition={balanceDef}
 						value={getVal(balanceDef.key)}
 						originalValue={getOrig(balanceDef.key)}
