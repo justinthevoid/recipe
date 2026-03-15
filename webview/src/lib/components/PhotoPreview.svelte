@@ -374,7 +374,22 @@
 		gl = glCtx;
 		initWebGL(glCtx);
 
+		// ResizeObserver to handle container size changes
+		const container = canvas.parentElement;
+		let resizeObserver: ResizeObserver | null = null;
+		if (container) {
+			resizeObserver = new ResizeObserver(() => {
+				if (glCtx && imageData) {
+					updateCanvasSize(glCtx, imageData);
+					setupFboTexture(glCtx);
+					render(glCtx, recipe?.sharpness ?? 0);
+				}
+			});
+			resizeObserver.observe(container);
+		}
+
 		return () => {
+			resizeObserver?.disconnect();
 			canvas?.removeEventListener("webglcontextlost", _handleContextLost);
 			canvas?.removeEventListener("webglcontextrestored", _handleContextRestored);
 			// Clean up WebGL resources
@@ -442,7 +457,10 @@
 		</p>
 	</div>
 {:else}
-	<div class="flex items-center justify-center h-full bg-[#1e1e1e] rounded-lg overflow-hidden">
+	<div
+		class="flex items-center justify-center bg-[#1e1e1e] rounded-lg overflow-hidden"
+		style="position: absolute; inset: 0;"
+	>
 		<canvas bind:this={canvas}></canvas>
 	</div>
 {/if}

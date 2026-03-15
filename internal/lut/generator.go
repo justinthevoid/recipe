@@ -1,6 +1,9 @@
-// Package lut provides 3D LUT generation for Adobe XMP profiles.
-// This enables high-accuracy color transformation from NP3 parametric adjustments
-// to RGB lookup tables that match Adobe's processing pipeline.
+// Package lut provides 3D LUT generation for both real-time WebGL preview
+// (17³ RGBA) and Adobe XMP embedding (32³ RGB). Both output paths share the
+// same applyColorTransform pipeline, ensuring visual parity.
+//
+// Color space: all HSL operations use standard sRGB-defined HSL. Exposure is
+// applied in linear light via simplified gamma (pow 2.2).
 package lut
 
 import (
@@ -12,7 +15,6 @@ import (
 	"math"
 
 	"github.com/justin/recipe/internal/models"
-	"github.com/lucasb-eyer/go-colorful"
 )
 
 const (
@@ -62,159 +64,164 @@ func Generate3DLUT(recipe *models.UniversalRecipe) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// applyColorTransform applies all NP3 color adjustments to an input RGB color.
-// This mimics how NX Studio processes colors through the Picture Control pipeline.
+// applyColorTransform applies all NP3 color adjustments to an input sRGB color.
+// Pipeline order: sRGB→Linear → Exposure → Linear→sRGB → HSL → Tone curve →
+// Color blender → Color grading → Saturation → RGB
 func applyColorTransform(recipe *models.UniversalRecipe, r, g, b float64) (float64, float64, float64) {
-	// Step 1: Apply exposure adjustment first (affects overall brightness)
+	// Step 1: Apply exposure in linear light space
 	if recipe.Exposure != 0 {
-		// Exposure: -5.0 to +5.0 maps to 0.03125x to 32x (2^-5 to 2^5)
+		lr := srgbToLinear(r)
+		lg := srgbToLinear(g)
+		lb := srgbToLinear(b)
+
 		exposureFactor := math.Pow(2, recipe.Exposure)
-		r = clamp(r*exposureFactor, 0, 1)
-		g = clamp(g*exposureFactor, 0, 1)
-		b = clamp(b*exposureFactor, 0, 1)
+		lr = clamp(lr*exposureFactor, 0, 1)
+		lg = clamp(lg*exposureFactor, 0, 1)
+		lb = clamp(lb*exposureFactor, 0, 1)
+
+		r = linearToSrgb(lr)
+		g = linearToSrgb(lg)
+		b = linearToSrgb(lb)
 	}
 
-	// Step 2: Convert RGB to HSL for parametric adjustments
-	color := colorful.Color{R: r, G: g, B: b}
-	h, s, l := color.Hsl()
+	// Step 2: Convert sRGB to HSL for parametric adjustments
+	h, s, l := rgbToHsl(r, g, b)
 
 	// Step 3: Apply tone curve adjustments (contrast, highlights, shadows, whites, blacks)
 	l = applyToneCurve(recipe, l)
 
 	// Step 4: Apply Color Blender adjustments (8-color HSL)
-	// IMPORTANT: Only apply color-specific adjustments if saturation is meaningful
-	// For neutral/near-neutral colors (s < 0.01), hue is undefined and should be ignored
-	if s >= 0.01 {
+	// Guard: skip for near-achromatic pixels where hue is undefined
+	if s >= 0.02 {
 		h, s, l = applyColorBlender(recipe, h, s, l)
 	}
 
-	// Step 5: Apply Color Grading zone adjustments (3-zone HSL)
-	// Only apply hue shifts for colors with meaningful saturation
-	if s >= 0.01 {
-		h, s, l = applyColorGrading(recipe, h, s, l)
-	} else {
-		// For neutral colors, only apply brightness adjustments from color grading
-		_, _, l = applyColorGrading(recipe, h, 0, l)
-	}
+	// Step 5: Apply Color Grading (tint model — tints neutrals too, NO achromatic guard)
+	h, s, l = applyColorGrading(recipe, h, s, l)
 
 	// Step 6: Apply global saturation adjustment
 	if recipe.Saturation != 0 {
-		// Saturation adjustment: -100 to +100 maps to 0% to 200%
 		satScale := 1.0 + (float64(recipe.Saturation) / 100.0)
 		s = clamp(s*satScale, 0, 1)
 	}
 
-	// Step 7: Convert back to RGB
-	outColor := colorful.Hsl(h, s, l)
-	return outColor.R, outColor.G, outColor.B
+	// Step 7: Convert back to sRGB
+	rOut, gOut, bOut := hslToRgb(h, s, l)
+	return rOut, gOut, bOut
 }
 
-// applyToneCurve applies tone adjustments (contrast, highlights, shadows, whites, blacks)
-// to the luminance value. This mimics Adobe's tone curve system.
+// applyToneCurve applies tone adjustments to luminance.
+// Contrast uses a sigmoid S-curve (positive) or lerp-to-flat (negative).
+// Highlights/Shadows/Whites/Blacks use zone-weighted additive adjustments.
 func applyToneCurve(recipe *models.UniversalRecipe, l float64) float64 {
 	// Apply contrast first (affects entire curve)
 	if recipe.Contrast != 0 {
-		// Contrast: -100 to +100
-		// Pivots around midpoint (0.5), steepens or flattens the curve
-		contrastFactor := 1.0 + (float64(recipe.Contrast) / 100.0)
-		l = ((l - 0.5) * contrastFactor) + 0.5
+		l = applyContrast(l, float64(recipe.Contrast))
+	}
+
+	// Highlights: zone 0.5–1.0, linear ramp weight, intensity 0.5x
+	if recipe.Highlights != 0 && l > 0.5 {
+		weight := (l - 0.5) * 2.0
+		l += (float64(recipe.Highlights) / 100.0) * weight * 0.5
 		l = clamp(l, 0, 1)
 	}
 
-	// Apply highlights adjustment (affects upper range)
-	if recipe.Highlights != 0 {
-		// Highlights: -100 to +100
-		// Affects luminance > 0.5, with stronger effect toward 1.0
-		if l > 0.5 {
-			weight := (l - 0.5) * 2.0 // 0.0 at l=0.5, 1.0 at l=1.0
-			adjustment := float64(recipe.Highlights) / 100.0
-			l += adjustment * weight * 0.5
-			l = clamp(l, 0, 1)
-		}
+	// Shadows: zone 0.0–0.5, linear ramp weight, intensity 0.5x
+	if recipe.Shadows != 0 && l < 0.5 {
+		weight := (0.5 - l) * 2.0
+		l += (float64(recipe.Shadows) / 100.0) * weight * 0.5
+		l = clamp(l, 0, 1)
 	}
 
-	// Apply shadows adjustment (affects lower range)
-	if recipe.Shadows != 0 {
-		// Shadows: -100 to +100
-		// Affects luminance < 0.5, with stronger effect toward 0.0
-		if l < 0.5 {
-			weight := (0.5 - l) * 2.0 // 1.0 at l=0.0, 0.0 at l=0.5
-			adjustment := float64(recipe.Shadows) / 100.0
-			l += adjustment * weight * 0.5
-			l = clamp(l, 0, 1)
-		}
+	// Whites: zone 0.7–1.0, intensity 0.8x
+	if recipe.Whites != 0 && l > 0.7 {
+		weight := (l - 0.7) / 0.3
+		l += (float64(recipe.Whites) / 100.0) * weight * 0.8
+		l = clamp(l, 0, 1)
 	}
 
-	// Apply whites adjustment (affects extreme highlights)
-	if recipe.Whites != 0 {
-		// Whites: -100 to +100
-		// Affects luminance > 0.75, with strongest effect toward 1.0
-		if l > 0.75 {
-			weight := (l - 0.75) * 4.0 // 0.0 at l=0.75, 1.0 at l=1.0
-			adjustment := float64(recipe.Whites) / 100.0
-			l += adjustment * weight * 0.3
-			l = clamp(l, 0, 1)
-		}
-	}
-
-	// Apply blacks adjustment (affects extreme shadows)
-	if recipe.Blacks != 0 {
-		// Blacks: -100 to +100
-		// Affects luminance < 0.25, with strongest effect toward 0.0
-		if l < 0.25 {
-			weight := (0.25 - l) * 4.0 // 1.0 at l=0.0, 0.0 at l=0.25
-			adjustment := float64(recipe.Blacks) / 100.0
-			l += adjustment * weight * 0.3
-			l = clamp(l, 0, 1)
-		}
+	// Blacks: zone 0.0–0.3, intensity 0.8x
+	if recipe.Blacks != 0 && l < 0.3 {
+		weight := (0.3 - l) / 0.3
+		l += (float64(recipe.Blacks) / 100.0) * weight * 0.8
+		l = clamp(l, 0, 1)
 	}
 
 	return l
 }
 
+// applyContrast applies sigmoid S-curve (positive) or lerp-to-flat (negative).
+// Midpoint (0.5) is preserved for both directions.
+func applyContrast(l, contrast float64) float64 {
+	if contrast > 0 {
+		// Positive: sigmoid S-curve
+		slope := (contrast / 100.0) * 5.0 // 0.0 to 5.0
+		raw := func(x float64) float64 {
+			return 1.0 / (1.0 + math.Exp(-slope*(x-0.5)))
+		}
+		lo, hi := raw(0), raw(1)
+		return (raw(l) - lo) / (hi - lo)
+	}
+	// Negative: lerp toward midpoint (flatten)
+	t := -contrast / 100.0 // 0.0 to 1.0
+	return l + (0.5-l)*t
+}
+
 // applyColorBlender applies the 8-color HSL adjustments based on input hue.
-// Each color channel affects a specific hue range with gradual falloff.
+// Each color channel has a 90° wide hue band with cosine falloff.
+// Overlapping band contributions are weight-normalized to prevent amplification.
 func applyColorBlender(recipe *models.UniversalRecipe, h, s, l float64) (float64, float64, float64) {
-	// Define hue centers for each of the 8 colors (in degrees)
-	colorCenters := map[string]float64{
-		"red":     0,    // 0°
-		"orange":  30,   // 30°
-		"yellow":  60,   // 60°
-		"green":   120,  // 120°
-		"aqua":    180,  // 180°
-		"blue":    240,  // 240°
-		"purple":  270,  // 270°
-		"magenta": 330,  // 330°
+	type colorEntry struct {
+		center float64
+		adj    *models.ColorAdjustment
+	}
+	colors := []colorEntry{
+		{0, &recipe.Red},
+		{30, &recipe.Orange},
+		{60, &recipe.Yellow},
+		{120, &recipe.Green},
+		{180, &recipe.Aqua},
+		{240, &recipe.Blue},
+		{270, &recipe.Purple},
+		{330, &recipe.Magenta},
 	}
 
-	// Apply each color's adjustments with distance-based weighting
 	hueAdj := 0.0
 	satAdj := 0.0
 	lumAdj := 0.0
+	hueWeight := 0.0
+	satWeight := 0.0
+	lumWeight := 0.0
 
-	colors := []struct {
-		name string
-		adj  *models.ColorAdjustment
-	}{
-		{"red", &recipe.Red},
-		{"orange", &recipe.Orange},
-		{"yellow", &recipe.Yellow},
-		{"green", &recipe.Green},
-		{"aqua", &recipe.Aqua},
-		{"blue", &recipe.Blue},
-		{"purple", &recipe.Purple},
-		{"magenta", &recipe.Magenta},
+	for _, c := range colors {
+		weight := calculateHueWeight(h, c.center)
+		if weight > 0 {
+			if c.adj.Hue != 0 {
+				hueWeight += weight
+			}
+			if c.adj.Saturation != 0 {
+				satWeight += weight
+			}
+			if c.adj.Luminance != 0 {
+				lumWeight += weight
+			}
+			// Hue values are on a -100..+100 perceptual scale (matching Lightroom XMP).
+			// At ±100, the angular shift is approximately ±30°.
+			hueAdj += float64(c.adj.Hue) * (30.0 / 100.0) * weight
+			satAdj += float64(c.adj.Saturation) * weight
+			lumAdj += float64(c.adj.Luminance) * weight
+		}
 	}
 
-	for _, color := range colors {
-		center := colorCenters[color.name]
-		weight := calculateHueWeight(h, center)
-
-		if weight > 0 {
-			hueAdj += float64(color.adj.Hue) * weight
-			satAdj += float64(color.adj.Saturation) * weight
-			lumAdj += float64(color.adj.Luminance) * weight
-		}
+	// Per-axis normalization prevents cross-axis attenuation
+	if hueWeight > 1.0 {
+		hueAdj /= hueWeight
+	}
+	if satWeight > 1.0 {
+		satAdj /= satWeight
+	}
+	if lumWeight > 1.0 {
+		lumAdj /= lumWeight
 	}
 
 	// Apply adjustments
@@ -229,17 +236,15 @@ func applyColorBlender(recipe *models.UniversalRecipe, h, s, l float64) (float64
 }
 
 // calculateHueWeight calculates how much a color adjustment should affect
-// the input hue based on distance from the color's center hue.
-// Uses a bell curve with 60° width for smooth transitions.
+// the input hue based on angular distance from the color's center.
+// Uses cosine falloff over a 90° wide band (±45° from center).
 func calculateHueWeight(inputHue, centerHue float64) float64 {
-	// Calculate angular distance (handle wraparound at 0/360)
 	diff := math.Abs(inputHue - centerHue)
 	if diff > 180 {
 		diff = 360 - diff
 	}
 
-	// Bell curve with 60° width (covers ±30° from center)
-	const width = 60.0
+	const width = 90.0
 	if diff > width/2 {
 		return 0
 	}
@@ -248,8 +253,10 @@ func calculateHueWeight(inputHue, centerHue float64) float64 {
 	return (math.Cos(diff*math.Pi/width) + 1) / 2
 }
 
-// applyColorGrading applies the 3-zone color grading adjustments.
-// Zones are based on luminance: shadows (dark), midtones (medium), highlights (bright).
+// applyColorGrading applies 3-zone color grading using a tint model.
+// Hue = target tint color, abs(Chroma) = tint intensity, Brightness = luminance offset.
+// Zone weights use smooth crossfade controlled by Blending and Balance.
+// Unlike the color blender, this DOES affect neutral/achromatic pixels (tinting grays).
 func applyColorGrading(recipe *models.UniversalRecipe, h, s, l float64) (float64, float64, float64) {
 	if recipe.ColorGrading == nil {
 		return h, s, l
@@ -257,121 +264,85 @@ func applyColorGrading(recipe *models.UniversalRecipe, h, s, l float64) (float64
 
 	cg := recipe.ColorGrading
 
-	// Calculate zone weights based on luminance
-	// Shadows: 0-0.33, Midtones: 0.33-0.67, Highlights: 0.67-1.0
-	shadowWeight := calculateLuminanceWeight(l, 0, 0.33)
-	midtoneWeight := calculateLuminanceWeight(l, 0.33, 0.67)
-	highlightWeight := calculateLuminanceWeight(l, 0.67, 1.0)
+	// Zone boundary calculation with Blending and Balance
+	blend := float64(cg.Blending) / 100.0
+	bal := float64(cg.Balance) / 200.0
 
-	// Apply zone-specific adjustments with weights
-	hueAdj := 0.0
-	chromaAdj := 0.0
+	shadowEnd := 0.33 + bal + blend*0.17
+	highlightStart := 0.67 + bal - blend*0.17
+
+	// Shadow weight: 1.0 for dark pixels, fades to 0 at shadowEnd
+	shadowWeight := 1.0 - smoothstep(shadowEnd-0.15, shadowEnd, l)
+	// Highlight weight: 0 for dark pixels, fades to 1.0 past highlightStart
+	highlightWeight := smoothstep(highlightStart, highlightStart+0.15, l)
+	midtoneWeight := clamp(1.0-shadowWeight-highlightWeight, 0, 1)
+
+	// Normalize zone weights to sum to 1.0
+	totalZoneWeight := shadowWeight + midtoneWeight + highlightWeight
+	if totalZoneWeight > 0 {
+		shadowWeight /= totalZoneWeight
+		midtoneWeight /= totalZoneWeight
+		highlightWeight /= totalZoneWeight
+	}
+
+	// Accumulate weighted tint using vector averaging (handles hue wraparound)
+	type zoneEntry struct {
+		zone   *models.ColorGradingZone
+		weight float64
+	}
+	zones := []zoneEntry{
+		{&cg.Shadows, shadowWeight},
+		{&cg.Midtone, midtoneWeight},
+		{&cg.Highlights, highlightWeight},
+	}
+
+	hueX, hueY := 0.0, 0.0
+	totalIntensity := 0.0
 	brightnessAdj := 0.0
 
-	if shadowWeight > 0 {
-		// Apply Balance as intensity multiplier (see formatColorGradingZoneChroma)
-		intensity := float64(cg.Balance+100) / 200.0
-		hueAdj += float64(cg.Shadows.Hue) * shadowWeight
-		chromaAdj += float64(cg.Shadows.Chroma) * intensity * shadowWeight
-		brightnessAdj += float64(cg.Shadows.Brightness) * shadowWeight
+	for _, z := range zones {
+		if z.zone.Chroma == 0 || z.weight <= 0 {
+			continue
+		}
+		intensity := math.Abs(float64(z.zone.Chroma)) / 100.0 * z.weight
+		rad := float64(z.zone.Hue) * math.Pi / 180.0
+		hueX += math.Cos(rad) * intensity
+		hueY += math.Sin(rad) * intensity
+		totalIntensity += intensity
+		brightnessAdj += (float64(z.zone.Brightness) / 100.0) * z.weight * 0.5
 	}
 
-	if midtoneWeight > 0 {
-		intensity := float64(cg.Balance+100) / 200.0
-		hueAdj += float64(cg.Midtone.Hue) * midtoneWeight
-		chromaAdj += float64(cg.Midtone.Chroma) * intensity * midtoneWeight
-		brightnessAdj += float64(cg.Midtone.Brightness) * midtoneWeight
+	// Apply tint via RGB blending to avoid hue interpolation issues
+	if totalIntensity > 0 {
+		targetHue := math.Atan2(hueY, hueX) * 180.0 / math.Pi
+		if targetHue < 0 {
+			targetHue += 360
+		}
+		blendAmount := clamp(totalIntensity, 0, 1)
+
+		// Create tint reference color at target hue with full saturation
+		tR, tG, tB := hslToRgb(targetHue, 1.0, l)
+		// Convert current pixel to RGB
+		cR, cG, cB := hslToRgb(h, s, l)
+
+		// Blend in RGB space (path-independent, no hue wrapping artifacts)
+		blendR := cR*(1-blendAmount) + tR*blendAmount
+		blendG := cG*(1-blendAmount) + tG*blendAmount
+		blendB := cB*(1-blendAmount) + tB*blendAmount
+
+		// Convert back to HSL
+		h, s, l = rgbToHsl(blendR, blendG, blendB)
 	}
 
-	if highlightWeight > 0 {
-		intensity := float64(cg.Balance+100) / 200.0
-		hueAdj += float64(cg.Highlights.Hue) * highlightWeight
-		chromaAdj += float64(cg.Highlights.Chroma) * intensity * highlightWeight
-		brightnessAdj += float64(cg.Highlights.Brightness) * highlightWeight
-	}
-
-	// Apply adjustments
-	h = math.Mod(h+hueAdj, 360)
-	if h < 0 {
-		h += 360
-	}
-	s = clamp(s+(chromaAdj/100.0), 0, 1)
-	l = clamp(l+(brightnessAdj/100.0), 0, 1)
-
-	return h, s, l
-}
-
-// calculateLuminanceWeight calculates the weight for a luminance zone
-// using smooth transitions at zone boundaries.
-func calculateLuminanceWeight(lum, zoneStart, zoneEnd float64) float64 {
-	if lum < zoneStart || lum > zoneEnd {
-		return 0
-	}
-
-	zoneMid := (zoneStart + zoneEnd) / 2
-	zoneWidth := zoneEnd - zoneStart
-
-	// Peak weight at zone center, smooth falloff at edges
-	dist := math.Abs(lum - zoneMid)
-	return 1.0 - (dist / (zoneWidth / 2))
-}
-
-// CompressAndEncodeLUT compresses the raw LUT data and encodes it for XMP embedding.
-// Uses zlib compression followed by Z85-like encoding suitable for XML.
-func CompressAndEncodeLUT(lutData []byte) (string, string, error) {
-	// Compress with zlib
-	var compressed bytes.Buffer
-
-	// Write uncompressed size header (4 bytes, little-endian)
-	sizeHeader := make([]byte, 4)
-	binary.LittleEndian.PutUint32(sizeHeader, uint32(len(lutData)))
-	compressed.Write(sizeHeader)
-
-	// Compress the LUT data
-	w := zlib.NewWriter(&compressed)
-	if _, err := w.Write(lutData); err != nil {
-		return "", "", fmt.Errorf("zlib compression failed: %w", err)
-	}
-	if err := w.Close(); err != nil {
-		return "", "", fmt.Errorf("zlib close failed: %w", err)
-	}
-
-	// Encode with modified Z85 for XML safety
-	encoded := encodeZ85ForXML(compressed.Bytes())
-
-	// Generate MD5 hash for table ID
-	hash := md5.Sum(lutData)
-	tableID := fmt.Sprintf("%X", hash)
-
-	return tableID, encoded, nil
-}
-
-// encodeZ85ForXML encodes binary data using a Z85-like algorithm modified for XML safety.
-// This matches Adobe's encoding used in crs:Table_* attributes.
-func encodeZ85ForXML(data []byte) string {
-	// Adobe's Z85 variant uses XML-safe characters
-	// Similar to standard Z85 but adjusted character set
-	const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+,-./:;<=>?@[]^_{|}~"
-
-	var result bytes.Buffer
-
-	// Process in 4-byte chunks
-	for i := 0; i < len(data); i += 4 {
-		// Pad last chunk if needed
-		chunk := make([]byte, 4)
-		copy(chunk, data[i:])
-
-		// Convert 4 bytes to 32-bit value (big-endian for Z85)
-		value := uint32(chunk[0])<<24 | uint32(chunk[1])<<16 | uint32(chunk[2])<<8 | uint32(chunk[3])
-
-		// Encode as 5 base-85 characters
-		for j := 4; j >= 0; j-- {
-			result.WriteByte(charset[value%85])
-			value /= 85
+	// Apply brightness from all contributing zones (including those with Chroma=0)
+	for _, z := range zones {
+		if z.zone.Brightness != 0 && z.weight > 0 && z.zone.Chroma == 0 {
+			brightnessAdj += (float64(z.zone.Brightness) / 100.0) * z.weight * 0.5
 		}
 	}
+	l = clamp(l+brightnessAdj, 0, 1)
 
-	return result.String()
+	return h, s, l
 }
 
 // Generate3DLUTForPreview creates a 3D RGBA lookup table for WebGL preview rendering.
@@ -411,6 +382,165 @@ func Generate3DLUTForPreview(recipe *models.UniversalRecipe, size int) ([]byte, 
 	}
 
 	return buf.Bytes(), nil
+}
+
+// CompressAndEncodeLUT compresses the raw LUT data and encodes it for XMP embedding.
+// Uses zlib compression followed by Z85-like encoding suitable for XML.
+func CompressAndEncodeLUT(lutData []byte) (string, string, error) {
+	// Compress with zlib
+	var compressed bytes.Buffer
+
+	// Write uncompressed size header (4 bytes, little-endian)
+	sizeHeader := make([]byte, 4)
+	binary.LittleEndian.PutUint32(sizeHeader, uint32(len(lutData)))
+	compressed.Write(sizeHeader)
+
+	// Compress the LUT data
+	w := zlib.NewWriter(&compressed)
+	if _, err := w.Write(lutData); err != nil {
+		return "", "", fmt.Errorf("zlib compression failed: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return "", "", fmt.Errorf("zlib close failed: %w", err)
+	}
+
+	// Encode with modified Z85 for XML safety
+	encoded := encodeZ85ForXML(compressed.Bytes())
+
+	// Generate MD5 hash for table ID
+	hash := md5.Sum(lutData)
+	tableID := fmt.Sprintf("%X", hash)
+
+	return tableID, encoded, nil
+}
+
+// encodeZ85ForXML encodes binary data using a Z85-like algorithm modified for XML safety.
+// This matches Adobe's encoding used in crs:Table_* attributes.
+func encodeZ85ForXML(data []byte) string {
+	// Adobe's Z85 variant uses XML-safe characters
+	const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+,-./:;<=>?@[]^_{|}~"
+
+	var result bytes.Buffer
+
+	// Process in 4-byte chunks
+	for i := 0; i < len(data); i += 4 {
+		// Pad last chunk if needed
+		chunk := make([]byte, 4)
+		copy(chunk, data[i:])
+
+		// Convert 4 bytes to 32-bit value (big-endian for Z85)
+		value := uint32(chunk[0])<<24 | uint32(chunk[1])<<16 | uint32(chunk[2])<<8 | uint32(chunk[3])
+
+		// Encode as 5 base-85 characters
+		for j := 4; j >= 0; j-- {
+			result.WriteByte(charset[value%85])
+			value /= 85
+		}
+	}
+
+	return result.String()
+}
+
+// --- Math helpers ---
+
+// srgbToLinear converts an sRGB-encoded value to linear light using simplified gamma.
+// Uses pow(x, 2.2) approximation (max error < 0.001 vs exact sRGB transfer function).
+func srgbToLinear(x float64) float64 {
+	return math.Pow(clamp(x, 0, 1), 2.2)
+}
+
+// linearToSrgb converts a linear light value to sRGB encoding using simplified gamma.
+func linearToSrgb(x float64) float64 {
+	return math.Pow(clamp(x, 0, 1), 1.0/2.2)
+}
+
+// rgbToHsl converts sRGB values to HSL (hue 0-360, saturation 0-1, lightness 0-1).
+// This operates on gamma-encoded sRGB values (standard HSL definition).
+func rgbToHsl(r, g, b float64) (h, s, l float64) {
+	maxC := math.Max(r, math.Max(g, b))
+	minC := math.Min(r, math.Min(g, b))
+	l = (maxC + minC) / 2
+
+	if maxC == minC {
+		return 0, 0, l // achromatic
+	}
+
+	d := maxC - minC
+	if l > 0.5 {
+		s = d / (2.0 - maxC - minC)
+	} else {
+		s = d / (maxC + minC)
+	}
+
+	switch maxC {
+	case r:
+		h = (g - b) / d
+		if g < b {
+			h += 6
+		}
+	case g:
+		h = (b-r)/d + 2
+	case b:
+		h = (r-g)/d + 4
+	}
+	h *= 60
+
+	return h, s, l
+}
+
+// hslToRgb converts HSL to sRGB values. Hue is in degrees (any range, normalized internally).
+func hslToRgb(h, s, l float64) (r, g, b float64) {
+	if s == 0 {
+		return l, l, l // achromatic
+	}
+
+	// Normalize hue to [0, 360)
+	h = math.Mod(h, 360)
+	if h < 0 {
+		h += 360
+	}
+
+	var q float64
+	if l < 0.5 {
+		q = l * (1 + s)
+	} else {
+		q = l + s - l*s
+	}
+	p := 2*l - q
+
+	h /= 360.0 // normalize to 0-1
+	r = hueToRgb(p, q, h+1.0/3.0)
+	g = hueToRgb(p, q, h)
+	b = hueToRgb(p, q, h-1.0/3.0)
+
+	return r, g, b
+}
+
+// hueToRgb is a helper for hslToRgb that converts a hue sector to an RGB channel value.
+func hueToRgb(p, q, t float64) float64 {
+	if t < 0 {
+		t++
+	}
+	if t > 1 {
+		t--
+	}
+	if t < 1.0/6.0 {
+		return p + (q-p)*6*t
+	}
+	if t < 1.0/2.0 {
+		return q
+	}
+	if t < 2.0/3.0 {
+		return p + (q-p)*(2.0/3.0-t)*6
+	}
+	return p
+}
+
+// smoothstep provides GLSL-style Hermite interpolation between two edges.
+// Returns 0 when x <= edge0, 1 when x >= edge1, smooth curve between.
+func smoothstep(edge0, edge1, x float64) float64 {
+	t := clamp((x-edge0)/(edge1-edge0), 0, 1)
+	return t * t * (3 - 2*t)
 }
 
 // clamp restricts a value to the range [min, max].

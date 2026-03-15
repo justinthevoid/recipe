@@ -29,13 +29,13 @@ tui-all:
 
 # Build WASM module with size optimization (production)
 wasm:
-	GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/recipe.wasm cmd/wasm/main.go
+	GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/public/recipe.wasm cmd/wasm/main.go
 	@echo "WASM binary size:"
-	@ls -lh web/recipe.wasm 2>/dev/null || dir web\recipe.wasm
+	@ls -lh web/public/recipe.wasm 2>/dev/null || dir web\public\recipe.wasm
 
 # Build WASM module without optimization (development)
 wasm-dev:
-	GOOS=js GOARCH=wasm go build -o web/recipe.wasm cmd/wasm/main.go
+	GOOS=js GOARCH=wasm go build -o web/public/recipe.wasm cmd/wasm/main.go
 
 # Run all tests
 test:
