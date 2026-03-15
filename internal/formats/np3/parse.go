@@ -1341,8 +1341,8 @@ func buildRecipe(params *np3Parameters) (*models.UniversalRecipe, error) {
 	// Heuristic: Determine Camera Profile from preset name
 	// Since NP3 doesn't store the Base Picture Control ID in a standard location,
 	// we use the preset name to guess the intended starting point.
-	// Default to "Camera Standard" (better match than Adobe Color)
-	cameraProfile := "Camera Standard"
+	// Default to "Camera Flexible Color" (better match for Nikon's color rendering)
+	cameraProfile := "Camera Flexible Color"
 	nameLower := strings.ToLower(params.name)
 
 	if strings.Contains(nameLower, "neutral") {

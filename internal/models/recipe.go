@@ -129,7 +129,7 @@ type UniversalRecipe struct {
 	SplitBalance             int `json:"splitBalance,omitempty" xml:"splitBalance,omitempty"`                         // Split balance: -100 to +100
 
 	// Camera Calibration
-	CameraProfileName string        `json:"cameraProfileName,omitempty" xml:"cameraProfileName,omitempty"` // Camera profile name (e.g., "Camera Standard")
+	CameraProfileName string        `json:"cameraProfileName,omitempty" xml:"cameraProfileName,omitempty"` // Camera profile name (e.g., "Camera Flexible Color")
 	CameraProfile     CameraProfile `json:"cameraProfile,omitempty" xml:"cameraProfile,omitempty"`         // Camera calibration settings
 
 	// Effects
