@@ -1,6 +1,6 @@
 # Recipe - Universal Photo Preset Converter
 
-Convert photo presets between Nikon NP3, Adobe Lightroom XMP, and lrtemplate formats.
+Convert photo presets between Nikon NP3 and Adobe Lightroom XMP formats.
 
 All processing happens locally on your device - files are never uploaded to any server.
 
@@ -85,20 +85,17 @@ For complete legal details including reverse engineering disclosure, warranty li
 
 - **NP3** - Nikon Picture Control binary format
 - **XMP** - Adobe Lightroom sidecar XML
-- **lrtemplate** - Adobe Lightroom Lua preset
-- **Costyle/Costylepack** - Capture One preset XML format and bundles
 
 ## Format Compatibility
 
-Recipe converts between three photo preset formats:
+Recipe converts between two photo preset formats:
 
-| Format     | Extension   | Used In                 |
-| ---------- | ----------- | ----------------------- |
-| NP3        | .np3        | Nikon Z cameras         |
-| XMP        | .xmp        | Adobe Lightroom CC      |
-| lrtemplate | .lrtemplate | Adobe Lightroom Classic |
+| Format | Extension | Used In            |
+| ------ | --------- | ------------------ |
+| NP3    | .np3      | Nikon Z cameras    |
+| XMP    | .xmp      | Adobe Lightroom CC |
 
-**Bidirectional Conversion:** All combinations supported (6 conversion paths)
+**Bidirectional Conversion:** NP3 ↔ XMP (2 conversion paths)
 
 **Accuracy:** 98%+ for core adjustments (Phase 2: November 2025 - exact offset mapping for 48 NP3 parameters)
 
@@ -183,62 +180,7 @@ make cli-all
 # Binaries created in bin/ directory
 ```
 
-### Build TUI (Interactive File Browser)
-
-```bash
-# Build TUI for current platform
-make tui
-
-# Or build directly
-go build -o recipe-tui cmd/tui/*.go
-
-# Build for all platforms
-make tui-all
-# Binaries created in bin/ directory
-```
-
 ## Usage
-
-### TUI Mode (Interactive File Browser)
-
-Launch the interactive terminal-based file browser:
-
-```bash
-./recipe-tui
-```
-
-**Features:**
-- 📁 Browse directories with visual file browser
-- 🎨 Color-coded format badges (NP3=Blue, XMP=Orange, LRT=Green)
-- ✓ Multi-file selection with checkboxes
-- ⌨️ Vim-style keyboard navigation (j/k or arrow keys)
-- 📏 File size display (auto-formatted B/KB/MB)
-- 🔄 Live directory refresh (press 'r')
-- ❓ Built-in help overlay (press '?')
-- 🖥️ Terminal resize handling
-
-**Keyboard Shortcuts:**
-```
-Navigation:
-  ↑/k, ↓/j          Move cursor up/down
-  ←/Backspace       Go to parent directory
-  Enter             Enter directory
-  Home/End          Jump to first/last item
-
-Selection:
-  Space             Toggle file selection
-  a                 Select all files
-  n                 Deselect all
-
-Actions:
-  r                 Refresh file list
-  ?                 Toggle help overlay
-  q/Ctrl+C          Quit
-```
-
-For more details, see [docs/tui-guide.md](docs/tui-guide.md)
-
-### CLI Mode (Command Line)
 
 ### Display Help
 
@@ -266,9 +208,6 @@ Convert a single preset file between formats:
 
 # NP3 to XMP
 ./recipe convert portrait.np3 --to xmp
-
-# Lightroom Classic to NP3
-./recipe convert vintage.lrtemplate --to np3
 
 # Custom output path
 ./recipe convert portrait.xmp --to np3 --output custom/location/preset.np3
@@ -315,10 +254,7 @@ Convert multiple files in parallel using glob patterns:
 
 **Performance:** Batch processing utilizes all CPU cores, converting 100 files in under 2 seconds (~37ms actual performance on modern hardware).
 
-**Supported conversions:** All format pairs are bidirectional
-- NP3 ↔ XMP
-- NP3 ↔ lrtemplate
-- XMP ↔ lrtemplate
+**Supported conversions:** NP3 ↔ XMP (bidirectional)
 
 ### Verbose Logging
 
@@ -443,7 +379,7 @@ Extract and display preset parameters as structured JSON for analysis:
 - **Debug issues:** Export parameters to verify parser correctness
 - **Learn editing:** Study professional presets to understand techniques
 
-**Supported formats:** All three formats (NP3, XMP, lrtemplate) are supported with auto-detection.
+**Supported formats:** Both formats (NP3, XMP) are supported with auto-detection.
 
 **Performance:** Inspection completes in <50ms for typical files (<50KB).
 
@@ -494,8 +430,8 @@ View NP3 binary files as annotated hex dumps for reverse engineering and parser 
 
 **Restrictions:**
 - Binary mode only works with NP3 files (Nikon's proprietary binary format)
-- XMP and lrtemplate are XML/Lua text files - view them with any text editor
-- Use JSON mode (`recipe inspect FILE`) for text formats
+- XMP files are XML text files - view them with any text editor
+- Use JSON mode (`recipe inspect FILE`) for XMP files
 
 **Performance:** Binary dump completes in <5ms (faster than JSON mode, no parsing overhead).
 
@@ -512,7 +448,7 @@ Compare parameters between two preset files to verify conversion accuracy or ide
 
 # Cross-format comparison (validate conversion accuracy)
 ./recipe diff original.np3 converted.xmp
-./recipe diff preset.lrtemplate converted.np3
+./recipe diff preset.xmp converted.np3
 
 # Show all fields including unchanged ones
 ./recipe diff file1.xmp file2.xmp --unified
@@ -549,7 +485,7 @@ Summary: 3 modified (2 significant), 2 added, 0 removed, 45 unchanged
 ```
 
 **Features:**
-- **Cross-format comparison:** Compare NP3 vs XMP, XMP vs lrtemplate, etc.
+- **Cross-format comparison:** Compare NP3 vs XMP and vice versa
 - **Significant change detection:** Highlights changes >5% (configurable with `--tolerance`)
 - **Color-coded output:** Added (green), removed (red), significant (yellow/bold)
 - **JSON output:** Machine-readable format for automation and CI/CD validation
@@ -698,7 +634,7 @@ for item in data['results']:
 
 ### Running Tests
 
-The project includes a comprehensive test suite with **1,531 sample files** across all formats, ensuring robust conversion accuracy.
+The project includes a comprehensive test suite with **987 sample files** across both formats, ensuring robust conversion accuracy.
 
 ```bash
 # Run all tests
@@ -727,8 +663,8 @@ make coverage-html
 #### Test Performance
 
 Tests complete in **< 2 seconds** thanks to parallel execution:
-- Format parsing: 1,531 files tested (73 NP3, 914 XMP, 544 lrtemplate)
-- Round-trip conversions: All 6 format pairs validated
+- Format parsing: 987 files tested (73 NP3, 914 XMP)
+- Round-trip conversions: NP3 ↔ XMP validated
 - Error handling: Corruption, invalid formats, edge cases
 - Thread safety: Concurrent conversion validation
 
@@ -753,29 +689,18 @@ make coverage-html
 
 The test suite validates bidirectional conversions to ensure parameter fidelity:
 
-**Full Fidelity (5 paths):**
+**Full Fidelity:**
 - ✅ NP3 → XMP → NP3
-- ✅ NP3 → lrtemplate → NP3
-- ✅ XMP → lrtemplate → XMP
-- ✅ lrtemplate → XMP → lrtemplate
-- ✅ **Costyle → UniversalRecipe → Costyle** - 98.4% accuracy (Story 8-4)
 
-**Known Limitations (2 paths):**
+**Known Limitations:**
 - ⚠️ XMP → NP3 → XMP - Some parameters unsupported by NP3 format
-- ⚠️ lrtemplate → NP3 → lrtemplate - Some parameters unsupported by NP3 format
 
 **NP3 Format Limitations:**
-NP3 is a proprietary binary format with limited parameter support compared to XMP/lrtemplate:
+NP3 is a proprietary binary format with limited parameter support compared to XMP:
 - ❌ Not supported: Vibrance, Temperature/Tint (partial), Grain, Vignette, Parametric Tone Curves
 - ✅ Well supported (Phase 2): Exposure, Contrast, Saturation, Sharpness, Highlights, Shadows, Whites, Blacks, Clarity, Mid-Range Sharpness, HSL Color (8 channels × 3 = 24 params), Color Grading (11 params), Tone Curve control points (up to 127 points)
 
-**Costyle (Capture One) Format Limitations:**
-The .costyle preset format supports core adjustments but not all UniversalRecipe parameters:
-- ✅ Supported: Exposure, Contrast, Saturation, Clarity, Temperature, Tint, Split Toning (Color Balance)
-- ❌ Not supported: HSL color adjustments, Highlights/Shadows/Whites/Blacks, Vibrance, Sharpness
-- 📊 Round-trip accuracy: 98.4% average (exceeds 95% requirement)
-
-For detailed test results and format limitations, see [docs/known-conversion-limitations.md](docs/known-conversion-limitations.md) and [docs/stories/test-results-summary.md](docs/stories/test-results-summary.md).
+For detailed test results and format limitations, see [docs/known-conversion-limitations.md](docs/known-conversion-limitations.md).
 
 ### Project Structure
 
@@ -785,17 +710,11 @@ cmd/
 │   ├── main.go    # Entry point
 │   ├── root.go    # Root command definition
 │   └── convert.go # Convert command
-├── tui/           # TUI interface (Bubbletea v2)
-│   ├── main.go    # Entry point
-│   ├── model.go   # Bubbletea model
-│   ├── view.go    # Rendering logic
-│   ├── keys.go    # Keyboard handling
-│   └── files.go   # File operations
 └── wasm/          # WASM interface
 
 internal/
 ├── converter/     # Core conversion engine
-├── formats/       # Format parsers/generators
+├── formats/       # Format parsers/generators (NP3, XMP)
 └── models/        # Data models
 ```
 
@@ -855,11 +774,7 @@ Recipe delivers **exceptional performance** with sub-millisecond conversions acr
 | Conversion Path | Time      | vs 100ms Target        | Status |
 | --------------- | --------- | ---------------------- | ------ |
 | NP3 → XMP       | 0.011 ms  | ✅ **9,091x faster**   | Excellent |
-| NP3 → LRT       | 0.003 ms  | ✅ **30,303x faster**  | Excellent |
 | XMP → NP3       | 0.029 ms  | ✅ **3,448x faster**   | Excellent |
-| XMP → LRT       | 0.031 ms  | ✅ **3,260x faster**   | Excellent |
-| LRT → NP3       | 0.064 ms  | ✅ **1,562x faster**   | Excellent |
-| LRT → XMP       | 0.079 ms  | ✅ **1,269x faster**   | Excellent |
 
 **Batch Processing:** 100 files converted in **37ms** (averaging 0.37ms per file) — **53x faster** than the 2-second target.
 

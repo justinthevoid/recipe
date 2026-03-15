@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SL Engine="1100">
- <E K="ICCProfile" V="agfa-vista-100-100%.icc"/>
- <E K="Name" V="Agfa Vista 100 100%"/>
- <E K="StyleSource" V="Styles"/>
- <E K="UUID" V="{983AACA1-4CC4-44E9-9C11-978AB5D5A460}"/>
- <E K="HighlightRecovery" V="50.0"/>
- <E K="Midtone" V="0;0;0;0.0500000007450581"/>
-</SL>

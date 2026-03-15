@@ -244,7 +244,7 @@ Our files work with cameras but may not load in NX Studio GUI
 - Camera-generated NP3 files parse perfectly (100% success)
 - Roundtrip tests demonstrate parameter fidelity
 - TLV chunks are for NX Studio GUI validation, not parameter storage
-- XMP/lrtemplate conversions work flawlessly
+- XMP conversions work flawlessly
 - Can be added as future enhancement if NX Studio support becomes critical
 
 ---
@@ -362,7 +362,7 @@ and roundtrip fidelity using exact offsets. NX Studio compatibility would requir
 generation logic, which is deferred as a future enhancement since:
 1. Our parser works with real NP3 files from cameras (100% success)
 2. Roundtrip tests demonstrate perfect parameter preservation
-3. XMP/lrtemplate conversions work flawlessly
+3. XMP conversions work flawlessly
 4. TLV chunks are primarily for NX Studio GUI validation, not parameter storage
 
 ---

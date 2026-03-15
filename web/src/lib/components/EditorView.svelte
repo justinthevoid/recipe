@@ -87,7 +87,7 @@
 		{ key: "colorGrading.balance", label: "Balance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Grading" },
 	];
 
-	const formats = ["np3", "xmp", "lrtemplate"];
+	const formats = ["np3", "xmp"];
 
 	function handleParameterChange(key: string, value: number) {
 		updateParameter(key, value);

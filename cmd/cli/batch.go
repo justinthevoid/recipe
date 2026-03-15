@@ -47,7 +47,7 @@ func init() {
 	rootCmd.AddCommand(batchCmd)
 
 	// Required flags
-	batchCmd.Flags().StringP("to", "t", "", "Target format (required): np3, xmp, or lrtemplate")
+	batchCmd.Flags().StringP("to", "t", "", "Target format (required): np3 or xmp")
 	batchCmd.MarkFlagRequired("to")
 
 	// Optional flags

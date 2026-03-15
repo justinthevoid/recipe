@@ -24,15 +24,6 @@ func BenchmarkDetectFormatExtensionNP3(b *testing.B) {
 	}
 }
 
-// BenchmarkDetectFormatExtensionLRTemplate benchmarks lrtemplate extension detection
-func BenchmarkDetectFormatExtensionLRTemplate(b *testing.B) {
-	testPath := "vintage.lrtemplate"
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = detectFormat(testPath)
-	}
-}
-
 // BenchmarkDetectFormatFromBytes benchmarks content-based detection (AC-7)
 // Target: <5ms for typical files
 func BenchmarkDetectFormatFromBytes(b *testing.B) {
@@ -62,20 +53,6 @@ func BenchmarkDetectFormatFromBytesNP3(b *testing.B) {
 		data = make([]byte, 300)
 		copy(data, []byte{'N', 'C', 'P'})
 	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = detectFormatFromBytes(data)
-	}
-}
-
-// BenchmarkDetectFormatFromBytesLRTemplate benchmarks lrtemplate content detection
-func BenchmarkDetectFormatFromBytesLRTemplate(b *testing.B) {
-	// Use synthetic lrtemplate data
-	data := []byte(`s = {
-	id = "12345678-1234-1234-1234-123456789012",
-	internalName = "Preset Name",
-}`)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/justin/recipe/internal/converter"
-	"github.com/justin/recipe/internal/formats/lrtemplate"
 	"github.com/justin/recipe/internal/formats/np3"
 	"github.com/justin/recipe/internal/formats/xmp"
 	"github.com/justin/recipe/internal/inspect"
@@ -21,7 +20,7 @@ var inspectCmd = &cobra.Command{
 The inspect command provides a way to analyze preset parameters programmatically,
 validate conversions, and learn how presets work internally.
 
-Supports NP3, XMP, and lrtemplate formats with automatic format detection.
+Supports NP3 and XMP formats with automatic format detection.
 
 JSON Output (default):
   - Metadata (source file, format, timestamp, version)
@@ -69,7 +68,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 	logger.Debug("detecting format", "file", inputPath)
 	format, err := detectFormat(inputPath)
 	if err != nil {
-		return fmt.Errorf("unable to detect format for '%s'\nSupported formats: .np3, .xmp, .lrtemplate", inputPath)
+		return fmt.Errorf("unable to detect format for '%s'\nSupported formats: .np3, .xmp", inputPath)
 	}
 	logger.Debug("detected format", "format", format, "file", inputPath)
 
@@ -159,8 +158,6 @@ func parseFile(input []byte, format string) (*models.UniversalRecipe, error) {
 		return np3.Parse(input)
 	case converter.FormatXMP:
 		return xmp.Parse(input)
-	case converter.FormatLRTemplate:
-		return lrtemplate.Parse(input)
 	default:
 		return nil, fmt.Errorf("unsupported format: %s", format)
 	}

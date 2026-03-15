@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) and similar AI agent
 
 ## Project Overview
 
-Recipe is a universal photo preset converter that converts between Nikon NP3, Adobe Lightroom XMP, and lrtemplate formats. The project provides two interfaces (CLI, Web) that share a common Go conversion engine.
+Recipe is a photo preset converter that converts between Nikon NP3 and Adobe Lightroom XMP formats. The project provides two interfaces (CLI, Web) that share a common Go conversion engine.
 
 **Key Characteristics:**
 - **Privacy-first**: All processing happens locally (no server uploads)
@@ -12,7 +12,7 @@ Recipe is a universal photo preset converter that converts between Nikon NP3, Ad
 - **Accuracy**: 98%+ conversion fidelity via exact offset mapping (48 NP3 parameters)
 - **Architecture**: Hub-and-spoke pattern with UniversalRecipe intermediate representation
 
-**Note**: Capture One Costyle format support is disabled. TUI interface is archived in `.archive/tui/`.
+**Note**: TUI interface is archived in `.archive/tui/`. Support for lrtemplate, DCP, costyle, and nksc formats has been removed.
 
 ## Technology Stack
 
@@ -44,7 +44,7 @@ make cli-all
 ### Testing
 
 ```bash
-# Run all tests (1,531 sample files)
+# Run all tests (987 sample files: 73 NP3 + 914 XMP)
 go test ./...
 
 # Run tests with verbose output
@@ -109,13 +109,10 @@ All conversions flow through a central `UniversalRecipe` intermediate representa
 
 ```
 NP3 ──Parse──→ UniversalRecipe ──Generate──→ XMP
-XMP ──Parse──→ UniversalRecipe ──Generate──→ lrtemplate
-lrtemplate ──Parse──→ UniversalRecipe ──Generate──→ NP3
-DCP ──Parse──→ UniversalRecipe ──Generate──→ DCP  (hub integrated)
+XMP ──Parse──→ UniversalRecipe ──Generate──→ NP3
 ```
 
 **Why this matters:**
-- Adding a new format requires only 2 functions (Parse + Generate), not N converters
 - All conversions use the same API: `converter.Convert(input, from, to)`
 - Parameter mapping logic is centralized in UniversalRecipe
 
@@ -144,10 +141,7 @@ internal/
 ├── converter/     # Core conversion engine (single source of truth)
 ├── formats/       # Format parsers/generators
 │   ├── np3/       # Nikon binary format (35 files)
-│   ├── xmp/       # Adobe Lightroom XML
-│   ├── lrtemplate/# Lightroom Classic Lua
-│   ├── dcp/       # DNG Camera Profiles (fully hub integrated)
-│   └── costyle/   # Capture One presets (DISABLED - 96 files)
+│   └── xmp/       # Adobe Lightroom XML
 ├── models/        # UniversalRecipe data structures
 ├── inspect/       # Parameter inspection and diff tools
 ├── lut/           # LUT table handling
@@ -171,10 +165,10 @@ web/               # Vite + Svelte 5 frontend
 ├── vite.config.js         # Vite configuration
 └── svelte.config.js       # Svelte configuration
 
-testdata/          # 1,531 real sample files (73 NP3, 914 XMP, 544 lrtemplate)
+testdata/          # 987 real sample files (73 NP3, 914 XMP)
 docs/              # Core documentation (user guides, format specs, architecture)
 .reverse-engineering/      # Reverse engineering artifacts
-├── docs/          # NX Studio analysis, DCP research, findings
+├── docs/          # NX Studio analysis, research findings
 └── scripts/       # Python RE scripts (88 files)
 .archive/          # Archived implementation artifacts
 ├── tui/           # Bubbletea TUI (archived)
@@ -218,101 +212,12 @@ The NP3 (Nikon Picture Control) format is a proprietary binary format that was r
 - `internal/formats/np3/offsets.go` - Byte offset definitions
 - `docs/np3-format-specification.md` - Complete format documentation
 
-### XMP/lrtemplate XML Formats
-
-Both use XML/Lua text formats with standard parsing:
+### XMP Format
 
 **XMP (Adobe Lightroom CC):**
 - XML format with `crs:` namespace for adjustments
 - Uses ElementTree for parsing
 - Full parameter support (50+ fields)
-
-**lrtemplate (Lightroom Classic):**
-- Lua table syntax wrapped in XML
-- Direct string parsing (not proper Lua interpreter)
-- Identical parameter set to XMP
-
-### Capture One Costyle Format
-
-**New format support (Epic 8):**
-- `.costyle` - Individual preset XML files
-- `.costylepack` - ZIP bundles containing multiple presets
-- Round-trip accuracy: 98.4%
-- 96 implementation files in `internal/formats/costyle/`
-
-### DNG Camera Profile (DCP) Format
-
-> **STATUS: Fully integrated into converter hub ✅**
-
-**Implementation Complete (Epic 9):**
-- `internal/formats/dcp/parse.go` (3KB) - Parses DCP files to UniversalRecipe
-- `internal/formats/dcp/generate.go` (5KB) - Generates DCP from UniversalRecipe
-- `internal/formats/dcp/profile.go` (16KB) - Tone curve analysis, color matrix generation
-- `internal/formats/dcp/tiff.go` (15KB) - Low-level TIFF/DNG binary handling
-- Round-trip tests pass (`TestRoundTrip_DCP` in generate_test.go)
-
-**What DCP Generate Creates:**
-- Valid DNG Camera Profile with `IIRC` magic bytes
-- 5-point tone curve from Exposure/Contrast/Highlights/Shadows
-- Nikon Z f calibrated color matrices (ColorMatrix1 for 2856K, ColorMatrix2 for D65)
-- Forward matrices (XYZ → camera RGB)
-- 3D identity LUT (90×16×16 = 23,040 HSV entries)
-- Baseline exposure offset (-0.15 EV for Nikon Z f)
-- Profile name and camera model from metadata
-
-**What DCP Parse Extracts:**
-- Tone curve → Exposure, Contrast, Highlights, Shadows (via curve analysis)
-- Color matrices stored in recipe.Metadata (with warning if non-identity)
-- Baseline exposure offset
-- Profile name
-
-**Hub Integration Complete:**
-
-The DCP format is now fully integrated into `converter.go`. You can convert:
-- `converter.Convert(data, "np3", "dcp")` - NP3 → DCP
-- `converter.Convert(data, "xmp", "dcp")` - XMP → DCP
-- `converter.Convert(data, "dcp", "xmp")` - DCP → XMP
-- `converter.Convert(data, "dcp", "np3")` - DCP → NP3
-- Auto-detection via `IIRC` magic bytes (0x49, 0x49, 0x52, 0x43)
-
-**Use Cases:**
-- **NP3 → DCP**: Convert Nikon Picture Controls to Adobe Camera Profiles
-- **XMP → DCP**: Create camera profiles from Lightroom presets
-- **DCP → XMP**: Extract tone adjustments from existing camera profiles
-
-**Warm Color Matrix Variant:**
-
-A custom warm DCP generator is available to address Nikon vs Adobe color rendering differences:
-
-- `internal/formats/dcp/profile_warm.go` - Custom warm Color Matrix 2
-- `cmd/cli/generate_warm_dcp.go` - CLI utility for generation
-- Triggered via `recipe.Metadata["use_warm_matrix"] = true`
-
-**Warm Matrix Coefficients** (vs Adobe Standard):
-```
-Adobe Standard:              Warm Custom:
-[1.1607  -0.4491  -0.0977]  →  [1.25   -0.35   0.08]
-[-0.4522  1.2460   0.2304]      [-0.40   1.20   0.15]
-[-0.0458  0.1519   0.7616]      [-0.02   0.10   0.85]
-```
-
-Key change: Blue→Red coefficient -0.0977 → +0.08 (+0.1777 warmth boost)
-
-**Expected results**: 10-15% warmer rendering, closer to Nikon NX Studio output
-**Target accuracy**: 92-96% Delta E (vs 85% with Adobe Standard)
-
-**Generate warm DCP**:
-```bash
-go run cmd/cli/generate_warm_dcp.go
-# Output: output/Nikon_Zf_Warm_Custom.dcp (277KB)
-```
-
-**Install in Lightroom**:
-```bash
-# Windows
-copy output\Nikon_Zf_Warm_Custom.dcp %APPDATA%\Adobe\CameraRaw\CameraProfiles\
-# Restart Lightroom, select "Nikon Z f Warm Custom" profile
-```
 
 ### Web Frontend (Vite + Svelte 5)
 
@@ -350,7 +255,7 @@ copy output\Nikon_Zf_Warm_Custom.dcp %APPDATA%\Adobe\CameraRaw\CameraProfiles\
 ```go
 type ConversionError struct {
     Operation string  // "parse", "generate", "validate", "detect"
-    Format    string  // "np3", "xmp", "lrtemplate"
+    Format    string  // "np3", "xmp"
     Cause     error   // Underlying error
 }
 ```
@@ -423,16 +328,13 @@ testdata/nxstudio/
 
 ## Testing Strategy
 
-**1,531 real sample files across all formats:**
+**987 real sample files across both formats:**
 - 73 NP3 files
 - 914 XMP files
-- 544 lrtemplate files
 
 **Round-trip testing validates conversion fidelity:**
-- Full fidelity paths: NP3↔XMP, NP3↔lrtemplate, XMP↔lrtemplate
-- Known limitations: XMP→NP3→XMP and lrtemplate→NP3→lrtemplate (some parameters unsupported by NP3)
-- Costyle round-trip: 98.4% accuracy
-- DCP round-trip: Tests pass (`TestRoundTrip_DCP`)
+- Full fidelity path: NP3↔XMP
+- Known limitations: XMP→NP3→XMP (some parameters unsupported by NP3)
 
 **Test execution:**
 - Tests complete in <2 seconds (parallel execution)
@@ -458,7 +360,7 @@ func convertPreset(inputPtr, inputLen uint32, srcFormat, dstFormat string) (uint
 
 ### Format Limitations
 
-**NP3 format has limited parameter support compared to XMP/lrtemplate:**
+**NP3 format has limited parameter support compared to XMP:**
 - ❌ Not supported: Vibrance, Temperature/Tint, Grain Size/Roughness, Vignette, Custom Tone Curves (Point Curves and Parametric Curves)
 - ✅ Well supported: Exposure, Contrast, Saturation, Sharpness, Highlights, Shadows, Whites, Blacks, Clarity, HSL Color, Color Grading
 
@@ -607,7 +509,6 @@ git push origin v2.x.x
 | Build WASM | `make wasm` |
 | Start web dev server | `cd web && npm run dev` |
 | Check NP3 parsing | `go test ./internal/formats/np3/` |
-| Check DCP parsing | `go test ./internal/formats/dcp/` |
 | View coverage | `make coverage-html` |
 
 ### Important Files by Task
@@ -616,7 +517,6 @@ git push origin v2.x.x
 |------|-------|
 | Add new parameter | `internal/models/recipe.go`, all format parsers |
 | Fix NP3 parsing | `internal/formats/np3/parse.go`, `offsets.go` |
-| Integrate DCP | `internal/converter/converter.go`, `internal/formats/dcp/` |
 | Web UI changes | `web/src/lib/components/*.svelte`, `web/src/app.css` |
 | WASM exports | `cmd/wasm/main.go`, `web/src/lib/wasm.js` |
 | Preview filters | `web/src/lib/svg-logic.js`, `SVGFilters.svelte` |

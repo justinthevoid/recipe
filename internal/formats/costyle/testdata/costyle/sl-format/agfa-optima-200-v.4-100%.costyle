@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SL Engine="1100">
- <E K="ICCProfile" V="agfa-optima-200-v.4-100%.icc"/>
- <E K="Name" V="Agfa Optima 200 V.4 100%"/>
- <E K="StyleSource" V="Styles"/>
- <E K="UUID" V="{4969345E-2C57-427F-BEB7-2CAE93C18CD0}"/>
- <E K="HighlightRecovery" V="50.0"/>
- <E K="Midtone" V="0;0;0;0.0500000007450581"/>
-</SL>

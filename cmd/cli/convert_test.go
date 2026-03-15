@@ -15,10 +15,8 @@ func TestGenerateOutputPath(t *testing.T) {
 	}{
 		{"portrait.xmp", "np3", "portrait.np3"},
 		{"portrait.np3", "xmp", "portrait.xmp"},
-		{"/path/to/preset.lrtemplate", "xmp", "/path/to/preset.xmp"},
 		{"file.with.dots.xmp", "np3", "file.with.dots.np3"},
 		{`C:\Windows\path\file.xmp`, "np3", `C:\Windows\path\file.np3`},
-		{"../relative/path.lrtemplate", "np3", "../relative/path.np3"},
 	}
 
 	for _, tt := range tests {

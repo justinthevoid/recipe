@@ -55,7 +55,7 @@ coverage-html:
 # Run performance benchmarks
 benchmark:
 	@echo "Running performance benchmarks..."
-	go test -bench="BenchmarkConvert_(NP3|XMP|LRTemplate)" -benchmem -run=^$$ ./internal/converter/ | tee benchmarks.txt
+	go test -bench="BenchmarkConvert_(NP3|XMP)" -benchmem -run=^$$ ./internal/converter/ | tee benchmarks.txt
 	@echo ""
 	@echo "Results saved to benchmarks.txt"
 
@@ -100,26 +100,6 @@ clean:
 	rm -rf bin/
 	rm -f web/static/bundle.min.js web/static/bundle.min.js.map
 
-# Build recipe-nx for current platform
-build-nx:
-	mkdir -p bin
-	go build -ldflags="-X main.version=$(VERSION)" -o bin/recipe-nx cmd/nx/*.go
-
-# Build recipe-nx for all platforms
-build-nx-all:
-	mkdir -p bin
-	GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o bin/recipe-nx-linux-amd64 cmd/nx/*.go
-	GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o bin/recipe-nx-darwin-amd64 cmd/nx/*.go
-	GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o bin/recipe-nx-darwin-arm64 cmd/nx/*.go
-	GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o bin/recipe-nx-windows-amd64.exe cmd/nx/*.go
-
-# Run recipe-nx tests
-test-nx:
-	go test -v ./cmd/nx/... ./internal/batch/... ./internal/formats/nksc/...
-
-# Run recipe-nx benchmarks
-bench-nx:
-	go test -bench=. -benchmem ./cmd/nx/... ./internal/batch/... ./internal/formats/nksc/...
 
 # Check import graph constraints
 check-imports:

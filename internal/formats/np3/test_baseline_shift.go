@@ -66,7 +66,7 @@ func main() {
 	fmt.Println("1. Add a global temperature shift in the XMP (e.g., +800-1200K)")
 	fmt.Println("2. Apply a hue shift to specific color ranges (blues → yellows)")
 	fmt.Println("3. Try a different Adobe camera profile as baseline")
-	fmt.Println("4. Use Adobe DNG Camera Profile (.dcp) instead of XMP")
+	fmt.Println("4. Adjust XMP tone parameters to compensate")
 	fmt.Println()
 	fmt.Println("Most practical: Add Temperature adjustment to XMP")
 	fmt.Println("This compensates for the baseline profile difference.")

@@ -1,17 +1,16 @@
 // Package converter provides a unified API for bidirectional photo editing recipe conversions.
 //
-// The converter package orchestrates conversions between all supported formats (NP3, XMP, lrtemplate)
+// The converter package orchestrates conversions between NP3 and XMP formats
 // using the UniversalRecipe hub-and-spoke pattern. It provides format auto-detection, error handling
 // with operation context, and thread-safe stateless conversion functions.
 //
 // # Supported Formats
 //
-// The package supports three photo editing recipe formats:
+// The package supports two photo editing recipe formats:
 //   - NP3: NikonCapture NX binary format (300 bytes, magic bytes "NCP")
 //   - XMP: Adobe XMP sidecar format (XML with Camera Raw Settings namespace)
-//   - lrtemplate: Adobe Lightroom template format (Lua table syntax)
 //
-// All 6 conversion paths are supported: NP3↔XMP, NP3↔lrtemplate, XMP↔lrtemplate
+// Both conversion paths are supported: NP3 ↔ XMP
 //
 // # Basic Usage
 //

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SL Engine="1100">
- <E K="ICCProfile" V="fuji-pro-160ns-faded-100%.icc"/>
- <E K="Name" V="Fuji Pro 160Ns Faded 100%"/>
- <E K="StyleSource" V="Styles"/>
- <E K="UUID" V="{78D929FB-9E0A-43D6-8A1C-F2169D7935CF}"/>
- <E K="HighlightRecovery" V="50.0"/>
- <E K="Midtone" V="0;0;0;0.0500000007450581"/>
-</SL>

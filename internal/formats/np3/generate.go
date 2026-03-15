@@ -1374,36 +1374,12 @@ func applyDehaze(recipe *models.UniversalRecipe, params *np3Parameters) {
 	}
 }
 
-// ApplyFlexibleColorBaselineCompensation applies compensation for the difference between
-// Adobe's "Flexible Color" DCP baseline (+47.8 brightness) and Nikon's native "Flexible Color"
-// baseline (~+105.6 brightness).
+// ApplyFlexibleColorBaselineCompensation applies a compensation curve to match
+// Adobe vs Nikon baseline differences for the Flexible Color profile.
 //
-// This function darkens the tone curve by ~57.8 luminance units to compensate for Nikon's
-// brighter baseline, ensuring that NX Studio output matches Lightroom output when both
-// use their respective Flexible Color profiles.
-//
-// The compensation uses the inverse baseline method:
-// - Adobe DCP baseline extracted from "Nikon Z f Camera Flexible Color.dcp"
-// - Nikon baseline estimated from visual comparison (+51.1 luminance difference)
-// - Compensation applied as inverse curve mapping
-//
-// See: docs/analysis/adobe-dcp-baseline-discovery.md for detailed analysis
-// See: scripts/calculate_baseline_compensation.py for derivation
-//
-// Returns a darkened LUT that compensates for the baseline difference.
-// ApplyFlexibleColorBaselineCompensation applies a compensation curve to match Adobe vs Nikon baseline differences.
-//
-// Problem:
-// - Adobe's "Flexible Color" profile applies a moderate S-curve baseline.
-// - Nikon's native "Flexible Color" profile applies a MUCH brighter baseline (Shadows +70, Mids +40).
-// - Start-to-end difference: +47.6 luminance average, but highly non-linear.
-//
-// Solution:
-// We construct a compensation curve C such that: C(NikonBase(x)) ≈ XMPCurve(AdobeBase(x))
+// It constructs a compensation curve C such that: C(NikonBase(x)) ≈ XMPCurve(AdobeBase(x))
 // This ensures that when Nikon applies its base, followed by our curve, the result matches
 // what Lightroom produces (XMP curve on top of Adobe base).
-//
-// See: docs/analysis/visual-accuracy-root-cause-analysis.md
 func ApplyFlexibleColorBaselineCompensation(lut []int) []int {
 	// 1. Adobe DCP Flexible Color Baseline (32 sample points from 128-point curve)
 	// Extracted from: testdata/dcp/Nikon Z f Camera Flexible Color.dcp

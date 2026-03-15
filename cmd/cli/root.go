@@ -15,9 +15,9 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "recipe",
 	Short: "Convert photo presets between formats",
-	Long: `Recipe - Universal Photo Preset Converter
+	Long: `Recipe - Photo Preset Converter
 
-Convert photo presets between Nikon NP3, Adobe Lightroom XMP, and lrtemplate formats.
+Convert photo presets between Nikon NP3 and Adobe Lightroom XMP formats.
 
 All processing happens locally on your device - files are never uploaded to any server.
 Your privacy is guaranteed by design.
@@ -25,11 +25,10 @@ Your privacy is guaranteed by design.
 Supported formats:
   - NP3 (Nikon Picture Control binary format)
   - XMP (Adobe Lightroom sidecar XML)
-  - lrtemplate (Adobe Lightroom Lua preset)
 
 Examples:
   recipe convert portrait.xmp --to np3
-  recipe convert --batch *.xmp --to np3
+  recipe batch *.xmp --to np3
   recipe --help
 
 Documentation: https://github.com/justin/recipe`,

@@ -33,15 +33,13 @@ Recipe uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `vMAJOR.
 
 ## [Unreleased]
 ### Added
-- Capture One .costyle format support (parser, generator, integration)
-- Capture One .costylepack bundle support (ZIP archive handling)
-- Costyle format integration in CLI, TUI, and Web interfaces
-- Purple format badges for Capture One in TUI and Web UI
-- Costyle parameter preview display across all interfaces
 
 ### Changed
+
 ### Fixed
+
 ### Removed
+- **Breaking**: Removed lrtemplate, DCP, costyle, and nksc format support. Recipe now focuses exclusively on NP3 ↔ XMP conversion.
 
 ## [0.1.0] - 2025-11-06
 ### Added

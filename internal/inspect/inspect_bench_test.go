@@ -7,7 +7,6 @@ import (
 
 	"github.com/justin/recipe/internal/formats/np3"
 	"github.com/justin/recipe/internal/formats/xmp"
-	"github.com/justin/recipe/internal/formats/lrtemplate"
 	"github.com/justin/recipe/internal/models"
 )
 
@@ -128,32 +127,6 @@ func BenchmarkInspectEndToEnd_XMP(b *testing.B) {
 		}
 
 		_, err = ToJSONWithMetadata(recipe, testFile, "xmp", "2.0.0")
-		if err != nil {
-			b.Fatalf("ToJSONWithMetadata failed: %v", err)
-		}
-	}
-}
-
-// BenchmarkInspectEndToEnd_LRTemplate measures lrtemplate format performance
-func BenchmarkInspectEndToEnd_LRTemplate(b *testing.B) {
-	testFile := findTestFile(b, "../../testdata/lrtemplate/*.lrtemplate")
-	if testFile == "" {
-		b.Skip("No sample lrtemplate file found for benchmark")
-	}
-
-	data, err := os.ReadFile(testFile)
-	if err != nil {
-		b.Fatalf("Failed to read test file: %v", err)
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		recipe, err := lrtemplate.Parse(data)
-		if err != nil {
-			b.Fatalf("Parse failed: %v", err)
-		}
-
-		_, err = ToJSONWithMetadata(recipe, testFile, "lrtemplate", "2.0.0")
 		if err != nil {
 			b.Fatalf("ToJSONWithMetadata failed: %v", err)
 		}

@@ -23,14 +23,9 @@ func TestDetectFormat(t *testing.T) {
 		{"xmp lowercase", "preset.xmp", "xmp", false},
 		{"xmp uppercase", "preset.XMP", "xmp", false},
 		{"xmp mixed case", "preset.Xmp", "xmp", false},
-		{"lrtemplate lowercase", "classic.lrtemplate", "lrtemplate", false},
-		{"lrtemplate uppercase", "classic.LRTEMPLATE", "lrtemplate", false},
-		{"lrtemplate mixed case", "classic.LrTemplate", "lrtemplate", false},
-
 		// Paths with directories
 		{"/path/to/file.np3", "/path/to/file.np3", "np3", false},
 		{"file with dots", "file.with.dots.xmp", "xmp", false},
-		{"Windows path", `C:\Users\file.lrtemplate`, "lrtemplate", false},
 
 		// Invalid extensions
 		{"unknown extension", "unknown.txt", "", true},
@@ -66,12 +61,6 @@ func TestDetectFormatFromBytes(t *testing.T) {
     </rdf:RDF>
 </x:xmpmeta>`)
 
-	// lrtemplate: Lua table
-	lrtemplateData := []byte(`s = {
-	id = "12345678-1234-1234-1234-123456789012",
-	internalName = "Preset Name",
-}`)
-
 	tests := []struct {
 		name    string
 		data    []byte
@@ -80,7 +69,6 @@ func TestDetectFormatFromBytes(t *testing.T) {
 	}{
 		{"np3 magic bytes", np3Data, "np3", false},
 		{"xmp xml structure", xmpData, "xmp", false},
-		{"lrtemplate lua", lrtemplateData, "lrtemplate", false},
 		{"unknown format", []byte("random data"), "", true},
 		{"empty file", []byte{}, "", true},
 		{"too small np3", []byte{'N', 'C', 'P'}, "", true}, // Less than 300 bytes
@@ -109,8 +97,6 @@ func TestValidateFormat(t *testing.T) {
 		// Valid formats
 		{"np3", "np3", false},
 		{"xmp", "xmp", false},
-		{"lrtemplate", "lrtemplate", false},
-
 		// Invalid formats
 		{"uppercase NP3", "NP3", true},
 		{"uppercase XMP", "XMP", true},
@@ -139,7 +125,6 @@ func TestFormatConstants(t *testing.T) {
 	}{
 		{"FormatNP3", FormatNP3, "np3"},
 		{"FormatXMP", FormatXMP, "xmp"},
-		{"FormatLRTemplate", FormatLRTemplate, "lrtemplate"},
 	}
 
 	for _, tt := range tests {

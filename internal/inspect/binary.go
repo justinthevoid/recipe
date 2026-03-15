@@ -153,8 +153,6 @@ func getFormatType(format string) string {
 	switch format {
 	case "xmp":
 		return "XML"
-	case "lrtemplate":
-		return "Lua"
 	default:
 		return "text"
 	}

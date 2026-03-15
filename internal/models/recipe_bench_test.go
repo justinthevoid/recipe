@@ -55,7 +55,7 @@ func BenchmarkUniversalRecipeJSONMarshalWithMetadata(b *testing.B) {
 		Metadata: map[string]interface{}{
 			"xmp_tone_curve_pv2012": `[{"input":0,"output":0},{"input":128,"output":140}]`,
 			"xmp_hsl_red_hue":       10,
-			"lrtemplate_split_toning": map[string]interface{}{
+			"format_split_toning": map[string]interface{}{
 				"shadow_hue": 220,
 				"balance":    10,
 			},
@@ -120,7 +120,7 @@ func BenchmarkMetadataInsert(b *testing.B) {
 		}
 		recipe.Metadata["xmp_tone_curve"] = "test_data"
 		recipe.Metadata["xmp_hsl_red"] = 10
-		recipe.Metadata["lrtemplate_split"] = map[string]interface{}{
+		recipe.Metadata["format_split"] = map[string]interface{}{
 			"hue": 220,
 		}
 	}

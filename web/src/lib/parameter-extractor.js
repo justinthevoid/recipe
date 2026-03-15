@@ -6,7 +6,7 @@
 /**
  * Extract parameters from preset file using WASM
  * @param {Uint8Array} fileData - Raw file bytes
- * @param {string} format - Detected format ("np3" | "xmp" | "lrtemplate")
+ * @param {string} format - Detected format ("np3" | "xmp")
  * @returns {Promise<Object>} Parameters object
  */
 export async function extractPresetParameters(fileData, format) {
