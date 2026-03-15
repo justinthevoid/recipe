@@ -10,7 +10,7 @@ func TestCameraProfileHeuristic(t *testing.T) {
 		presetName      string
 		expectedProfile string
 	}{
-		{"Standard", "My Preset", "Camera Standard"},
+		{"Standard", "My Preset", "Camera Flexible Color"},
 		{"Neutral", "Nikon Neutral 01", "Camera Neutral"},
 		{"Flat", "Flat Profile", "Camera Flat"},
 		{"Monochrome", "BW Mono", "Camera Monochrome"},
