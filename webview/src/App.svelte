@@ -1,21 +1,34 @@
 <script lang="ts">
 import { toast } from "svelte-sonner";
+import CollapsibleSection from "$lib/components/CollapsibleSection.svelte";
 import ColorBlender from "$lib/components/ColorBlender.svelte";
 import ColorGrading from "$lib/components/ColorGrading.svelte";
 import CorruptedFileView from "$lib/components/CorruptedFileView.svelte";
 import ParameterSliderUnit from "$lib/components/ParameterSliderUnit.svelte";
+import PhotoPreview from "$lib/components/PhotoPreview.svelte";
 import SchemaDropdown from "$lib/components/SchemaDropdown.svelte";
 import ToneCurveVisual from "$lib/components/ToneCurveVisual.svelte";
 import { Toaster } from "$lib/components/ui/sonner";
 import { getNested, np3AppStore } from "$lib/state/np3.svelte";
 import type { IpcMessage, Np3Error, Np3OpenResponse, ParameterDefinition } from "$lib/types";
 import { vscode } from "$lib/vscode";
+import { getWasmStatus, initWasm, wasmGenerateLUT } from "$lib/wasm.svelte";
 
 let status = $state<string>("Connecting...");
 let originalMetadata = $state<Np3OpenResponse | null>(null);
 let isDirty = $state(false);
 let ipcPending = $state(false);
 let pendingCount = $state(0);
+
+// Preview mode state
+let isPreviewMode = $state(false);
+let previewImageData = $state<HTMLImageElement | null>(null);
+let previewImagePath = $state<string | null>(null);
+let previewDividerWidth = $state(65); // percentage for left pane
+let isDraggingDivider = $state(false);
+
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_IMAGE_DIMENSION = 2048;
 
 function trackIpcSend() {
 	pendingCount++;
@@ -91,6 +104,97 @@ function handleKeyDown(event: KeyboardEvent) {
 		}
 		event.preventDefault();
 	}
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: used in template
+function handleOpenImage() {
+	vscode.postMessage({ type: "np3.open_image", payload: {} });
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: used in template
+function handleTogglePreview() {
+	isPreviewMode = !isPreviewMode;
+	// Persist preview mode state
+	_persistPreviewState();
+}
+
+function _persistPreviewState() {
+	const saved = vscode.getState<Record<string, unknown>>() || {};
+	vscode.setState({
+		...saved,
+		isPreviewMode,
+		previewImagePath,
+		previewDividerWidth,
+	});
+}
+
+function _decodeAndLoadImage(base64Data: string, filename: string) {
+	const byteString = atob(base64Data);
+	const bytes = new Uint8Array(byteString.length);
+	for (let i = 0; i < byteString.length; i++) {
+		bytes[i] = byteString.charCodeAt(i);
+	}
+	const blob = new Blob([bytes]);
+	const url = URL.createObjectURL(blob);
+
+	const img = new Image();
+	img.onload = () => {
+		if (img.naturalWidth > MAX_IMAGE_DIMENSION || img.naturalHeight > MAX_IMAGE_DIMENSION) {
+			_downscaleImage(img, (downscaled) => {
+				URL.revokeObjectURL(url);
+				previewImageData = downscaled;
+				isPreviewMode = true;
+				_persistPreviewState();
+			});
+		} else {
+			// Revoke after WebGL upload will consume the image data on next tick
+			previewImageData = img;
+			isPreviewMode = true;
+			_persistPreviewState();
+			// Defer revoke to allow WebGL texImage2D to read the image first
+			setTimeout(() => URL.revokeObjectURL(url), 1000);
+		}
+	};
+	img.onerror = () => {
+		URL.revokeObjectURL(url);
+		toast.error(`Failed to load image: ${filename}`);
+	};
+	img.src = url;
+}
+
+function _downscaleImage(img: HTMLImageElement, callback: (result: HTMLImageElement) => void) {
+	const canvas = document.createElement("canvas");
+	const scale = MAX_IMAGE_DIMENSION / Math.max(img.naturalWidth, img.naturalHeight);
+	canvas.width = Math.round(img.naturalWidth * scale);
+	canvas.height = Math.round(img.naturalHeight * scale);
+	const ctx = canvas.getContext("2d");
+	if (ctx) {
+		ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+	}
+	const downscaled = new Image();
+	downscaled.onload = () => callback(downscaled);
+	downscaled.src = canvas.toDataURL("image/jpeg", 0.92);
+}
+
+function _handleDividerPointerDown(event: PointerEvent) {
+	isDraggingDivider = true;
+	(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+}
+
+function _handleDividerPointerMove(event: PointerEvent) {
+	if (!isDraggingDivider) return;
+	const container = (event.currentTarget as HTMLElement).parentElement;
+	if (!container) return;
+	const rect = container.getBoundingClientRect();
+	const x = event.clientX - rect.left;
+	const pct = (x / rect.width) * 100;
+	// Min 30% for photo, max ~75% (leaving 320px min for controls at typical widths)
+	previewDividerWidth = Math.max(30, Math.min(75, pct));
+}
+
+function _handleDividerPointerUp() {
+	isDraggingDivider = false;
+	_persistPreviewState();
 }
 
 function handleMessage(event: MessageEvent<IpcMessage>) {
@@ -196,6 +300,17 @@ function handleMessage(event: MessageEvent<IpcMessage>) {
 			handleResetAll();
 			break;
 		}
+		case "extension.wasm_uri": {
+			const wasmPayload = message.payload as { uri: string };
+			initWasm(wasmPayload.uri);
+			break;
+		}
+		case "np3.image_data": {
+			const imgPayload = message.payload as { data: string; filename: string };
+			previewImagePath = imgPayload.filename;
+			_decodeAndLoadImage(imgPayload.data, imgPayload.filename);
+			break;
+		}
 		default:
 			console.log("Unknown message type:", message.type);
 	}
@@ -227,13 +342,30 @@ $effect(() => {
 	window.addEventListener("keydown", handleKeyDown);
 
 	// Restore state if available (P2-9a)
-	const savedState = vscode.getState<{ metadata: Np3OpenResponse; originalMetadata: Np3OpenResponse }>();
+	const savedState = vscode.getState<{
+		metadata: Np3OpenResponse;
+		originalMetadata: Np3OpenResponse;
+		isPreviewMode?: boolean;
+		previewImagePath?: string;
+		previewDividerWidth?: number;
+	}>();
 	if (savedState?.metadata) {
 		np3AppStore.loadSuccess(savedState.metadata);
 		originalMetadata = savedState.originalMetadata;
 		np3AppStore.markSaved();
 		isDirty = false;
 		status = "Connected";
+	}
+	if (savedState?.isPreviewMode) {
+		isPreviewMode = savedState.isPreviewMode;
+	}
+	if (savedState?.previewDividerWidth) {
+		previewDividerWidth = savedState.previewDividerWidth;
+	}
+	if (savedState?.previewImagePath) {
+		previewImagePath = savedState.previewImagePath;
+		// Re-request image from extension host using stored path
+		vscode.postMessage({ type: "np3.open_image", payload: { filePath: previewImagePath } });
 	}
 
 	vscode.postMessage({ type: "webview.ready", payload: {} });
@@ -348,6 +480,16 @@ $effect(() => {
 				</button>
 				<button
 					type="button"
+					class="px-3 py-1.5 bg-(--vscode-button-secondaryBackground) text-(--vscode-button-secondaryForeground) text-sm font-medium rounded hover:opacity-90 transition-opacity"
+					onclick={handleTogglePreview}
+					disabled={!np3AppStore.isLoaded}
+					title={isPreviewMode ? "Switch to Editor view" : "Switch to Preview view"}
+					aria-label={isPreviewMode ? "Editor" : "Preview"}
+				>
+					{isPreviewMode ? "Editor" : "Preview"}
+				</button>
+				<button
+					type="button"
 					class="p-1.5 hover:bg-(--vscode-toolbar-hoverBackground) rounded text-sm transition-colors opacity-50 hover:opacity-100"
 					title="Keyboard Shortcuts&#10;&#10;Ctrl+S — Save&#10;Ctrl+Shift+S — Save As&#10;Ctrl+Z — Undo&#10;Ctrl+Shift+Z — Redo&#10;Ctrl+C — Copy Parameters&#10;Ctrl+V — Paste Parameters&#10;Double-click label — Reset to default"
 					aria-label="Keyboard shortcuts help"
@@ -388,51 +530,43 @@ $effect(() => {
 				/>
 			</div>
 
-			<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-				<!-- Left Lane: Tone & Curve -->
-				<div class="h-full overflow-y-auto pr-4 flex flex-col gap-6 scrollbar-hide pb-20">
-					{#each leftLane as group}
-						<section class="flex flex-col gap-4">
-							<header class="flex items-center justify-between border-l-2 border-(--vscode-button-background) pl-3 mb-2">
-								<h2 class="text-xs font-bold uppercase tracking-widest opacity-70">{group.name}</h2>
-							</header>
-							<div class="bg-muted/10 p-5 rounded-xl border border-border/50 backdrop-blur-sm flex flex-col gap-5">
+			{#if isPreviewMode}
+				<!-- Preview Mode: Photo left, controls right -->
+				<div class="flex h-full min-h-0 relative" style:--divider-width="{previewDividerWidth}%">
+					<!-- Photo Preview Pane -->
+					<div class="h-full min-w-0" style="width: var(--divider-width)">
+						<PhotoPreview
+							recipe={np3AppStore.metadata.recipe}
+							imageData={previewImageData}
+							wasmReady={getWasmStatus() === 'ready'}
+							generateLUT={wasmGenerateLUT}
+						/>
+					</div>
+
+					<!-- Resizable Divider -->
+					<div
+						class="w-1 cursor-col-resize flex-none hover:bg-(--vscode-focusBorder) transition-colors z-10"
+						class:bg-(--vscode-focusBorder)={isDraggingDivider}
+						role="separator"
+						aria-label="Resize preview"
+						onpointerdown={_handleDividerPointerDown}
+						onpointermove={_handleDividerPointerMove}
+						onpointerup={_handleDividerPointerUp}
+					></div>
+
+					<!-- Controls Pane -->
+					<div class="flex-1 h-full overflow-y-auto pl-4 pr-2 flex flex-col gap-4 scrollbar-hide pb-20 min-w-[320px]">
+						{#each grouped as group}
+							<CollapsibleSection
+								title={group.name}
+								expanded={group.name === 'Tone' || group.name === 'Color Mixer'}
+							>
 								{#if group.name === 'Tone Curve'}
 									<ToneCurveVisual
 										points={np3AppStore.metadata.recipe?.pointCurve || []}
 									/>
 								{/if}
 
-								{#each group.parameters as param}
-									{#if param.type === 'discrete'}
-										<SchemaDropdown
-											definition={param}
-											value={Number(getNested(np3AppStore.metadata?.recipe, param.key) ?? param.defaultValue)}
-											originalValue={Number(getNested(originalMetadata?.recipe, param.key) ?? param.defaultValue)}
-											onchange={handleParameterChange}
-										/>
-									{:else}
-										<ParameterSliderUnit
-											definition={param}
-											value={Number(getNested(np3AppStore.metadata?.recipe, param.key) ?? param.defaultValue)}
-											originalValue={Number(getNested(originalMetadata?.recipe, param.key) ?? param.defaultValue)}
-											onchange={handleParameterChange}
-										/>
-									{/if}
-								{/each}
-							</div>
-						</section>
-					{/each}
-				</div>
-
-				<!-- Right Lane: Color, Detail, System -->
-				<div class="h-full overflow-y-auto pr-4 flex flex-col gap-6 scrollbar-hide pb-20">
-					{#each rightLane as group}
-						<section class="flex flex-col gap-4">
-							<header class="flex items-center justify-between border-l-2 border-(--vscode-button-background) pl-3 mb-2">
-								<h2 class="text-xs font-bold uppercase tracking-widest opacity-70">{group.name}</h2>
-							</header>
-							<div class="bg-muted/10 p-5 rounded-xl border border-border/50 backdrop-blur-sm">
 								{#if group.name === 'Color Mixer'}
 									<ColorBlender
 										parameters={group.parameters}
@@ -468,11 +602,123 @@ $effect(() => {
 										{/each}
 									</div>
 								{/if}
-							</div>
-						</section>
-					{/each}
+							</CollapsibleSection>
+						{/each}
+					</div>
 				</div>
-			</div>
+
+				<!-- Preview Footer -->
+				<footer class="flex-none flex items-center gap-3 pt-2 border-t border-border">
+					<button
+						type="button"
+						class="px-3 py-1.5 bg-(--vscode-button-background) text-(--vscode-button-foreground) text-sm font-medium rounded hover:opacity-90 transition-opacity"
+						onclick={handleOpenImage}
+					>
+						Open Image
+					</button>
+					{#if previewImagePath}
+						<span class="text-xs opacity-50 truncate">{previewImagePath}</span>
+					{/if}
+					<span class="ml-auto text-xs opacity-40">
+						{#if getWasmStatus() === 'ready'}
+							WASM Ready
+						{:else if getWasmStatus() === 'loading'}
+							Loading WASM...
+						{:else if getWasmStatus() === 'error'}
+							WASM Error
+						{:else}
+							WASM Idle
+						{/if}
+					</span>
+				</footer>
+			{:else}
+				<!-- Editor Mode: Original two-column layout -->
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+					<!-- Left Lane: Tone & Curve -->
+					<div class="h-full overflow-y-auto pr-4 flex flex-col gap-6 scrollbar-hide pb-20">
+						{#each leftLane as group}
+							<section class="flex flex-col gap-4">
+								<header class="flex items-center justify-between border-l-2 border-(--vscode-button-background) pl-3 mb-2">
+									<h2 class="text-xs font-bold uppercase tracking-widest opacity-70">{group.name}</h2>
+								</header>
+								<div class="bg-muted/10 p-5 rounded-xl border border-border/50 backdrop-blur-sm flex flex-col gap-5">
+									{#if group.name === 'Tone Curve'}
+										<ToneCurveVisual
+											points={np3AppStore.metadata.recipe?.pointCurve || []}
+										/>
+									{/if}
+
+									{#each group.parameters as param}
+										{#if param.type === 'discrete'}
+											<SchemaDropdown
+												definition={param}
+												value={Number(getNested(np3AppStore.metadata?.recipe, param.key) ?? param.defaultValue)}
+												originalValue={Number(getNested(originalMetadata?.recipe, param.key) ?? param.defaultValue)}
+												onchange={handleParameterChange}
+											/>
+										{:else}
+											<ParameterSliderUnit
+												definition={param}
+												value={Number(getNested(np3AppStore.metadata?.recipe, param.key) ?? param.defaultValue)}
+												originalValue={Number(getNested(originalMetadata?.recipe, param.key) ?? param.defaultValue)}
+												onchange={handleParameterChange}
+											/>
+										{/if}
+									{/each}
+								</div>
+							</section>
+						{/each}
+					</div>
+
+					<!-- Right Lane: Color, Detail, System -->
+					<div class="h-full overflow-y-auto pr-4 flex flex-col gap-6 scrollbar-hide pb-20">
+						{#each rightLane as group}
+							<section class="flex flex-col gap-4">
+								<header class="flex items-center justify-between border-l-2 border-(--vscode-button-background) pl-3 mb-2">
+									<h2 class="text-xs font-bold uppercase tracking-widest opacity-70">{group.name}</h2>
+								</header>
+								<div class="bg-muted/10 p-5 rounded-xl border border-border/50 backdrop-blur-sm">
+									{#if group.name === 'Color Mixer'}
+										<ColorBlender
+											parameters={group.parameters}
+											recipe={np3AppStore.metadata.recipe}
+											originalRecipe={originalMetadata?.recipe || {}}
+											onchange={handleParameterChange}
+										/>
+									{:else if group.name === 'Color Grading'}
+										<ColorGrading
+											parameters={group.parameters}
+											recipe={np3AppStore.metadata.recipe}
+											originalRecipe={originalMetadata?.recipe || {}}
+											onchange={handleParameterChange}
+										/>
+									{:else}
+										<div class="flex flex-col gap-5">
+											{#each group.parameters as param}
+												{#if param.type === 'discrete'}
+													<SchemaDropdown
+														definition={param}
+														value={Number(getNested(np3AppStore.metadata?.recipe, param.key) ?? param.defaultValue)}
+														originalValue={Number(getNested(originalMetadata?.recipe, param.key) ?? param.defaultValue)}
+														onchange={handleParameterChange}
+													/>
+												{:else}
+													<ParameterSliderUnit
+														definition={param}
+														value={Number(getNested(np3AppStore.metadata?.recipe, param.key) ?? param.defaultValue)}
+														originalValue={Number(getNested(originalMetadata?.recipe, param.key) ?? param.defaultValue)}
+														onchange={handleParameterChange}
+													/>
+												{/if}
+											{/each}
+										</div>
+									{/if}
+								</div>
+							</section>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		{:else}
 			<div class="h-full flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg text-muted-foreground">
 				<p>Waiting for NP3 file...</p>

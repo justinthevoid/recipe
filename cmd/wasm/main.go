@@ -12,6 +12,7 @@ import (
 	"github.com/justin/recipe/internal/formats/lrtemplate"
 	"github.com/justin/recipe/internal/formats/np3"
 	"github.com/justin/recipe/internal/formats/xmp"
+	"github.com/justin/recipe/internal/lut"
 	"github.com/justin/recipe/internal/models"
 )
 
@@ -462,6 +463,58 @@ func extractFullRecipeWrapper(this js.Value, args []js.Value) interface{} {
 	return promiseConstructor.New(handler)
 }
 
+// generateLUT exposes LUT generation for WebGL preview rendering to JavaScript.
+//
+// JavaScript signature:
+//
+//	generateLUT(recipeJSON: string, size: number) -> Promise<Uint8Array>
+//
+// Parameters:
+//   - recipeJSON: JSON string representing the UniversalRecipe
+//   - size: LUT cube dimension (e.g., 17 for a 17³ LUT)
+//
+// Returns:
+//   - Promise that resolves to Uint8Array containing RGBA float32 LUT data
+//   - Promise that rejects with error message string on failure
+func generateLUTWrapper(this js.Value, args []js.Value) interface{} {
+	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
+		resolve := promiseArgs[0]
+		reject := promiseArgs[1]
+
+		go func() {
+			if len(args) < 2 {
+				reject.Invoke("generateLUT requires 2 arguments: recipeJSON, size")
+				return
+			}
+
+			recipeJSON := args[0].String()
+			size := args[1].Int()
+
+			var recipe models.UniversalRecipe
+			if err := json.Unmarshal([]byte(recipeJSON), &recipe); err != nil {
+				reject.Invoke(fmt.Sprintf("JSON decode failed: %v", err))
+				return
+			}
+
+			lutData, err := lut.Generate3DLUTForPreview(&recipe, size)
+			if err != nil {
+				reject.Invoke(fmt.Sprintf("LUT generation failed: %v", err))
+				return
+			}
+
+			outputJS := js.Global().Get("Uint8Array").New(len(lutData))
+			js.CopyBytesToJS(outputJS, lutData)
+
+			resolve.Invoke(outputJS)
+		}()
+
+		return nil
+	})
+
+	promiseConstructor := js.Global().Get("Promise")
+	return promiseConstructor.New(handler)
+}
+
 func main() {
 	// Set up a channel to prevent the program from exiting
 	c := make(chan struct{}, 0)
@@ -472,13 +525,14 @@ func main() {
 	js.Global().Set("extractParameters", js.FuncOf(extractParametersWrapper))
 	js.Global().Set("extractFullRecipe", js.FuncOf(extractFullRecipeWrapper))
 	js.Global().Set("generate", js.FuncOf(generateWrapper))
+	js.Global().Set("generateLUT", js.FuncOf(generateLUTWrapper))
 	js.Global().Set("getVersion", js.FuncOf(getVersionWrapper))
 
 	// Signal that WASM is ready
 	js.Global().Call("dispatchEvent", js.Global().Get("Event").New("wasmReady"))
 
 	println("Recipe WASM module loaded successfully")
-	println("Available functions: convert(), detectFormat(), extractParameters(), extractFullRecipe(), generate(), getVersion()")
+	println("Available functions: convert(), detectFormat(), extractParameters(), extractFullRecipe(), generate(), generateLUT(), getVersion()")
 
 	// Keep the program running
 	<-c

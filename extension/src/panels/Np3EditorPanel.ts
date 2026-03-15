@@ -45,7 +45,9 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 		const documentUri = document.uri.toString();
 
 		// Enforce max concurrent panels limit (P3-2b)
-		const maxPanels = vscode.workspace.getConfiguration("recipe").get<number>("maxConcurrentPanels", 5);
+		const maxPanels = vscode.workspace
+			.getConfiguration("recipe")
+			.get<number>("maxConcurrentPanels", 5);
 		if (this.panels.size >= maxPanels) {
 			vscode.window.showInformationMessage(
 				`Maximum of ${maxPanels} NP3 files can be open simultaneously. Close an existing file first.`,
@@ -148,8 +150,16 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 				const reqId = (message as { requestId?: string }).requestId;
 				this.outputChannel.appendLine(`[${reqId ?? "no-id"}] Webview → Extension: ${message.type}`);
 
-				// Intercept webview.ready to trigger file load
+				// Intercept webview.ready to trigger file load and send WASM URI
 				if (message.type === "webview.ready") {
+					const distPath = vscode.Uri.joinPath(this.extensionUri, "dist", "webview");
+					const wasmUri = webviewPanel.webview.asWebviewUri(
+						vscode.Uri.joinPath(distPath, "recipe.wasm"),
+					);
+					webviewPanel.webview.postMessage({
+						type: "extension.wasm_uri",
+						payload: { uri: wasmUri.toString() },
+					});
 					webviewPanel.webview.postMessage({
 						type: "extension.open",
 						payload: { filePath: document.uri.fsPath },
@@ -181,6 +191,50 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 						type: "np3.paste_response",
 						payload: text,
 					});
+					return;
+				}
+
+				// Handle image loading for preview
+				if (message.type === "np3.open_image") {
+					const imgPayload = message.payload as { filePath?: string };
+					try {
+						let fileUri: vscode.Uri;
+						if (imgPayload?.filePath) {
+							// Re-request with known path (webview restore)
+							fileUri = vscode.Uri.file(imgPayload.filePath);
+						} else {
+							// Show file picker
+							const uris = await vscode.window.showOpenDialog({
+								filters: { Images: ["jpg", "jpeg", "png", "webp"] },
+								canSelectMany: false,
+							});
+							if (!uris || uris.length === 0) return;
+							fileUri = uris[0];
+						}
+
+						const fileData = await vscode.workspace.fs.readFile(fileUri);
+						if (fileData.byteLength > 10 * 1024 * 1024) {
+							vscode.window.showWarningMessage(
+								"Image too large for preview. Please use an image under 10MB.",
+							);
+							return;
+						}
+
+						// Convert to base64
+						const base64 = Buffer.from(fileData).toString("base64");
+						const filename = fileUri.fsPath.split(/[\\/]/).pop() || "image";
+
+						webviewPanel.webview.postMessage({
+							type: "np3.image_data",
+							payload: { data: base64, filename },
+						});
+					} catch (err) {
+						const errMsg = err instanceof Error ? err.message : "Failed to load image";
+						webviewPanel.webview.postMessage({
+							type: "error",
+							payload: { message: errMsg, code: "IMAGE_LOAD_FAILED" },
+						});
+					}
 					return;
 				}
 
@@ -387,6 +441,7 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, "webview.js"));
 		const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, "webview.css"));
+		const wasmExecUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, "wasm_exec.js"));
 
 		const nonce = getNonce();
 
@@ -395,12 +450,13 @@ export class Np3EditorPanel implements vscode.CustomReadonlyEditorProvider {
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}' 'wasm-unsafe-eval'; img-src ${webview.cspSource} blob: data:; connect-src ${webview.cspSource};">
 	<link rel="stylesheet" href="${styleUri}">
 	<title>Recipe NP3 Editor</title>
 </head>
 <body>
 	<div id="app"></div>
+	<script nonce="${nonce}" src="${wasmExecUri}"></script>
 	<script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
