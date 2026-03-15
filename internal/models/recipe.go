@@ -62,7 +62,7 @@ type UniversalRecipe struct {
 	// Metadata
 	Name         string `json:"name,omitempty" xml:"name,omitempty"`                 // Recipe name
 	Description  string `json:"description,omitempty" xml:"description,omitempty"`   // Recipe description (max 256 chars for NP3)
-	SourceFormat string `json:"sourceFormat,omitempty" xml:"sourceFormat,omitempty"` // Origin format: "np3", "xmp", "lrtemplate"
+	SourceFormat string `json:"sourceFormat,omitempty" xml:"sourceFormat,omitempty"` // Origin format: "np3" or "xmp"
 
 	// Basic Adjustments
 	Exposure   float64 `json:"exposure,omitempty" xml:"exposure,omitempty"`     // Exposure: -5.0 to +5.0

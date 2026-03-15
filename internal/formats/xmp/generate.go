@@ -1,7 +1,7 @@
 // Package xmp provides functionality for generating Adobe Lightroom CC XMP preset files.
 //
 // The XMP generator creates valid XML files from UniversalRecipe data, enabling
-// conversion from other preset formats (NP3, lrtemplate) to Lightroom CC XMP format.
+// conversion from other preset formats (NP3) to Lightroom CC XMP format.
 //
 // Generation Strategy:
 //   - Validate UniversalRecipe input (nil check, range validation)

@@ -13,7 +13,7 @@ type InspectOutput struct {
 // Metadata contains information about the inspection operation.
 type Metadata struct {
 	SourceFile    string `json:"source_file"`     // Original filename
-	SourceFormat  string `json:"source_format"`   // Detected format: "np3", "xmp", "lrtemplate"
+	SourceFormat  string `json:"source_format"`   // Detected format: "np3" or "xmp"
 	ParsedAt      string `json:"parsed_at"`       // ISO 8601 timestamp (UTC)
 	RecipeVersion string `json:"recipe_version"`  // Recipe tool version
 }

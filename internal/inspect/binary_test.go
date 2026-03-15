@@ -93,7 +93,6 @@ func TestBinaryDump_NonNP3Error(t *testing.T) {
 		expectError bool
 	}{
 		{"xmp", true},
-		{"lrtemplate", true},
 		{"np3", false},
 	}
 

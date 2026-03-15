@@ -93,8 +93,8 @@ func BenchmarkDiff_EndToEnd(b *testing.B) {
 
 // BenchmarkDiff_CrossFormat benchmarks NP3 vs XMP diff
 func BenchmarkDiff_CrossFormat(b *testing.B) {
-	np3File := "./../../examples/lrtemplate/015. PRESETPRO - Emulation K/00. E - auto tone.np3"
-	xmpFile := "./../../examples/lrtemplate/015. PRESETPRO - Emulation K/00. E - auto tone.xmp"
+	np3File := "./../../examples/np3/Denis Zeqiri/Classic Chrome.np3"
+	xmpFile := "./../../examples/xmp/sample.xmp"
 
 	// Check if files exist, skip if not
 	if _, err := os.Stat(np3File); os.IsNotExist(err) {

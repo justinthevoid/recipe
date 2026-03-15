@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SL Engine="1100">
- <E K="ICCProfile" V="fuji-pro-160ns-v.2-100%.icc"/>
- <E K="Name" V="Fuji Pro 160Ns V.2 100%"/>
- <E K="StyleSource" V="Styles"/>
- <E K="UUID" V="{92550FBE-D62F-40EB-95D5-4C890AA36A41}"/>
- <E K="HighlightRecovery" V="50.0"/>
- <E K="Midtone" V="0;0;0;0.0500000007450581"/>
-</SL>

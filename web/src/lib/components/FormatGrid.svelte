@@ -1,57 +1,21 @@
-<script>
-// Supported formats grid
-</script>
+<section class="py-20 px-4">
+	<div class="max-w-4xl mx-auto">
+		<div class="text-center mb-12">
+			<h2 class="text-2xl font-bold text-foreground">Supported Formats</h2>
+			<p class="mt-2 text-foreground-muted">Bidirectional conversion between Nikon NP3 and Adobe Lightroom XMP.</p>
+		</div>
 
-<section class="section">
-    <div class="container">
-        <div class="section-header">
-            <h2 class="section-title">Supported Formats</h2>
-            <p class="section-subtitle">
-                Bidirectional conversion between all major professional formats.
-            </p>
-        </div>
-
-        <div class="formats-grid">
-            <div class="format-card">
-                <div
-                    class="format-dot"
-                    style="background: var(--color-np3); box-shadow: 0 0 15px var(--color-np3);"
-                ></div>
-                <div class="format-name">NP3</div>
-                <div class="format-desc">Nikon Picture Control</div>
-            </div>
-            <div class="format-card">
-                <div
-                    class="format-dot"
-                    style="background: var(--color-xmp); box-shadow: 0 0 15px var(--color-xmp);"
-                ></div>
-                <div class="format-name">XMP</div>
-                <div class="format-desc">Adobe Lightroom CC</div>
-            </div>
-            <div class="format-card">
-                <div
-                    class="format-dot"
-                    style="background: var(--color-lrtemplate); box-shadow: 0 0 15px var(--color-lrtemplate);"
-                ></div>
-                <div class="format-name">lrtemplate</div>
-                <div class="format-desc">Lightroom Classic</div>
-            </div>
-            <div class="format-card">
-                <div
-                    class="format-dot"
-                    style="background: var(--color-costyle); box-shadow: 0 0 15px var(--color-costyle);"
-                ></div>
-                <div class="format-name">costyle</div>
-                <div class="format-desc">Capture One Style</div>
-            </div>
-            <div class="format-card">
-                <div
-                    class="format-dot"
-                    style="background: var(--color-dcp); box-shadow: 0 0 15px var(--color-dcp);"
-                ></div>
-                <div class="format-name">DCP</div>
-                <div class="format-desc">DNG Camera Profile</div>
-            </div>
-        </div>
-    </div>
+		<div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
+			{#each [
+				{ name: "NP3", desc: "Nikon Picture Control", color: "var(--color-aurora-violet)" },
+				{ name: "XMP", desc: "Adobe Lightroom CC", color: "var(--color-aurora-cyan)" },
+			] as format}
+				<div class="glass-regular rounded-xl p-5 text-center transition-all hover:-translate-y-1 hover:shadow-lg">
+					<div class="w-3 h-3 rounded-full mx-auto mb-3" style="background: {format.color}; box-shadow: 0 0 15px {format.color};"></div>
+					<div class="text-sm font-bold text-foreground">{format.name}</div>
+					<div class="text-xs text-foreground-muted mt-1">{format.desc}</div>
+				</div>
+			{/each}
+		</div>
+	</div>
 </section>

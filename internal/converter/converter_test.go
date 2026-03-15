@@ -33,16 +33,7 @@ func TestConvert_AllPaths(t *testing.T) {
 		ext  string
 	}{
 		{"NP3→XMP", FormatNP3, FormatXMP, "../../testdata/np3", ".np3"},
-		{"NP3→LRTemplate", FormatNP3, FormatLRTemplate, "../../testdata/np3", ".np3"},
 		{"XMP→NP3", FormatXMP, FormatNP3, "../../testdata/xmp", ".xmp"},
-		{"XMP→LRTemplate", FormatXMP, FormatLRTemplate, "../../testdata/xmp", ".xmp"},
-		{"LRTemplate→NP3", FormatLRTemplate, FormatNP3, "../../testdata/lrtemplate", ".lrtemplate"},
-		{"LRTemplate→XMP", FormatLRTemplate, FormatXMP, "../../testdata/lrtemplate", ".lrtemplate"},
-		// DISABLED: costyle format support
-		// {"Costyle→XMP", FormatCostyle, FormatXMP, "../../internal/formats/costyle/testdata/costyle", ".costyle"},
-		// {"Costyle→NP3", FormatCostyle, FormatNP3, "../../internal/formats/costyle/testdata/costyle", ".costyle"},
-		// {"XMP→Costyle", FormatXMP, FormatCostyle, "../../examples/xmp", ".xmp"},
-		// {"NP3→Costyle", FormatNP3, FormatCostyle, "../../examples/np3", ".np3"},
 	}
 
 	for _, tt := range tests {
@@ -149,14 +140,6 @@ func TestConvert_CorruptedInput(t *testing.T) {
 			"parse",
 			FormatXMP,
 		},
-		{
-			"lrtemplate invalid Lua",
-			[]byte("s = { this is not valid lua"),
-			FormatLRTemplate,
-			FormatNP3,
-			"parse",
-			FormatLRTemplate,
-		},
 	}
 
 	for _, tt := range tests {
@@ -198,14 +181,6 @@ func TestConvert_AutoDetect(t *testing.T) {
 </rdf:RDF>
 </x:xmpmeta>`)
 
-	lrtemplateData := []byte(`s = {
-	id = "test",
-	internalName = "Test Recipe",
-	value = {
-		settings = {}
-	}
-}`)
-
 	tests := []struct {
 		name        string
 		input       []byte
@@ -214,7 +189,6 @@ func TestConvert_AutoDetect(t *testing.T) {
 	}{
 		{"Auto-detect NP3", np3Data, FormatXMP, false},
 		{"Auto-detect XMP", xmpData, FormatNP3, false},
-		{"Auto-detect lrtemplate", lrtemplateData, FormatNP3, false},
 	}
 
 	for _, tt := range tests {
@@ -265,53 +239,6 @@ func TestDetectFormat_XMP(t *testing.T) {
 		t.Errorf("Expected %q, got %q", FormatXMP, format)
 	}
 }
-
-// TestDetectFormat_LRTemplate validates lrtemplate detection by Lua syntax
-func TestDetectFormat_LRTemplate(t *testing.T) {
-	lrtemplateData := []byte(`s = {
-	id = "test",
-	value = {}
-}`)
-
-	format, err := DetectFormat(lrtemplateData)
-	if err != nil {
-		t.Fatalf("Detection failed: %v", err)
-	}
-	if format != FormatLRTemplate {
-		t.Errorf("Expected %q, got %q", FormatLRTemplate, format)
-	}
-}
-
-// DISABLED: costyle format support
-// TestDetectFormat_Costyle validates costyle detection by SL Engine tag
-// func TestDetectFormat_Costyle(t *testing.T) {
-// 	costyleData := []byte(`<?xml version="1.0"?>
-// <SL Engine="1300">
-// 	<E K="Name" V="Test Preset" />
-// </SL>`)
-//
-// 	format, err := DetectFormat(costyleData)
-// 	if err != nil {
-// 		t.Fatalf("Detection failed: %v", err)
-// 	}
-// 	if format != FormatCostyle {
-// 		t.Errorf("Expected %q, got %q", FormatCostyle, format)
-// 	}
-// }
-//
-// TestDetectFormat_Costylepack validates costylepack detection by ZIP magic bytes
-// func TestDetectFormat_Costylepack(t *testing.T) {
-// 	// ZIP magic bytes: PK\x03\x04
-// 	costylepackData := []byte{0x50, 0x4B, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00}
-//
-// 	format, err := DetectFormat(costylepackData)
-// 	if err != nil {
-// 		t.Fatalf("Detection failed: %v", err)
-// 	}
-// 	if format != FormatCostylepack {
-// 		t.Errorf("Expected %q, got %q", FormatCostylepack, format)
-// 	}
-// }
 
 // TestDetectFormat_Invalid tests with unknown/corrupted files
 func TestDetectFormat_Invalid(t *testing.T) {
@@ -384,15 +311,10 @@ func TestConversionError_Warnings(t *testing.T) {
 
 // TestRoundTrip validates conversion accuracy (A→B→A should produce similar output)
 func TestRoundTrip(t *testing.T) {
-	// Skip detailed round-trip testing - this is covered by format-specific tests
-	// The converter's job is just to orchestrate, not to ensure round-trip accuracy
-	// Each format package (np3, xmp, lrtemplate) has its own round-trip tests
-
 	// Round-trip accuracy is validated by:
 	// 1. np3 package round-trip tests (np3 → UniversalRecipe → np3)
 	// 2. xmp package round-trip tests (xmp → UniversalRecipe → xmp)
-	// 3. lrtemplate package round-trip tests (lrtemplate → UniversalRecipe → lrtemplate)
-	// 4. TestConvert_AllPaths validates all 6 conversion paths work without errors
+	// 3. TestConvert_AllPaths validates all conversion paths work without errors
 
 	t.Log("✓ Round-trip conversion accuracy delegated to format-specific tests")
 }
@@ -412,28 +334,18 @@ func TestConvert_ThreadSafety(t *testing.T) {
 </rdf:RDF>
 </x:xmpmeta>`)
 
-	lrtemplateData := []byte(`s = {
-	id = "test",
-	internalName = "Test",
-	value = { settings = {} }
-}`)
-
 	// Run 100 concurrent conversions
 	const numGoroutines = 100
 	done := make(chan error, numGoroutines)
 
 	for i := 0; i < numGoroutines; i++ {
 		go func(index int) {
-			// Each goroutine performs a different conversion
-			switch index % 3 {
+			switch index % 2 {
 			case 0:
 				_, err := Convert(np3Data, FormatNP3, FormatXMP)
 				done <- err
 			case 1:
-				_, err := Convert(xmpData, FormatXMP, FormatLRTemplate)
-				done <- err
-			case 2:
-				_, err := Convert(lrtemplateData, FormatLRTemplate, FormatNP3)
+				_, err := Convert(xmpData, FormatXMP, FormatNP3)
 				done <- err
 			}
 		}(i)

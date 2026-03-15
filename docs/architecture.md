@@ -115,18 +115,7 @@ recipe/
 │   │   ├── xmp/                   # Adobe XMP (.xmp)
 │   │   │   ├── parse.go           # XML parsing with struct tags
 │   │   │   └── generate.go        # XML generation
-│   │   ├── lrtemplate/            # Lightroom Classic (.lrtemplate)
-│   │   │   ├── parse.go           # Lua table parsing
-│   │   │   └── generate.go        # Lua generation
-│   │   ├── dcp/                   # DNG Camera Profile (.dcp)
-│   │   │   ├── parse.go           # TIFF-based parsing
-│   │   │   ├── generate.go        # Profile generation
-│   │   │   └── tiff.go            # TIFF structure handling
-│   │   ├── nksc/                  # NX Studio sidecar (.nksc)
-│   │   │   ├── recipe.go          # NKSC recipe wrapper
-│   │   │   ├── mapper.go          # NP3 to NKSC mapping
-│   │   │   └── model.go           # NKSC XML model
-│   │   └── costyle/               # Capture One style (disabled)
+│   │   └── (other format packages archived)
 │   ├── inspect/                   # Preset inspection utilities
 │   ├── lut/                       # LUT processing
 │   ├── models/                    # Core data structures
@@ -154,9 +143,6 @@ recipe/
 ├── testdata/                      # Test fixtures (302 items)
 │   ├── np3/                       # Nikon Picture Control samples
 │   ├── xmp/                       # Adobe XMP samples
-│   ├── lrtemplate/                # Lightroom Classic samples
-│   ├── dcp/                       # DNG Camera Profile samples
-│   ├── nksc/                      # NX Studio sidecar samples
 │   └── nx-fixtures/               # NX Studio integration fixtures
 │
 ├── docs/                          # Documentation (25 files)
@@ -187,7 +173,7 @@ recipe/
 - **Epic 1: Web Interface** → WASM module, vanilla JS client, FileReader API, Cloudflare Pages
 - **Epic 2: CLI Interface** → Cobra CLI, converter.Convert() API, Makefile build
 - **Epic 3: TUI Interface** → Bubbletea TUI, converter.Convert() API
-- **Epic 4: Format Parsers** → internal/formats/{np3,xmp,lrtemplate}/, table-driven tests
+- **Epic 4: Format Parsers** → internal/formats/{np3,xmp}/, table-driven tests
 - **Epic 5: Round-Trip Testing** → testdata/ fixtures, benchmark suite
 
 ---
@@ -205,7 +191,7 @@ recipe/
 **Go Dependencies (go.mod):**
 ```go
 require (
-    github.com/google/tiff v0.0.0-20161109161721-4b31f3041d9a  // DCP parsing
+    github.com/google/tiff v0.0.0-20161109161721-4b31f3041d9a  // TIFF handling
     github.com/lucasb-eyer/go-colorful v1.3.0                  // Color space conversions
     github.com/spf13/cobra v1.10.1                             // CLI framework
     golang.org/x/image v0.34.0                                 // Image processing
@@ -466,7 +452,7 @@ import "fmt"
 
 type ConversionError struct {
     Operation string  // "parse", "generate", "validate"
-    Format    string  // "np3", "xmp", "lrtemplate"
+    Format    string  // "np3", "xmp"
     Cause     error   // Underlying error
 }
 
@@ -595,16 +581,16 @@ func TestRoundTrip_XMP_LRTemplate(t *testing.T) {
                 t.Fatalf("XMP parse failed: %v", err)
             }
 
-            // Step 2: Generate lrtemplate
-            lrtData, err := lrtemplate.Generate(orig)
+            // Step 2: Generate NP3
+            np3Data, err := np3.Generate(orig)
             if err != nil {
-                t.Fatalf("lrtemplate generate failed: %v", err)
+                t.Fatalf("NP3 generate failed: %v", err)
             }
 
-            // Step 3: Parse lrtemplate back
-            recovered, err := lrtemplate.Parse(lrtData)
+            // Step 3: Parse NP3 back
+            recovered, err := np3.Parse(np3Data)
             if err != nil {
-                t.Fatalf("lrtemplate parse failed: %v", err)
+                t.Fatalf("NP3 parse failed: %v", err)
             }
 
             // Step 4: Compare critical fields
@@ -786,11 +772,10 @@ import (
 var convertCmd = &cobra.Command{
     Use:   "convert [input] [output]",
     Short: "Convert preset between formats",
-    Long: `Convert photo presets between NP3, XMP, and lrtemplate formats.
+    Long: `Convert photo presets between NP3 and XMP formats.
 
 Examples:
   recipe convert portrait.np3 portrait.xmp
-  recipe convert portrait.xmp portrait.lrtemplate
   recipe convert --from np3 --to xmp portrait.np3`,
     Args: cobra.MinimumNArgs(1),
     RunE: runConvert,
@@ -1008,7 +993,7 @@ package model
 type UniversalRecipe struct {
     // Metadata
     Name         string `json:"name"`
-    SourceFormat string `json:"source_format"`  // "np3", "xmp", "lrtemplate"
+    SourceFormat string `json:"source_format"`  // "np3", "xmp"
 
     // Basic Adjustments
     Exposure     float64 `json:"exposure"`       // -5.0 to +5.0
@@ -1067,17 +1052,17 @@ type Point struct {
 
 **Parameter Mapping Strategy:**
 
-| NP3 Parameter | XMP Parameter | lrtemplate Parameter | Range | Offset |
-|---------------|---------------|----------------------|-------|--------|
-| Contrast (-100 to +100) | crs:Contrast2012 | Contrast2012 | -100 to +100 | 0x110 |
-| Highlights (-100 to +100) | crs:Highlights2012 | Highlights2012 | -100 to +100 | 0x11A |
-| Shadows (-100 to +100) | crs:Shadows2012 | Shadows2012 | -100 to +100 | 0x124 |
-| White Level (-100 to +100) | crs:Whites2012 | Whites2012 | -100 to +100 | 0x12E |
-| Black Level (-100 to +100) | crs:Blacks2012 | Blacks2012 | -100 to +100 | 0x138 |
-| Saturation (±3) | crs:Saturation | Saturation | -100 to +100 | 0x142 |
-| Hue (±9°) | crs:HueAdjustment* | HueAdjustment* | -180 to +180 | - |
-| Sharpness (0-9) | crs:Sharpness | Sharpness | 0 to 150 | - |
-| Brightness (±1) | crs:Exposure2012 | Exposure2012 | -5.0 to +5.0 | - |
+| NP3 Parameter | XMP Parameter | Range | Offset |
+|---------------|---------------|-------|--------|
+| Contrast (-100 to +100) | crs:Contrast2012 | -100 to +100 | 0x110 |
+| Highlights (-100 to +100) | crs:Highlights2012 | -100 to +100 | 0x11A |
+| Shadows (-100 to +100) | crs:Shadows2012 | -100 to +100 | 0x124 |
+| White Level (-100 to +100) | crs:Whites2012 | -100 to +100 | 0x12E |
+| Black Level (-100 to +100) | crs:Blacks2012 | -100 to +100 | 0x138 |
+| Saturation (±3) | crs:Saturation | -100 to +100 | 0x142 |
+| Hue (±9°) | crs:HueAdjustment* | -180 to +180 | - |
+| Sharpness (0-9) | crs:Sharpness | 0 to 150 | - |
+| Brightness (±1) | crs:Exposure2012 | -5.0 to +5.0 | - |
 
 **Note on Tone Parameters:** The Contrast, Highlights, Shadows, White Level, and Black Level parameters are the foundation of our XMP → NP3 conversion strategy. NP3 supports either these basic tone parameters OR a custom tone curve, but not both simultaneously. We prioritize direct parameter mapping for accuracy and simplicity.
 
@@ -1095,8 +1080,8 @@ recipe.Metadata["np3_unknown_bytes"] = "3A7F..."
 recipe.Metadata["xmp_point_curves"] = pointCurveJSON
 recipe.Metadata["xmp_parametric_curve"] = parametricCurveJSON
 
-// Preserve lrtemplate-specific fields
-recipe.Metadata["lrtemplate_version"] = "7.0"
+// Preserve format-specific fields
+recipe.Metadata["format_version"] = "7.0"
 ```
 
 ---
@@ -1112,8 +1097,8 @@ func Convert(input []byte, sourceFormat, targetFormat string) ([]byte, error)
 
 **Parameters:**
 - `input`: Raw bytes of source file
-- `sourceFormat`: One of "np3", "xmp", "lrtemplate"
-- `targetFormat`: One of "np3", "xmp", "lrtemplate"
+- `sourceFormat`: One of "np3", "xmp"
+- `targetFormat`: One of "np3", "xmp"
 
 **Returns:**
 - `[]byte`: Converted file bytes (ready to write to disk)
@@ -1123,7 +1108,7 @@ func Convert(input []byte, sourceFormat, targetFormat string) ([]byte, error)
 ```go
 type ConversionError struct {
     Operation string  // "parse", "generate", "validate"
-    Format    string  // "np3", "xmp", "lrtemplate"
+    Format    string  // "np3", "xmp"
     Cause     error   // Underlying error
 }
 ```
@@ -1787,7 +1772,7 @@ make clean        # Remove build artifacts
 
 **Rationale**:
 - Real-world validation (not synthetic test data)
-- Comprehensive coverage (22 NP3, 913 XMP, 544 lrtemplate)
+- Comprehensive coverage (73 NP3, 914 XMP)
 - Idiomatic Go testing pattern
 - Round-trip tests ensure fidelity
 - Catches edge cases synthetic data misses
@@ -1796,8 +1781,8 @@ make clean        # Remove build artifacts
 - ✅ High confidence in conversion accuracy
 - ✅ Real-world validation
 - ✅ Easy to add new test files (drop in testdata/)
-- ⚠️ Slower test runs (1,501 files to process)
-- ⚠️ Large testdata/ directory (~13 MB)
+- ⚠️ Slower test runs (987 files to process)
+- ⚠️ Large testdata/ directory
 
 **Optimization**:
 - Run quick tests by default (`go test`)

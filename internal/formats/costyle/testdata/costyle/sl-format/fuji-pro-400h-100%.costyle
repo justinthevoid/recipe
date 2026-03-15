@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SL Engine="1100">
- <E K="ICCProfile" V="fuji-pro-400h-100%.icc"/>
- <E K="Name" V="Fuji Pro 400H 100%"/>
- <E K="StyleSource" V="Styles"/>
- <E K="UUID" V="{8EA37179-2793-41B1-B68E-DB8E6047B65A}"/>
- <E K="HighlightRecovery" V="50.0"/>
- <E K="Midtone" V="0;0;0;0.0500000007450581"/>
-</SL>

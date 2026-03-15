@@ -441,7 +441,7 @@ func TestMetadataStory1_8Example3(t *testing.T) {
 			"highlight_saturation": recipe.SplitHighlightSaturation,
 			"balance":           recipe.SplitBalance,
 		}
-		recipe.Metadata["lrtemplate_split_toning"] = splitData
+		recipe.Metadata["format_split_toning"] = splitData
 	}
 
 	// Serialize and deserialize
@@ -456,7 +456,7 @@ func TestMetadataStory1_8Example3(t *testing.T) {
 	}
 
 	// Verify split toning data can be retrieved
-	if splitData, ok := result.Metadata["lrtemplate_split_toning"]; ok {
+	if splitData, ok := result.Metadata["format_split_toning"]; ok {
 		splitMap := splitData.(map[string]interface{})
 
 		// Verify values (JSON numbers are float64)
@@ -532,7 +532,7 @@ func TestMetadataKeyNamingConvention(t *testing.T) {
 	testKeys := []string{
 		"xmp_tone_curve_pv2012",
 		"xmp_hsl_adjustments",
-		"lrtemplate_split_toning",
+		"format_split_toning",
 		"np3_custom_data",
 		"effects_grain",
 		"format_specific_parameter",

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SL Engine="1100">
- <E K="ICCProfile" V="kodak-ektar-100-100%.icc"/>
- <E K="Name" V="Kodak Ektar 100 100%"/>
- <E K="StyleSource" V="Styles"/>
- <E K="UUID" V="{AFDB3136-CB8C-48B2-A9E6-16228C9B72E9}"/>
- <E K="HighlightRecovery" V="50.0"/>
- <E K="Midtone" V="0;0;0;0.0500000007450581"/>
-</SL>

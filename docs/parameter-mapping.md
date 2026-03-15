@@ -2,12 +2,14 @@
 
 ## Overview
 
-This document provides comprehensive parameter mapping rules for converting photo editing presets between NP3, XMP, and lrtemplate formats. The Recipe conversion engine uses a **hub-and-spoke pattern** where `UniversalRecipe` serves as the central hub, and each format implements bidirectional conversions (Parse and Generate).
+This document provides comprehensive parameter mapping rules for converting photo editing presets between NP3 and XMP formats. The Recipe conversion engine uses a **hub-and-spoke pattern** where `UniversalRecipe` serves as the central hub, and each format implements bidirectional conversions (Parse and Generate).
 
 **Key Concepts:**
-- **Direct Mapping**: Parameters with identical ranges and semantics (XMP ↔ lrtemplate)
-- **Approximation Mapping**: Parameters requiring formula-based range conversion (NP3 ↔ XMP/lrtemplate)
-- **Unmappable Parameters**: Advanced features present in XMP/lrtemplate but absent in NP3
+- **Direct Mapping**: Parameters with identical ranges and semantics
+- **Approximation Mapping**: Parameters requiring formula-based range conversion (NP3 ↔ XMP)
+- **Unmappable Parameters**: Advanced features present in XMP but absent in NP3
+
+**Note:** Support for lrtemplate, DCP, costyle, and nksc formats has been removed. Historical mapping tables for those formats are preserved below for reference but are no longer active in the codebase.
 
 **Visual Similarity Goal**: ≥95% visual similarity for common adjustments (Exposure, Contrast, Saturation)
 

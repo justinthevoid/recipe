@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SL Engine="1100">
- <E K="ICCProfile" V="fuji-pro-400h-faded-100%.icc"/>
- <E K="Name" V="Fuji Pro 400H Faded 100%"/>
- <E K="StyleSource" V="Styles"/>
- <E K="UUID" V="{3AF5AD31-22EB-4A50-869D-042DAD5C91BF}"/>
- <E K="HighlightRecovery" V="50.0"/>
- <E K="Midtone" V="0;0;0;0.0500000007450581"/>
-</SL>

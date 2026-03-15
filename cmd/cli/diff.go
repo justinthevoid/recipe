@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/justin/recipe/internal/formats/lrtemplate"
 	"github.com/justin/recipe/internal/formats/np3"
 	"github.com/justin/recipe/internal/formats/xmp"
 	"github.com/justin/recipe/internal/inspect"
@@ -80,13 +79,13 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	// Detect formats
 	format1, err := detectFormat(file1Path)
 	if err != nil {
-		return fmt.Errorf("unable to detect format for %s: %w\nSupported formats: .np3, .xmp, .lrtemplate", file1Path, err)
+		return fmt.Errorf("unable to detect format for %s: %w\nSupported formats: .np3, .xmp", file1Path, err)
 	}
 	logger.Debug("detected format", "file", file1Path, "format", format1)
 
 	format2, err := detectFormat(file2Path)
 	if err != nil {
-		return fmt.Errorf("unable to detect format for %s: %w\nSupported formats: .np3, .xmp, .lrtemplate", file2Path, err)
+		return fmt.Errorf("unable to detect format for %s: %w\nSupported formats: .np3, .xmp", file2Path, err)
 	}
 	logger.Debug("detected format", "file", file2Path, "format", format2)
 
@@ -144,8 +143,6 @@ func parseDiffFile(data []byte, format, filePath string) (*models.UniversalRecip
 		recipe, err = np3.Parse(data)
 	case FormatXMP:
 		recipe, err = xmp.Parse(data)
-	case FormatLRTemplate:
-		recipe, err = lrtemplate.Parse(data)
 	default:
 		return nil, fmt.Errorf("unsupported format: %s", format)
 	}

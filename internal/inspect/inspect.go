@@ -31,7 +31,7 @@ func ToJSON(recipe *models.UniversalRecipe) ([]byte, error) {
 // Parameters:
 //   - recipe: The parsed UniversalRecipe to serialize
 //   - sourceFile: The original file path (will be converted to basename)
-//   - format: The detected format ("np3", "xmp", "lrtemplate")
+//   - format: The detected format ("np3" or "xmp")
 //   - version: The Recipe tool version string
 //
 // Returns pretty-printed JSON with 2-space indentation.
