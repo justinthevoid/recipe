@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// TestBatch_100Files tests batch conversion of 100 files for performance (AC-3)
+// TestBatch_100Files tests batch conversion of 100 files for performance
 func TestBatch_100Files(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -58,7 +58,7 @@ func TestBatch_100Files(t *testing.T) {
 	}
 }
 
-// TestBatch_ErrorHandling tests continue-on-error and fail-fast modes (AC-5)
+// TestBatch_ErrorHandling tests continue-on-error and fail-fast modes
 func TestBatch_ErrorHandling(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -122,7 +122,7 @@ func TestBatch_ErrorHandling(t *testing.T) {
 	})
 }
 
-// TestBatch_OverwriteProtection tests overwrite behavior (AC-9)
+// TestBatch_OverwriteProtection tests overwrite behavior
 func TestBatch_OverwriteProtection(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -183,7 +183,7 @@ func TestBatch_OverwriteProtection(t *testing.T) {
 	}
 }
 
-// TestBatch_CustomOutputDirectory tests --output-dir flag (AC-6)
+// TestBatch_CustomOutputDirectory tests --output-dir flag
 func TestBatch_CustomOutputDirectory(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -229,7 +229,7 @@ func TestBatch_CustomOutputDirectory(t *testing.T) {
 	}
 }
 
-// TestBatch_JSONOutput tests --json flag output format (AC-7)
+// TestBatch_JSONOutput tests --json flag output format
 func TestBatch_JSONOutput(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -257,7 +257,7 @@ func TestBatch_JSONOutput(t *testing.T) {
 
 	outputStr := string(output)
 
-	// Verify JSON structure (AC-4: Check for required batch fields)
+	// Verify JSON structure (check for required batch fields)
 	if !strings.Contains(outputStr, "\"batch\"") {
 		t.Error("JSON output missing batch field")
 	}
@@ -283,7 +283,7 @@ func TestBatch_JSONOutput(t *testing.T) {
 	}
 }
 
-// TestBatch_GlobPatternValidation tests glob pattern error handling (AC-8)
+// TestBatch_GlobPatternValidation tests glob pattern error handling
 func TestBatch_GlobPatternValidation(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")

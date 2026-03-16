@@ -7,7 +7,7 @@ import (
 )
 
 // np3FieldMap maps byte offsets to human-readable field names and descriptions.
-// These offsets are based on reverse engineering documented in Epic 1.
+// These offsets are based on the NP3 format specification.
 // Source: internal/formats/np3/parse.go, internal/formats/np3/generate.go
 var np3FieldMap = map[int]fieldInfo{
 	// File structure (offsets 0-19)
@@ -41,7 +41,7 @@ var np3FieldMap = map[int]fieldInfo{
 	0x003E: {name: "Reserved (post-name)", formatter: nil},
 	0x003F: {name: "Reserved (post-name)", formatter: nil},
 
-	// Raw parameter bytes (offsets 64-79) - Epic 1 discovered offsets
+	// Raw parameter bytes (offsets 64-79)
 	0x0040: {name: "Raw Parameter (64)", formatter: formatRawParam},
 	0x0041: {name: "Raw Parameter (65)", formatter: formatRawParam},
 	// Sharpness: offsets 66-70 (5 bytes, same value)
@@ -100,7 +100,7 @@ type fieldInfo struct {
 //	[0x0002] 50  Magic Bytes ('P')
 //	[0x0042] 80  Sharpness (raw: 128, normalized: 0)
 func BinaryDump(data []byte, format string) (string, error) {
-	// Validate format is NP3 (AC-3)
+	// Validate format is NP3
 	if format != "np3" {
 		return "", fmt.Errorf("--binary flag only works with NP3 files\n%s files are %s-based text files. View them with any text editor.\nUse 'recipe inspect %s' for JSON parameter output.",
 			strings.ToUpper(format),
@@ -108,12 +108,12 @@ func BinaryDump(data []byte, format string) (string, error) {
 			getFormatType(format))
 	}
 
-	// Pre-allocate buffer for performance (AC-5)
+	// Pre-allocate buffer for performance
 	// Estimate: ~50-60 chars per line average, pre-allocate for better performance
 	var builder strings.Builder
 	builder.Grow(len(data) * 55) // Slightly more conservative estimate
 
-	// Check for invalid magic bytes (graceful degradation, AC-6)
+	// Check for invalid magic bytes (graceful degradation)
 	if len(data) >= 3 {
 		if data[0] != 'N' || data[1] != 'C' || data[2] != 'P' {
 			builder.WriteString(fmt.Sprintf("⚠ Warning: Invalid magic bytes (expected 'NCP', got '%c%c%c')\n",

@@ -22,7 +22,7 @@ func TestIntegration_BasicConversion(t *testing.T) {
 	outputFile := filepath.Join(tmpDir, "test.np3")
 
 	// Check if sample file exists
-	testDataPath := "../../testdata/xmp/portrait.xmp"
+	testDataPath := "testdata/xmp/AFGA APX 100.xmp"
 	if _, err := os.Stat(testDataPath); os.IsNotExist(err) {
 		t.Skipf("skipping: no test file available at %s", testDataPath)
 	}
@@ -99,7 +99,7 @@ func TestIntegration_OverwriteProtection(t *testing.T) {
 	outputFile := filepath.Join(tmpDir, "test.np3")
 
 	// Check if sample file exists
-	testDataPath := "../../testdata/xmp/portrait.xmp"
+	testDataPath := "testdata/xmp/AFGA APX 100.xmp"
 	if _, err := os.Stat(testDataPath); os.IsNotExist(err) {
 		t.Skipf("skipping: no test file available")
 	}

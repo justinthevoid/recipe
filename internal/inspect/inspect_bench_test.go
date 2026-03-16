@@ -10,7 +10,7 @@ import (
 	"github.com/justin/recipe/internal/models"
 )
 
-// BenchmarkToJSON measures JSON serialization performance (AC-7)
+// BenchmarkToJSON measures JSON serialization performance
 // Target: <5ms for typical UniversalRecipe
 func BenchmarkToJSON(b *testing.B) {
 	recipe := &models.UniversalRecipe{
@@ -48,7 +48,7 @@ func BenchmarkToJSON(b *testing.B) {
 	}
 }
 
-// BenchmarkToJSONWithMetadata measures full output generation (AC-7)
+// BenchmarkToJSONWithMetadata measures full output generation
 // Target: <5ms including metadata wrapper
 func BenchmarkToJSONWithMetadata(b *testing.B) {
 	recipe := &models.UniversalRecipe{
@@ -76,11 +76,11 @@ func BenchmarkToJSONWithMetadata(b *testing.B) {
 	}
 }
 
-// BenchmarkInspectEndToEnd measures complete workflow (AC-7)
+// BenchmarkInspectEndToEnd measures complete workflow
 // Target: <50ms for file read + parse + JSON (actual target is <100ms total)
 func BenchmarkInspectEndToEnd_NP3(b *testing.B) {
 	// Find a sample NP3 file
-	testFile := findTestFile(b, "../../testdata/xmp/sample.np3")
+	testFile := findTestFile(b, "testdata/np3/Classic Chrome.np3")
 	if testFile == "" {
 		b.Skip("No sample NP3 file found for benchmark")
 	}
@@ -109,7 +109,7 @@ func BenchmarkInspectEndToEnd_NP3(b *testing.B) {
 
 // BenchmarkInspectEndToEnd_XMP measures XMP format performance
 func BenchmarkInspectEndToEnd_XMP(b *testing.B) {
-	testFile := findTestFile(b, "../../testdata/xmp/*.xmp")
+	testFile := findTestFile(b, "testdata/xmp/*.xmp")
 	if testFile == "" {
 		b.Skip("No sample XMP file found for benchmark")
 	}

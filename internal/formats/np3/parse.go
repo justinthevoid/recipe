@@ -98,7 +98,7 @@ func Parse(data []byte) (*models.UniversalRecipe, error) {
 	}
 
 	// Validate Checksum (Phase 2 Enhancement)
-	// NOTE: The checksum algorithm is not yet fully reverse-engineered.
+	// NOTE: The checksum algorithm is not yet fully understood.
 	// Many valid NP3 files fail this check, so we log a warning instead of
 	// returning an error. This prevents blocking legitimate file parsing.
 	if err := validateChecksum(data); err != nil {
@@ -293,7 +293,7 @@ type rawParamByte struct {
 // extractParameters reads parameter values from NP3 binary data using heuristic analysis.
 //
 // Important: Unlike simple binary formats, Nikon's NP3 format does not have straightforward
-// byte-offset mappings for photo parameters. Based on reverse engineering and the legacy
+// byte-offset mappings for photo parameters. Based on format analysis and the legacy
 // Python implementation, parameter extraction requires intelligent heuristics that analyze:
 // - Raw parameter bytes (offsets 64-80)
 // - Color data (bytes 100-300, RGB triplets)

@@ -11,7 +11,7 @@ import (
 )
 
 // ToJSON serializes a UniversalRecipe to indented JSON.
-// Returns pretty-printed JSON with 2-space indentation (AC-1).
+// Returns pretty-printed JSON with 2-space indentation.
 func ToJSON(recipe *models.UniversalRecipe) ([]byte, error) {
 	if recipe == nil {
 		return nil, fmt.Errorf("recipe cannot be nil")
@@ -26,7 +26,7 @@ func ToJSON(recipe *models.UniversalRecipe) ([]byte, error) {
 }
 
 // ToJSONWithMetadata serializes a UniversalRecipe with metadata wrapper to indented JSON.
-// This is the primary function used by the inspect CLI command (AC-2).
+// This is the primary function used by the inspect CLI command.
 //
 // Parameters:
 //   - recipe: The parsed UniversalRecipe to serialize

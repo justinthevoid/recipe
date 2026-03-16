@@ -1,4 +1,4 @@
-.PHONY: cli cli-all tui tui-all clean wasm test branding
+.PHONY: cli cli-all clean wasm test branding
 
 # Version injection (git-based or override with VERSION=x.y.z)
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -14,18 +14,6 @@ cli-all:
 	GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o bin/recipe-darwin-amd64 cmd/cli/*.go
 	GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o bin/recipe-darwin-arm64 cmd/cli/*.go
 	GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o bin/recipe-windows-amd64.exe cmd/cli/*.go
-
-# Build TUI for current platform
-tui:
-	go build -o recipe-tui cmd/tui/*.go
-
-# Build TUI for all platforms
-tui-all:
-	mkdir -p bin
-	GOOS=linux GOARCH=amd64 go build -o bin/recipe-tui-linux-amd64 cmd/tui/*.go
-	GOOS=darwin GOARCH=amd64 go build -o bin/recipe-tui-darwin-amd64 cmd/tui/*.go
-	GOOS=darwin GOARCH=arm64 go build -o bin/recipe-tui-darwin-arm64 cmd/tui/*.go
-	GOOS=windows GOARCH=amd64 go build -o bin/recipe-tui-windows-amd64.exe cmd/tui/*.go
 
 # Build WASM module with size optimization (production)
 wasm:
@@ -75,20 +63,20 @@ profile-mem:
 	@echo "Memory profile generated: mem.prof"
 	@echo "View with: go tool pprof -http=:8080 mem.prof"
 
-# Build web interface (Astro + WASM)
+# Build web interface (Vite + WASM)
 web:
 	@echo "Building optimized web interface..."
 	@$(MAKE) wasm
 	cd web && npm run build
 	@echo "Web build complete! Output: web/dist/"
 
-# Start web dev server (Astro)
+# Start web dev server
 web-dev:
 	cd web && npm run dev
 
 # Clean build artifacts
 clean:
-	rm -f recipe recipe.exe recipe-tui recipe-tui.exe
+	rm -f recipe recipe.exe
 	rm -f coverage.out coverage.html
 	rm -f benchmarks.txt *.prof
 	rm -rf bin/
@@ -104,12 +92,3 @@ check-imports:
 	@go list -f '{{.ImportPath}}: {{join .Imports ", "}}' ./... | \
 		grep -E 'internal/formats.*(cmd/|internal/batch)' && \
 		echo "ERROR: Forbidden import detected" && exit 1 || echo "Import graph clean"
-
-# Download and verify test fixtures
-setup-fixtures:
-	go run scripts/download_fixtures.go
-
-# Check fixture documentation
-check-fixture-docs:
-	@[ -f testdata/nx-fixtures/README.md ] || (echo "ERROR: testdata/nx-fixtures/README.md missing" && exit 1)
-	@echo "All fixture directories documented."

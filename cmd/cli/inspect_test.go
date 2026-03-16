@@ -7,15 +7,15 @@ import (
 	"testing"
 )
 
-// TestInspectCommand_ValidFile verifies inspect works with valid files (AC-1, AC-3)
+// TestInspectCommand_ValidFile verifies inspect works with valid files
 func TestInspectCommand_ValidFile(t *testing.T) {
 	tests := []struct {
 		name   string
 		file   string
 		format string
 	}{
-		{"NP3 file", "../../testdata/xmp/sample.np3", "np3"},
-		{"XMP file", "../../testdata/xmp/sample.xmp", "xmp"},
+		{"NP3 file", "testdata/np3/Classic Chrome.np3", "np3"},
+		{"XMP file", "testdata/xmp/AFGA APX 100.xmp", "xmp"},
 	}
 
 	for _, tt := range tests {
@@ -32,14 +32,14 @@ func TestInspectCommand_ValidFile(t *testing.T) {
 	}
 }
 
-// TestInspectCommand_OutputFlag verifies --output flag (AC-4)
+// TestInspectCommand_OutputFlag verifies --output flag
 func TestInspectCommand_OutputFlag(t *testing.T) {
 	outputFile := "tmp_test_output.json"
 	defer os.Remove(outputFile)
 
 	// Run inspect with --output flag
 	cmd := rootCmd
-	cmd.SetArgs([]string{"inspect", "../../testdata/xmp/sample.np3", "--output", outputFile})
+	cmd.SetArgs([]string{"inspect", "testdata/np3/Classic Chrome.np3", "--output", outputFile})
 
 	err := cmd.Execute()
 	if err != nil {
@@ -70,14 +70,14 @@ func TestInspectCommand_OutputFlag(t *testing.T) {
 	}
 }
 
-// TestInspectCommand_OutputDirectoryCreation verifies parent directory creation (AC-4)
+// TestInspectCommand_OutputDirectoryCreation verifies parent directory creation
 func TestInspectCommand_OutputDirectoryCreation(t *testing.T) {
 	outputPath := filepath.Join("tmp_test_dir", "subdir", "output.json")
 	defer os.RemoveAll("tmp_test_dir")
 
 	// Run inspect with nested output path
 	cmd := rootCmd
-	cmd.SetArgs([]string{"inspect", "../../testdata/xmp/sample.np3", "--output", outputPath})
+	cmd.SetArgs([]string{"inspect", "testdata/np3/Classic Chrome.np3", "--output", outputPath})
 
 	err := cmd.Execute()
 	if err != nil {
@@ -90,7 +90,7 @@ func TestInspectCommand_OutputDirectoryCreation(t *testing.T) {
 	}
 }
 
-// TestInspectCommand_FileNotFound verifies error for missing file (AC-6)
+// TestInspectCommand_FileNotFound verifies error for missing file
 func TestInspectCommand_FileNotFound(t *testing.T) {
 	cmd := rootCmd
 	cmd.SetArgs([]string{"inspect", "nonexistent.xmp"})
@@ -106,7 +106,7 @@ func TestInspectCommand_FileNotFound(t *testing.T) {
 	}
 }
 
-// TestInspectCommand_UnknownFormat verifies error for unknown format (AC-5, AC-6)
+// TestInspectCommand_UnknownFormat verifies error for unknown format
 func TestInspectCommand_UnknownFormat(t *testing.T) {
 	// Create temp file with unknown extension
 	tmpFile := "tmp_test.txt"
@@ -130,7 +130,7 @@ func TestInspectCommand_UnknownFormat(t *testing.T) {
 	}
 }
 
-// TestInspectCommand_InvalidFileContent verifies parse error handling (AC-6)
+// TestInspectCommand_InvalidFileContent verifies parse error handling
 func TestInspectCommand_InvalidFileContent(t *testing.T) {
 	// Create temp file with invalid NP3 content
 	tmpFile := "tmp_invalid.np3"

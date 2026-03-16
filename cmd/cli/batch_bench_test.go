@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// BenchmarkBatch100Files benchmarks batch conversion of 100 files (AC-3)
+// BenchmarkBatch100Files benchmarks batch conversion of 100 files
 func BenchmarkBatch100Files(b *testing.B) {
 	// Setup: Create 100 test files
 	tmpDir := b.TempDir()

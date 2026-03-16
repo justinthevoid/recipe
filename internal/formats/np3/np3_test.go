@@ -13,8 +13,8 @@ import (
 func TestParse(t *testing.T) {
 	// Discover all .np3/.NP3 sample files
 	patterns := []string{
-		"../../../testdata/np3/*.np3",
-		"../../../testdata/np3/*.NP3",
+		"testdata/*.np3",
+		"testdata/*.NP3",
 	}
 
 	var testFiles []string
@@ -27,7 +27,7 @@ func TestParse(t *testing.T) {
 	}
 
 	if len(testFiles) == 0 {
-		t.Fatal("No NP3 test files found - expected files in testdata/np3/")
+		t.Fatal("No NP3 test files found - expected files in testdata/")
 	}
 
 	t.Logf("Found %d NP3 sample files", len(testFiles))
@@ -430,7 +430,7 @@ func findSubstring(s, substr string) bool {
 }
 
 // =============================================================================
-// Generator Tests (Story 1-3)
+// Generator Tests
 // =============================================================================
 
 // TestGenerate validates NP3 generation from UniversalRecipe
@@ -507,8 +507,8 @@ func TestGenerateNilRecipe(t *testing.T) {
 func TestRoundTrip(t *testing.T) {
 	// Discover all .np3/.NP3 sample files
 	patterns := []string{
-		"../../../testdata/np3/*.np3",
-		"../../../testdata/np3/*.NP3",
+		"testdata/*.np3",
+		"testdata/*.NP3",
 	}
 
 	var testFiles []string
@@ -521,7 +521,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 
 	if len(testFiles) == 0 {
-		t.Fatal("No NP3 test files found - expected files in testdata/np3/")
+		t.Fatal("No NP3 test files found - expected files in testdata/")
 	}
 
 	t.Logf("Testing round-trip on %d NP3 sample files", len(testFiles))
@@ -640,7 +640,7 @@ func TestGenerateEmptyName(t *testing.T) {
 }
 
 // TestGenerateBoundaryValues tests generation with min/max parameter values
-// SKIPPED: Requires confirmed chunk-to-parameter mappings (Story 1-2 finding)
+// SKIPPED: Requires confirmed chunk-to-parameter mappings
 func TestGenerateBoundaryValues(t *testing.T) {
 	t.Skip("Chunk-to-parameter mappings need visual testing confirmation before implementing specific value encoding")
 
@@ -715,8 +715,8 @@ func TestGenerateBoundaryValues(t *testing.T) {
 func TestParameterDiversity(t *testing.T) {
 	// Discover all .np3/.NP3 sample files
 	patterns := []string{
-		"../../../examples/np3/**/*.np3",
-		"../../../examples/np3/**/*.NP3",
+		"testdata/*.np3",
+		"testdata/*.NP3",
 	}
 
 	var testFiles []string

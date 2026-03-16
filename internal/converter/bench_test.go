@@ -9,7 +9,7 @@ import (
 
 // BenchmarkConvert_NP3_to_XMP measures NP3→XMP conversion performance
 func BenchmarkConvert_NP3_to_XMP(b *testing.B) {
-	sampleFile := "../../examples/np3/Denis Zeqiri/Classic Chrome.np3"
+	sampleFile := "testdata/np3/Classic Chrome.np3"
 	input, err := os.ReadFile(sampleFile)
 	if err != nil {
 		b.Skipf("No NP3 sample file found at %s: %v", sampleFile, err)
@@ -26,7 +26,7 @@ func BenchmarkConvert_NP3_to_XMP(b *testing.B) {
 
 // BenchmarkConvert_XMP_to_NP3 measures XMP→NP3 conversion performance
 func BenchmarkConvert_XMP_to_NP3(b *testing.B) {
-	sampleFile := "../../testdata/xmp/AFGA APX 100.xmp"
+	sampleFile := "testdata/xmp/AFGA APX 100.xmp"
 	input, err := os.ReadFile(sampleFile)
 	if err != nil {
 		b.Skipf("No XMP sample file found at %s: %v", sampleFile, err)

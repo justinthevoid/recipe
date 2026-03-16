@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TestBinaryDump_Format verifies output matches the expected format (AC-1).
+// TestBinaryDump_Format verifies output matches the expected format.
 func TestBinaryDump_Format(t *testing.T) {
 	// Create minimal NP3 file with magic bytes
 	data := make([]byte, 300)
@@ -46,7 +46,7 @@ func TestBinaryDump_Format(t *testing.T) {
 	}
 }
 
-// TestBinaryDump_KnownFields verifies minimum required fields are annotated (AC-2).
+// TestBinaryDump_KnownFields verifies minimum required fields are annotated.
 func TestBinaryDump_KnownFields(t *testing.T) {
 	// Create NP3 file with known field values
 	data := make([]byte, 300)
@@ -84,7 +84,7 @@ func TestBinaryDump_KnownFields(t *testing.T) {
 	}
 }
 
-// TestBinaryDump_NonNP3Error verifies error for non-NP3 formats (AC-3).
+// TestBinaryDump_NonNP3Error verifies error for non-NP3 formats.
 func TestBinaryDump_NonNP3Error(t *testing.T) {
 	testData := []byte("test data")
 
@@ -118,7 +118,7 @@ func TestBinaryDump_NonNP3Error(t *testing.T) {
 	}
 }
 
-// TestBinaryDump_CorruptFile tests graceful degradation with invalid magic bytes (AC-6).
+// TestBinaryDump_CorruptFile tests graceful degradation with invalid magic bytes.
 func TestBinaryDump_CorruptFile(t *testing.T) {
 	// Create corrupt NP3 file (wrong magic bytes)
 	data := make([]byte, 300)
@@ -142,7 +142,7 @@ func TestBinaryDump_CorruptFile(t *testing.T) {
 	}
 }
 
-// TestBinaryDump_CompleteCoverage verifies all bytes are displayed (AC-1).
+// TestBinaryDump_CompleteCoverage verifies all bytes are displayed.
 func TestBinaryDump_CompleteCoverage(t *testing.T) {
 	// Create small NP3 file
 	data := make([]byte, 100)
@@ -173,7 +173,7 @@ func TestBinaryDump_CompleteCoverage(t *testing.T) {
 	}
 }
 
-// TestFormatFieldValue tests normalization formulas (AC-2).
+// TestFormatFieldValue tests normalization formulas.
 func TestFormatFieldValue(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -232,20 +232,12 @@ func TestFormatFieldValue(t *testing.T) {
 	}
 }
 
-// TestBinaryDump_AllSamples tests with real NP3 sample files (AC-2, Pattern 7).
+// TestBinaryDump_AllSamples tests with real NP3 sample files.
 func TestBinaryDump_AllSamples(t *testing.T) {
 	// Find all NP3 samples
-	samples, err := filepath.Glob("../../testdata/xmp/sample.np3")
+	samples, err := filepath.Glob("testdata/np3/*.np3")
 	if err != nil {
 		t.Fatalf("Failed to find samples: %v", err)
-	}
-
-	// If no samples found in xmp dir, check np3 dir
-	if len(samples) == 0 {
-		samples, err = filepath.Glob("../../testdata/np3/*.np3")
-		if err != nil {
-			t.Fatalf("Failed to find samples: %v", err)
-		}
 	}
 
 	// If still no samples, skip test
@@ -294,7 +286,7 @@ func TestBinaryDump_AllSamples(t *testing.T) {
 	}
 }
 
-// BenchmarkBinaryDump validates performance target <10ms (AC-5).
+// BenchmarkBinaryDump validates performance target <10ms.
 func BenchmarkBinaryDump(b *testing.B) {
 	// Create typical NP3 file (~10KB)
 	data := make([]byte, 10*1024)
@@ -309,7 +301,7 @@ func BenchmarkBinaryDump(b *testing.B) {
 	}
 }
 
-// BenchmarkBinaryDump_LargeFile tests with maximum expected NP3 size (AC-5).
+// BenchmarkBinaryDump_LargeFile tests with maximum expected NP3 size.
 func BenchmarkBinaryDump_LargeFile(b *testing.B) {
 	// Create large NP3 file (~50KB)
 	data := make([]byte, 50*1024)

@@ -9,7 +9,7 @@ import (
 	"github.com/justin/recipe/internal/models"
 )
 
-// TestToJSON verifies JSON serialization of UniversalRecipe (AC-1)
+// TestToJSON verifies JSON serialization of UniversalRecipe
 func TestToJSON(t *testing.T) {
 	recipe := &models.UniversalRecipe{
 		Name:       "Test Preset",
@@ -66,7 +66,7 @@ func TestToJSON_NilRecipe(t *testing.T) {
 	}
 }
 
-// TestToJSONWithMetadata verifies metadata wrapper (AC-2)
+// TestToJSONWithMetadata verifies metadata wrapper
 func TestToJSONWithMetadata(t *testing.T) {
 	recipe := &models.UniversalRecipe{
 		Name:     "Test Preset",
@@ -88,7 +88,7 @@ func TestToJSONWithMetadata(t *testing.T) {
 		t.Fatalf("Failed to parse output JSON: %v", err)
 	}
 
-	// Verify metadata fields (AC-2)
+	// Verify metadata fields
 	if output.Metadata.SourceFile != "portrait.np3" {
 		t.Errorf("Expected source_file='portrait.np3', got '%s'", output.Metadata.SourceFile)
 	}
@@ -99,7 +99,7 @@ func TestToJSONWithMetadata(t *testing.T) {
 		t.Errorf("Expected recipe_version='2.0.0', got '%s'", output.Metadata.RecipeVersion)
 	}
 
-	// Verify timestamp is valid ISO 8601 (AC-2)
+	// Verify timestamp is valid ISO 8601
 	if output.Metadata.ParsedAt == "" {
 		t.Error("parsed_at timestamp is empty")
 	}
@@ -130,7 +130,7 @@ func TestToJSONWithMetadata_NilRecipe(t *testing.T) {
 	}
 }
 
-// TestJSONStructure verifies JSON follows conventions (AC-1)
+// TestJSONStructure verifies JSON follows conventions
 func TestJSONStructure(t *testing.T) {
 	recipe := &models.UniversalRecipe{
 		Name:       "Test",
@@ -146,7 +146,7 @@ func TestJSONStructure(t *testing.T) {
 
 	jsonStr := string(jsonBytes)
 
-	// Verify camelCase keys (AC-1)
+	// Verify camelCase keys
 	if !strings.Contains(jsonStr, `"source_file"`) {
 		t.Error("Expected snake_case 'source_file' in metadata")
 	}
@@ -168,13 +168,13 @@ func TestJSONStructure(t *testing.T) {
 		t.Error("Missing top-level 'parameters' key")
 	}
 
-	// Verify 2-space indentation (AC-1)
+	// Verify 2-space indentation
 	if !strings.Contains(jsonStr, "  \"metadata\":") || !strings.Contains(jsonStr, "  \"parameters\":") {
 		t.Error("JSON is not indented with 2 spaces at root level")
 	}
 }
 
-// TestAllUniversalRecipeFields verifies all fields are serialized (AC-1)
+// TestAllUniversalRecipeFields verifies all fields are serialized
 func TestAllUniversalRecipeFields(t *testing.T) {
 	recipe := &models.UniversalRecipe{
 		Name:          "Complete Test",

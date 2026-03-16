@@ -77,12 +77,12 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		Overwrite:       mustGetBool(cmd, "overwrite"),
 	}
 
-	// Validate target format (AC-8)
+	// Validate target format
 	if err := validateFormat(flags.To); err != nil {
 		return err
 	}
 
-	// Expand glob pattern (AC-1, AC-8)
+	// Expand glob pattern
 	files, err := filepath.Glob(pattern)
 	if err != nil {
 		return fmt.Errorf("invalid glob pattern: %w", err)
@@ -97,10 +97,10 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Display result using unified output function (AC-4, AC-7)
+	// Display result using unified output function
 	outputBatchResult(*result, flags.JSON)
 
-	// Exit code 1 if any errors (AC-5)
+	// Exit code 1 if any errors
 	if result.ErrorCount > 0 {
 		return fmt.Errorf("batch completed with %d errors", result.ErrorCount)
 	}
@@ -108,17 +108,17 @@ func runBatch(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// processBatch processes all files using a worker pool pattern (AC-2)
+// processBatch processes all files using a worker pool pattern
 func processBatch(files []string, flags BatchFlags) (*BatchResult, error) {
 	// Start timing for batch processing
 	startTime := time.Now()
 
-	// Log batch start (AC-7)
+	// Log batch start
 	logger.Info("starting batch conversion",
 		"count", len(files),
 		"target", flags.To)
 
-	// Determine worker pool size (AC-2)
+	// Determine worker pool size
 	numWorkers := runtime.NumCPU()
 	if flags.Parallel > 0 {
 		numWorkers = flags.Parallel
@@ -130,11 +130,11 @@ func processBatch(files []string, flags BatchFlags) (*BatchResult, error) {
 	results := make(chan ConversionResult, len(files))
 	stopChan := make(chan struct{})
 
-	// Progress tracking (AC-4)
+	// Progress tracking
 	var processed atomic.Int32
 	total := len(files)
 
-	// Worker pool (AC-2)
+	// Worker pool
 	var wg sync.WaitGroup
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
@@ -152,11 +152,11 @@ func processBatch(files []string, flags BatchFlags) (*BatchResult, error) {
 	close(results)
 	close(stopChan)
 
-	// Aggregate results (AC-7)
+	// Aggregate results
 	result := aggregateResults(results, total)
 	result.DurationMs = time.Since(startTime).Milliseconds()
 
-	// Log batch completion (AC-7)
+	// Log batch completion
 	logger.Info("batch complete",
 		"success", result.SuccessCount,
 		"error", result.ErrorCount,
@@ -165,7 +165,7 @@ func processBatch(files []string, flags BatchFlags) (*BatchResult, error) {
 	return result, nil
 }
 
-// worker processes files from the jobs channel (AC-2)
+// worker processes files from the jobs channel
 func worker(
 	jobs <-chan string,
 	results chan<- ConversionResult,
@@ -189,10 +189,10 @@ func worker(
 		result := convertSingleFileForBatch(inputPath, flags)
 		results <- result
 
-		// Update progress (AC-4)
+		// Update progress
 		p := processed.Add(1)
 
-		// Log per-file progress in verbose mode (AC-7)
+		// Log per-file progress in verbose mode
 		logger.Debug("processing file",
 			"index", p,
 			"total", total,
@@ -202,7 +202,7 @@ func worker(
 			fmt.Fprintf(os.Stderr, "\rProcessing %d/%d files...", p, total)
 		}
 
-		// Fail-fast mode: signal stop on error (AC-5)
+		// Fail-fast mode: signal stop on error
 		if flags.FailFast && !result.Success {
 			return
 		}
@@ -218,7 +218,7 @@ func convertSingleFileForBatch(inputPath string, flags BatchFlags) ConversionRes
 		TargetFormat: flags.To,
 	}
 
-	// Auto-detect source format if not specified (AC-10 - reuse from Story 3-2)
+	// Auto-detect source format if not specified
 	sourceFormat := flags.From
 	if sourceFormat == "" {
 		var err error
@@ -238,7 +238,7 @@ func convertSingleFileForBatch(inputPath string, flags BatchFlags) ConversionRes
 	}
 	result.SourceFormat = sourceFormat
 
-	// Generate output path (AC-6 - reuse from Story 3-2)
+	// Generate output path
 	var outputPath string
 	if flags.OutputDir != "" {
 		// Custom output directory
@@ -250,7 +250,7 @@ func convertSingleFileForBatch(inputPath string, flags BatchFlags) ConversionRes
 	}
 	result.Output = outputPath
 
-	// Check overwrite protection (AC-9 - reuse from Story 3-2)
+	// Check overwrite protection
 	if err := checkOutputExists(outputPath, flags.Overwrite); err != nil {
 		result.Error = "file already exists"
 		result.DurationMs = time.Since(start).Milliseconds()
@@ -265,7 +265,7 @@ func convertSingleFileForBatch(inputPath string, flags BatchFlags) ConversionRes
 		return result
 	}
 
-	// Convert (AC-10 - single API call to converter)
+	// Convert via single API call
 	outputBytes, err := converter.Convert(inputBytes, sourceFormat, flags.To)
 	if err != nil {
 		result.Error = fmt.Sprintf("conversion failed: %v", err)
@@ -273,7 +273,7 @@ func convertSingleFileForBatch(inputPath string, flags BatchFlags) ConversionRes
 		return result
 	}
 
-	// Ensure output directory exists (AC-6)
+	// Ensure output directory exists
 	if err := ensureOutputDir(outputPath); err != nil {
 		result.Error = fmt.Sprintf("failed to create output directory: %v", err)
 		result.DurationMs = time.Since(start).Milliseconds()
@@ -294,10 +294,10 @@ func convertSingleFileForBatch(inputPath string, flags BatchFlags) ConversionRes
 	return result
 }
 
-// aggregateResults collects and aggregates all conversion results (AC-7)
+// aggregateResults collects and aggregates all conversion results
 func aggregateResults(results <-chan ConversionResult, expectedTotal int) *BatchResult {
 	batch := &BatchResult{
-		Batch:   true, // AC-4: Batch field identifies batch operation
+		Batch:   true,
 		Results: make([]ConversionResult, 0, expectedTotal),
 	}
 

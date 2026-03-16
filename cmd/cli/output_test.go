@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestConversionResultJSONMarshaling tests JSON marshaling of ConversionResult (AC-2)
+// TestConversionResultJSONMarshaling tests JSON marshaling of ConversionResult
 func TestConversionResultJSONMarshaling(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -124,7 +124,7 @@ func TestConversionResultJSONMarshaling(t *testing.T) {
 	}
 }
 
-// TestBatchResultJSONMarshaling tests JSON marshaling of BatchResult (AC-4)
+// TestBatchResultJSONMarshaling tests JSON marshaling of BatchResult
 func TestBatchResultJSONMarshaling(t *testing.T) {
 	result := BatchResult{
 		Batch:        true,
@@ -209,7 +209,7 @@ func TestBatchResultJSONMarshaling(t *testing.T) {
 	}
 }
 
-// TestJSONFieldNaming verifies snake_case field names (AC-5)
+// TestJSONFieldNaming verifies snake_case field names
 func TestJSONFieldNaming(t *testing.T) {
 	result := ConversionResult{
 		Input:         "test.xmp",
@@ -260,7 +260,7 @@ func TestJSONFieldNaming(t *testing.T) {
 	}
 }
 
-// TestFormatMilliseconds tests millisecond formatting (AC-2)
+// TestFormatMilliseconds tests millisecond formatting
 func TestFormatMilliseconds(t *testing.T) {
 	tests := []struct {
 		ms   int64

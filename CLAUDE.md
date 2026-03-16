@@ -12,8 +12,6 @@ Recipe is a photo preset converter that converts between Nikon NP3 and Adobe Lig
 - **Accuracy**: 98%+ conversion fidelity via exact offset mapping (48 NP3 parameters)
 - **Architecture**: Hub-and-spoke pattern with UniversalRecipe intermediate representation
 
-**Note**: TUI interface is archived in `.archive/tui/`. Support for lrtemplate, DCP, costyle, and nksc formats has been removed.
-
 ## Technology Stack
 
 | Component | Technology | Notes |
@@ -44,7 +42,7 @@ make cli-all
 ### Testing
 
 ```bash
-# Run all tests (987 sample files: 73 NP3 + 914 XMP)
+# Run all tests (uses committed fixtures in package-level testdata/ dirs)
 go test ./...
 
 # Run tests with verbose output
@@ -57,7 +55,7 @@ go test ./internal/converter/
 # Run specific test
 go test -run TestRoundTrip_NP3_XMP ./internal/converter/
 
-# Run with coverage (current: 89.5%)
+# Run with coverage
 make coverage
 
 # Generate HTML coverage report
@@ -140,7 +138,7 @@ cmd/
 internal/
 ├── converter/     # Core conversion engine (single source of truth)
 ├── formats/       # Format parsers/generators
-│   ├── np3/       # Nikon binary format (35 files)
+│   ├── np3/       # Nikon binary format
 │   └── xmp/       # Adobe Lightroom XML
 ├── models/        # UniversalRecipe data structures
 ├── inspect/       # Parameter inspection and diff tools
@@ -165,15 +163,15 @@ web/               # Vite + Svelte 5 frontend
 ├── vite.config.js         # Vite configuration
 └── svelte.config.js       # Svelte configuration
 
-testdata/          # 987 real sample files (73 NP3, 914 XMP)
-docs/              # Core documentation (user guides, format specs, architecture)
-.reverse-engineering/      # Reverse engineering artifacts
-├── docs/          # NX Studio analysis, research findings
-└── scripts/       # Python RE scripts (88 files)
-.archive/          # Archived implementation artifacts
-├── tui/           # Bubbletea TUI (archived)
-└── docs/          # Epic/story/retrospective docs
-scripts/           # Build utility scripts (benchmark, WASM build)
+docs/              # Core documentation
+├── architecture.md
+├── known-conversion-limitations.md
+├── np3-format-specification.md
+└── parameter-mapping.md
+
+extension/         # VSCode extension (work in progress)
+webview/           # Webview UI for VSCode extension
+packages/          # Shared packages
 ```
 
 ### Format Package Pattern
@@ -184,31 +182,32 @@ scripts/           # Build utility scripts (benchmark, WASM build)
 internal/formats/{format}/
 ├── parse.go          # Parse([]byte) (*UniversalRecipe, error)
 ├── generate.go       # Generate(*UniversalRecipe) ([]byte, error)
-└── {format}_test.go  # Table-driven tests with real samples
+├── {format}_test.go  # Table-driven tests with real samples
+└── testdata/         # Committed test fixtures
 ```
 
 **When adding a new format:**
 1. Copy the structure from an existing format package
 2. Implement Parse() and Generate() functions
-3. Add test files to `testdata/{format}/`
+3. Add test fixtures to `internal/formats/{format}/testdata/`
 4. Update `converter.Convert()` switch statements
 
 ## Key Implementation Details
 
 ### NP3 Binary Format
 
-The NP3 (Nikon Picture Control) format is a proprietary binary format that was reverse-engineered through clean-room analysis.
+The NP3 (Nikon Picture Control) format is a proprietary binary format analyzed through clean-room methods for interoperability.
 
 **Critical implementation notes:**
 - Magic bytes: "NCP" (0x4E, 0x43, 0x50)
 - Fixed size: 1024 bytes
 - Parameters stored at fixed byte offsets (documented in `docs/np3-format-specification.md`)
 - Uses signed byte normalization (128 = zero point, ±127 = ±100%)
-- Phase 5 implementation includes exact offset mapping for 48 parameters
+- Exact offset mapping for 48 parameters
 
 **Key files:**
-- `internal/formats/np3/parse.go` - Binary parsing logic (44KB)
-- `internal/formats/np3/generate.go` - Binary generation logic (37KB)
+- `internal/formats/np3/parse.go` - Binary parsing logic
+- `internal/formats/np3/generate.go` - Binary generation logic
 - `internal/formats/np3/offsets.go` - Byte offset definitions
 - `docs/np3-format-specification.md` - Complete format documentation
 
@@ -232,7 +231,7 @@ The NP3 (Nikon Picture Control) format is a proprietary binary format that was r
 - `UploadZone.svelte` - Drag-and-drop file upload
 - `FileList.svelte` / `FileCard.svelte` - File management
 - `ActionPanel.svelte` - Conversion controls
-- `PreviewModal.svelte` - Preset preview with adjustable parameters (40KB)
+- `PreviewModal.svelte` - Preset preview with adjustable parameters
 - `SVGFilters.svelte` - CSS-based preset preview filters
 - `Histogram.svelte` - Image histogram visualization
 
@@ -246,7 +245,7 @@ The NP3 (Nikon Picture Control) format is a proprietary binary format that was r
 - Glassmorphism design system
 - CSS custom properties for theming
 - Mobile-responsive grid layouts
-- `app.css` contains all global styles (17KB)
+- `app.css` contains all global styles
 
 ### Error Handling Pattern
 
@@ -260,77 +259,11 @@ type ConversionError struct {
 }
 ```
 
-## Nikon NX Studio Reverse Engineering
-
-> **IMPORTANT**: Extensive reverse engineering documentation exists in `docs/` from Codex deep-dive sessions.
-
-### Key Documents
-
-| File | Description |
-|------|-------------|
-| `docs/NXSTUDIO_FINDINGS.md` | NX Studio directory analysis, Picture Control system |
-| `docs/REVERSE_ENGINEERING_SUMMARY.md` | Comprehensive binary analysis summary |
-| `docs/PICCON21_ANALYSIS.md` | PicCon21.bin calibration data structure |
-| `docs/ADOBE_DCP_ANALYSIS.md` | Adobe DCP profile color matrices extracted |
-| `docs/FINAL_CONCLUSIONS.md` | Root cause analysis and recommendations |
-| `docs/reverse_engineering/` | 12 detailed analysis files |
-
-### Critical Findings
-
-**Nikon's Color Processing Architecture:**
-1. **Polaris.dll** (3.5 MB) - Main color processing engine, ICC/ICM profile management
-2. **Rome2.dll** (9.7 MB) - Rendering, color balance, LCH color space editing
-3. **picture_control.n5m** (266 KB) - Picture Control service, custom curves
-
-**PicCon21.bin Discovery:**
-- Contains 5600x3728 14-bit RAW calibration image (23 MB compressed)
-- Compression type 34713 (Nikon proprietary NEF)
-- Used for color calibration chart reference
-
-**Picture Control Types:**
-- Standard: STANDARD, NEUTRAL, VIVID, PORTRAIT, LANDSCAPE, FLAT
-- Monochrome: BW, FLAT_MONOCHROME, DEEP_TONE_MONOCHROME
-- Creative: FLEXIBLE_COLOR, RICH_TONE_PORTRAIT (and 20+ numbered presets)
-
-**Adobe DCP Color Matrices (Nikon Z f):**
-```
-Color Matrix 2 (D65 Daylight):
-[ 1.1607  -0.4491  -0.0977 ]   ← Blue in red = NEGATIVE (cool shift)
-[-0.4522   1.2460   0.2304 ]
-[-0.0458   0.1519   0.7616 ]   ← Blue diagonal too low
-```
-
-**Root Cause of Color Mismatch:**
-- Adobe uses negative blue→red coefficient (-0.0977) causing cooler reds
-- Nikon likely uses positive value (+0.05) for warmer rendering
-- Temperature compensation (+1000K) failed because it shifts white point, not matrix coefficients
-- Solution: Create custom DCP with modified Color Matrix 2
-
-### Analysis Scripts
-
-Key Python scripts in `scripts/` for research:
-- `reverse_engineer_nx.py` - Comprehensive DLL analysis
-- `find_nikon_matrices.py` - Matrix pattern search
-- `extract_dcp_lut.py` - DCP LUT extraction
-- `process_piccon21_calibration.py` - Calibration data processing
-- `frida_*.js` / `run_frida_*.bat` - Runtime hooking scripts
-
-**NX Studio Binaries (copied to testdata/nxstudio/):**
-```
-testdata/nxstudio/
-├── PicCon.bin          (legacy Picture Control DB, 9.2 MB)
-├── PicCon21.bin        (modern Picture Control DB, 26 MB)
-├── Polaris.dll         (color engine, 3.5 MB)
-├── Rome2.dll           (render engine, 9.7 MB)
-├── prm.bin             (camera calibration parameters, 17 MB)
-└── Services/picture_control.n5m (Picture Control service, 266 KB)
-```
-
 ## Testing Strategy
 
-**987 real sample files across both formats:**
-- 73 NP3 files
-- 914 XMP files
+**Committed test fixtures in package-level testdata/ directories:**
+- 3-5 representative fixtures per format per package
+- Existing `curve_tests/` synthetic fixtures in `internal/formats/np3/testdata/`
 
 **Round-trip testing validates conversion fidelity:**
 - Full fidelity path: NP3↔XMP
@@ -338,8 +271,8 @@ testdata/nxstudio/
 
 **Test execution:**
 - Tests complete in <2 seconds (parallel execution)
-- Coverage: 89.5% across internal packages
 - All tests use table-driven pattern with real files
+- No external data downloads needed — `go test ./...` works out of the box
 
 ### WASM Implementation
 
@@ -361,8 +294,8 @@ func convertPreset(inputPtr, inputLen uint32, srcFormat, dstFormat string) (uint
 ### Format Limitations
 
 **NP3 format has limited parameter support compared to XMP:**
-- ❌ Not supported: Vibrance, Temperature/Tint, Grain Size/Roughness, Vignette, Custom Tone Curves (Point Curves and Parametric Curves)
-- ✅ Well supported: Exposure, Contrast, Saturation, Sharpness, Highlights, Shadows, Whites, Blacks, Clarity, HSL Color, Color Grading
+- Not supported: Vibrance, Temperature/Tint, Grain Size/Roughness, Vignette, Custom Tone Curves (Point Curves and Parametric Curves)
+- Well supported: Exposure, Contrast, Saturation, Sharpness, Highlights, Shadows, Whites, Blacks, Clarity, HSL Color, Color Grading
 
 **IMPORTANT - XMP → NP3 Tone Adjustment Strategy:**
 
@@ -394,7 +327,6 @@ When converting XMP → NP3, we use direct parameter mapping instead of generati
 - NP3 cannot use both curves AND basic parameters simultaneously
 - Direct parameter mapping is simpler, more accurate, and faster
 - Previous curve generation attempts (257-entry LUT) failed to achieve acceptable visual fidelity
-- See `docs/implementation-artifacts/sprint-change-proposal-2025-12-24.md` for full technical analysis
 
 **NP3 Format Variants** (discovered via analysis of 160 samples):
 - **392 bytes**: Minimal/compact format (chunk-based encoding) - 12 files
@@ -405,7 +337,7 @@ When converting XMP → NP3, we use direct parameter mapping instead of generati
   - Temperature/Tint/Vibrance likely present in extended variants (unconfirmed)
 
 **Temperature/Tint/Vibrance Investigation Results**:
-- ❌ NOT FOUND in 480-byte standard format after analyzing 160 samples
+- NOT FOUND in 480-byte standard format after analyzing 160 samples
 - Statistical analysis: Only 1 high-variance offset found (0xF2 = MidRangeSharpening)
 - Hypothesis: These parameters may exist in 978-1,140 byte extended variants or use proprietary encoding
 
@@ -416,10 +348,10 @@ When converting XMP → NP3, we use direct parameter mapping instead of generati
 ### Performance Requirements
 
 **All conversions must meet these targets:**
-- WASM: <100ms (actual: 0.003-0.079ms) ✅
-- CLI: <20ms (actual: 0.003-0.079ms) ✅
-- Batch (100 files): <2s (actual: 37ms) ✅
-- Memory: <4096 B/op (actual: 8,890-29,026 B/op) ✅
+- WASM: <100ms (actual: 0.003-0.079ms)
+- CLI: <20ms (actual: 0.003-0.079ms)
+- Batch (100 files): <2s (actual: 37ms)
+- Memory: <4096 B/op (actual: 8,890-29,026 B/op)
 
 ### Privacy Guarantee
 
@@ -467,37 +399,22 @@ git push origin v2.x.x
 # GitHub Actions automatically builds all binaries
 ```
 
-## Useful Documentation
+## Documentation
 
-**Must-read for new contributors:**
-- `docs/architecture.md` - Complete architecture with ADRs
+- `docs/architecture.md` - Architecture decisions
 - `docs/np3-format-specification.md` - NP3 binary format details
 - `docs/parameter-mapping.md` - Cross-format parameter mapping
-- `docs/PRD.md` - Product requirements and user stories
-
-**Reverse Engineering:**
-- `docs/FINAL_CONCLUSIONS.md` - Root cause analysis for color issues
-- `docs/REVERSE_ENGINEERING_SUMMARY.md` - Binary analysis details
-- `docs/ADOBE_DCP_ANALYSIS.md` - Adobe profile color matrices
-- `docs/reverse_engineering/REVERSE_ENGINEERING_REPORT.md` - Full report
-
-**For specific tasks:**
-- `docs/browser-compatibility.md` - Web interface browser support
-- `docs/performance-benchmarks.md` - Benchmark methodology
-- `docs/format-compatibility-matrix.md` - Conversion accuracy matrix
 - `docs/known-conversion-limitations.md` - Format-specific limitations
 
 ## Legal and Compliance
 
-**Reverse engineering disclosure:**
-- NP3 format reverse-engineered through clean-room analysis
+**Format analysis disclosure:**
+- NP3 format analyzed through clean-room methods for interoperability
 - Protected under DMCA Section 1201(f) for interoperability
-- Recommended for private/personal use until full legal assessment
 
 **Privacy commitment:**
 - Zero server uploads (all processing local/client-side)
 - No analytics or tracking
-- See `docs/faq.md` for complete privacy FAQ
 
 ## Quick Reference for Agents
 
@@ -520,9 +437,3 @@ git push origin v2.x.x
 | Web UI changes | `web/src/lib/components/*.svelte`, `web/src/app.css` |
 | WASM exports | `cmd/wasm/main.go`, `web/src/lib/wasm.js` |
 | Preview filters | `web/src/lib/svg-logic.js`, `SVGFilters.svelte` |
-
-### Files to Never Touch
-
-- `testdata/` samples (reference files for tests)
-- `testdata/nxstudio/` binaries (copyrighted Nikon files)
-- Binary analysis output in `docs/reverse_engineering/*.json`
