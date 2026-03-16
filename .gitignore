@@ -29,7 +29,6 @@ node_modules/
 output/Logfile.XML
 
 # Extension build artifacts
-bun.lock
 extension/bin/
 extension/dist/
 
