@@ -22,6 +22,11 @@
 		"build:extension": "bun run --filter '@recipe/extension' build",
 		"build:webview": "bun run --filter '@recipe/webview' build"
 	},
+	"overrides": {
+		"devalue": ">=5.6.4",
+		"rollup": ">=4.59.0",
+		"svelte": ">=5.53.12"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4"
 	}
