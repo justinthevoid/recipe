@@ -1,0 +1,27 @@
+{
+  "name": "@recipe/remotion",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio",
+    "render:logo": "remotion still Logo --image-format=png ../public/recipe-logo.png",
+    "render:og": "remotion still OGImage --image-format=png ../public/og-image.png",
+    "render:all": "bun run render:logo && bun run render:og"
+  },
+  "dependencies": {
+    "remotion": "4.0.426",
+    "@remotion/cli": "4.0.426",
+    "@remotion/google-fonts": "4.0.426",
+    "@remotion/tailwind-v4": "4.0.426",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.0.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/postcss": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/react": "^19.0.0"
+  }
+}

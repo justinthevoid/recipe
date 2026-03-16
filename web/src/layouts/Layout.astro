@@ -1,0 +1,85 @@
+---
+import "../styles/app.css";
+
+const title = "Recipe — Convert Nikon Picture Controls to Lightroom Presets (NP3 ↔ XMP)";
+const description = "Free browser-based converter for Nikon Picture Control (.np3) and Adobe Lightroom (.xmp) presets. 48 parameters mapped instantly. No uploads, no account. Powered by ShutterCoach.";
+const siteUrl = "https://recipe.shuttercoach.app";
+const ogImage = `${siteUrl}/og-image.png`;
+
+const softwareAppSchema = {
+	"@context": "https://schema.org",
+	"@type": "SoftwareApplication",
+	name: "Recipe",
+	description,
+	applicationCategory: "MultimediaApplication",
+	operatingSystem: "Web",
+	offers: {
+		"@type": "Offer",
+		price: "0",
+		priceCurrency: "USD",
+	},
+	creator: {
+		"@type": "Organization",
+		name: "ShutterCoach",
+		url: "https://shuttercoach.app",
+	},
+};
+
+const faqSchema = {
+	"@context": "https://schema.org",
+	"@type": "FAQPage",
+	mainEntity: [
+		{
+			"@type": "Question",
+			name: "Is my data private?",
+			acceptedAnswer: {
+				"@type": "Answer",
+				text: "Yes. Recipe processes files entirely in your browser using WebAssembly. No files are uploaded to any server. No analytics, no tracking, no accounts.",
+			},
+		},
+		{
+			"@type": "Question",
+			name: "Is Recipe legal?",
+			acceptedAnswer: {
+				"@type": "Answer",
+				text: "Recipe uses reverse-engineered file formats for interoperability, protected under DMCA Section 1201(f). Recipe is not affiliated with Nikon Corporation or Adobe Inc.",
+			},
+		},
+	],
+};
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="canonical" href={siteUrl} />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+
+		<!-- Open Graph -->
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={siteUrl} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={ogImage} />
+
+		<!-- Twitter Card -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage} />
+
+		<!-- JSON-LD Structured Data -->
+		<script type="application/ld+json" set:html={JSON.stringify(softwareAppSchema)} />
+		<script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+
+		<!-- Go WASM Runtime (must load before islands) -->
+		<script is:inline src="/wasm_exec.js"></script>
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>

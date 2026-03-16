@@ -1,0 +1,43 @@
+---
+import Layout from "../layouts/Layout.astro";
+import NavBar from "../components/NavBar.astro";
+import Explainer from "../components/Explainer.astro";
+import FAQ from "../components/FAQ.astro";
+import Footer from "../components/Footer.astro";
+import AuroraBackground from "../components/AuroraBackground.svelte";
+import ConversionCard from "../components/ConversionCard.svelte";
+import EditorView from "../components/EditorView.svelte";
+---
+
+<Layout>
+	<AuroraBackground />
+	<NavBar />
+	<main class="min-h-screen flex flex-col relative">
+		<!-- Hero: split layout -->
+		<section class="hero max-w-6xl mx-auto w-full px-4 pt-24 pb-16 md:pt-32 md:pb-20">
+			<div class="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+				<div class="flex-1 text-center md:text-left">
+					<h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter leading-[1.1] text-foreground">
+						Take your Nikon Picture Controls into Lightroom
+					</h1>
+					<p class="mt-4 text-lg md:text-xl text-foreground-muted max-w-lg">
+						Convert NP3 presets to XMP and back. 48 parameters mapped instantly, entirely in your browser.
+					</p>
+					<p class="mt-3 text-sm text-foreground-muted/70">
+						Powered by <a href="https://shuttercoach.app" target="_blank" rel="noopener" class="text-interactive hover:underline">ShutterCoach</a>
+					</p>
+				</div>
+				<div class="flex-1 w-full max-w-md">
+					<ConversionCard client:load />
+				</div>
+			</div>
+		</section>
+
+		<!-- Editor overlay (conditionally shown via shared store) -->
+		<EditorView client:load />
+
+		<Explainer />
+		<FAQ />
+	</main>
+	<Footer />
+</Layout>
