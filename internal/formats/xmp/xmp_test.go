@@ -12,13 +12,13 @@ import (
 
 // TestParse validates the XMP parser against all sample files following Pattern 7
 func TestParse(t *testing.T) {
-	files, err := filepath.Glob("../../../testdata/xmp/*.xmp")
+	files, err := filepath.Glob("testdata/*.xmp")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if len(files) == 0 {
-		t.Fatal("no test files found in testdata/xmp/")
+		t.Fatal("no test files found in testdata/")
 	}
 
 	for _, file := range files {
@@ -516,9 +516,9 @@ func TestParseComprehensive(t *testing.T) {
 
 // TestParseAllParameters validates all 50+ parameters are correctly extracted
 func TestParseAllParameters(t *testing.T) {
-	data, err := os.ReadFile("../../../testdata/xmp/sample.xmp")
+	data, err := os.ReadFile("testdata/Kodachrome K14.xmp")
 	if err != nil {
-		t.Fatalf("failed to read sample.xmp: %v", err)
+		t.Fatalf("failed to read Kodachrome K14.xmp: %v", err)
 	}
 
 	recipe, err := Parse(data)
@@ -527,66 +527,66 @@ func TestParseAllParameters(t *testing.T) {
 	}
 
 	// Validate Basic Adjustments
-	if recipe.Exposure != 1.5 {
-		t.Errorf("Exposure = %.2f, want 1.50", recipe.Exposure)
+	if recipe.Exposure != 0.01 {
+		t.Errorf("Exposure = %.2f, want 0.01", recipe.Exposure)
 	}
-	if recipe.Contrast != 25 {
-		t.Errorf("Contrast = %d, want 25", recipe.Contrast)
+	if recipe.Contrast != 9 {
+		t.Errorf("Contrast = %d, want 9", recipe.Contrast)
 	}
-	if recipe.Highlights != -30 {
-		t.Errorf("Highlights = %d, want -30", recipe.Highlights)
+	if recipe.Highlights != -22 {
+		t.Errorf("Highlights = %d, want -22", recipe.Highlights)
 	}
-	if recipe.Shadows != 40 {
-		t.Errorf("Shadows = %d, want 40", recipe.Shadows)
+	if recipe.Shadows != 22 {
+		t.Errorf("Shadows = %d, want 22", recipe.Shadows)
 	}
-	if recipe.Whites != 10 {
-		t.Errorf("Whites = %d, want 10", recipe.Whites)
+	if recipe.Whites != -10 {
+		t.Errorf("Whites = %d, want -10", recipe.Whites)
 	}
-	if recipe.Blacks != -15 {
-		t.Errorf("Blacks = %d, want -15", recipe.Blacks)
+	if recipe.Blacks != 30 {
+		t.Errorf("Blacks = %d, want 30", recipe.Blacks)
 	}
 
 	// Validate Color Parameters
-	if recipe.Saturation != 20 {
-		t.Errorf("Saturation = %d, want 20", recipe.Saturation)
+	if recipe.Saturation != 5 {
+		t.Errorf("Saturation = %d, want 5", recipe.Saturation)
 	}
 	if recipe.Vibrance != 15 {
 		t.Errorf("Vibrance = %d, want 15", recipe.Vibrance)
 	}
-	if recipe.Clarity != 35 {
-		t.Errorf("Clarity = %d, want 35", recipe.Clarity)
+	if recipe.Clarity != 7 {
+		t.Errorf("Clarity = %d, want 7", recipe.Clarity)
 	}
-	if recipe.Sharpness != 40 {
-		t.Errorf("Sharpness = %d, want 40", recipe.Sharpness)
+	if recipe.Sharpness != 42 {
+		t.Errorf("Sharpness = %d, want 42", recipe.Sharpness)
 	}
 
 	// Validate HSL Adjustments
-	if recipe.Red.Hue != 10 {
-		t.Errorf("Red Hue = %d, want 10", recipe.Red.Hue)
+	if recipe.Red.Hue != -5 {
+		t.Errorf("Red Hue = %d, want -5", recipe.Red.Hue)
 	}
-	if recipe.Red.Saturation != -5 {
-		t.Errorf("Red Saturation = %d, want -5", recipe.Red.Saturation)
+	if recipe.Red.Saturation != -15 {
+		t.Errorf("Red Saturation = %d, want -15", recipe.Red.Saturation)
 	}
-	if recipe.Red.Luminance != 8 {
-		t.Errorf("Red Luminance = %d, want 8", recipe.Red.Luminance)
+	if recipe.Red.Luminance != -30 {
+		t.Errorf("Red Luminance = %d, want -30", recipe.Red.Luminance)
 	}
 
-	if recipe.Blue.Hue != 20 {
-		t.Errorf("Blue Hue = %d, want 20", recipe.Blue.Hue)
+	if recipe.Blue.Hue != 5 {
+		t.Errorf("Blue Hue = %d, want 5", recipe.Blue.Hue)
 	}
 
 	// Validate Split Toning
-	if recipe.SplitShadowHue != 240 {
-		t.Errorf("SplitShadowHue = %d, want 240", recipe.SplitShadowHue)
+	if recipe.SplitShadowHue != 31 {
+		t.Errorf("SplitShadowHue = %d, want 31", recipe.SplitShadowHue)
 	}
-	if recipe.SplitShadowSaturation != 15 {
-		t.Errorf("SplitShadowSaturation = %d, want 15", recipe.SplitShadowSaturation)
+	if recipe.SplitShadowSaturation != 5 {
+		t.Errorf("SplitShadowSaturation = %d, want 5", recipe.SplitShadowSaturation)
 	}
-	if recipe.SplitHighlightHue != 50 {
-		t.Errorf("SplitHighlightHue = %d, want 50", recipe.SplitHighlightHue)
+	if recipe.SplitHighlightHue != 180 {
+		t.Errorf("SplitHighlightHue = %d, want 180", recipe.SplitHighlightHue)
 	}
-	if recipe.SplitHighlightSaturation != 20 {
-		t.Errorf("SplitHighlightSaturation = %d, want 20", recipe.SplitHighlightSaturation)
+	if recipe.SplitHighlightSaturation != 3 {
+		t.Errorf("SplitHighlightSaturation = %d, want 3", recipe.SplitHighlightSaturation)
 	}
 }
 
@@ -773,7 +773,7 @@ func TestParseInvalidDataType(t *testing.T) {
 
 // BenchmarkParse validates performance target of <30ms
 func BenchmarkParse(b *testing.B) {
-	data, err := os.ReadFile("../../../testdata/xmp/sample.xmp")
+	data, err := os.ReadFile("testdata/AFGA APX 100.xmp")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -1117,9 +1117,9 @@ func TestGenerateInvalidRange(t *testing.T) {
 // TestGenerateRoundTrip validates round-trip conversion: XMP → Parse → Generate → Parse
 func TestGenerateRoundTrip(t *testing.T) {
 	// Read sample XMP file
-	originalData, err := os.ReadFile("../../../testdata/xmp/sample.xmp")
+	originalData, err := os.ReadFile("testdata/AFGA APX 100.xmp")
 	if err != nil {
-		t.Fatalf("failed to read sample.xmp: %v", err)
+		t.Fatalf("failed to read AFGA APX 100.xmp: %v", err)
 	}
 
 	// Parse original

@@ -41,7 +41,7 @@ func TestWorkerPoolProcessesAllFiles(t *testing.T) {
 	}
 }
 
-// TestGlobPatternExpansion tests glob pattern expansion (AC-1, AC-8)
+// TestGlobPatternExpansion tests glob pattern expansion
 func TestGlobPatternExpansion(t *testing.T) {
 	tmpDir := t.TempDir()
 	createTestFiles(t, tmpDir, 5)
@@ -89,7 +89,7 @@ func TestGlobPatternExpansion(t *testing.T) {
 	}
 }
 
-// TestContinueOnError verifies continue-on-error behavior (AC-5)
+// TestContinueOnError verifies continue-on-error behavior
 func TestContinueOnError(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -127,7 +127,7 @@ func TestContinueOnError(t *testing.T) {
 	}
 }
 
-// TestOverwriteProtection tests overwrite protection in batch mode (AC-9)
+// TestOverwriteProtection tests overwrite protection in batch mode
 func TestOverwriteProtection(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFiles := createTestFiles(t, tmpDir, 3)
@@ -182,7 +182,7 @@ func TestOverwriteProtection(t *testing.T) {
 	}
 }
 
-// TestCustomOutputDirectory tests output-dir flag (AC-6)
+// TestCustomOutputDirectory tests output-dir flag
 func TestCustomOutputDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFiles := createTestFiles(t, tmpDir, 3)
@@ -217,7 +217,7 @@ func TestCustomOutputDirectory(t *testing.T) {
 	}
 }
 
-// TestParallelWorkerCount tests --parallel flag (AC-2)
+// TestParallelWorkerCount tests --parallel flag
 func TestParallelWorkerCount(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFiles := createTestFiles(t, tmpDir, 20)
@@ -257,7 +257,7 @@ func TestParallelWorkerCount(t *testing.T) {
 	}
 }
 
-// TestResultAggregation tests batch result aggregation (AC-7)
+// TestResultAggregation tests batch result aggregation
 func TestResultAggregation(t *testing.T) {
 	tmpDir := t.TempDir()
 

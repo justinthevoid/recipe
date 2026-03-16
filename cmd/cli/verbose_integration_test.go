@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestVerboseFlag_ShortFlag tests that -v flag is recognized (AC-1)
+// TestVerboseFlag_ShortFlag tests that -v flag is recognized
 func TestVerboseFlag_ShortFlag(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -20,7 +20,7 @@ func TestVerboseFlag_ShortFlag(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "../../testdata/xmp")
+	testFile := findTestFile(t, "testdata/xmp")
 
 	// Run with -v flag
 	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v", "--overwrite")
@@ -39,13 +39,13 @@ func TestVerboseFlag_ShortFlag(t *testing.T) {
 
 	cmd.Wait()
 
-	// Verify verbose logs appear in stderr (AC-3)
+	// Verify verbose logs appear in stderr
 	if !strings.Contains(stderrStr, "level=DEBUG") && !strings.Contains(stderrStr, "level=INFO") {
 		t.Errorf("Expected verbose logs with -v flag, got:\n%s", stderrStr)
 	}
 }
 
-// TestVerboseFlag_LongFlag tests that --verbose flag is recognized (AC-1)
+// TestVerboseFlag_LongFlag tests that --verbose flag is recognized
 func TestVerboseFlag_LongFlag(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -56,7 +56,7 @@ func TestVerboseFlag_LongFlag(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "../../testdata/xmp")
+	testFile := findTestFile(t, "testdata/xmp")
 
 	// Run with --verbose flag
 	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "--verbose")
@@ -75,13 +75,13 @@ func TestVerboseFlag_LongFlag(t *testing.T) {
 
 	cmd.Wait()
 
-	// Verify verbose logs appear in stderr (AC-3)
+	// Verify verbose logs appear in stderr
 	if !strings.Contains(stderrStr, "level=DEBUG") && !strings.Contains(stderrStr, "level=INFO") {
 		t.Errorf("Expected verbose logs with --verbose flag, got:\n%s", stderrStr)
 	}
 }
 
-// TestVerboseConversion_AllStepsLogged verifies all workflow steps are logged (AC-3)
+// TestVerboseConversion_AllStepsLogged verifies all workflow steps are logged
 func TestVerboseConversion_AllStepsLogged(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -92,7 +92,7 @@ func TestVerboseConversion_AllStepsLogged(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "../../testdata/xmp")
+	testFile := findTestFile(t, "testdata/xmp")
 
 	// Run with verbose flag
 	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v", "--overwrite")
@@ -111,7 +111,7 @@ func TestVerboseConversion_AllStepsLogged(t *testing.T) {
 
 	cmd.Wait()
 
-	// Verify expected log messages (AC-3)
+	// Verify expected log messages
 	expectedMessages := []string{
 		"reading input",      // Reading input file
 		"parsing file",       // Parsing file
@@ -128,7 +128,7 @@ func TestVerboseConversion_AllStepsLogged(t *testing.T) {
 	}
 }
 
-// TestVerboseConversion_StructuredFields verifies slog structured format (AC-2)
+// TestVerboseConversion_StructuredFields verifies slog structured format
 func TestVerboseConversion_StructuredFields(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -139,7 +139,7 @@ func TestVerboseConversion_StructuredFields(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "../../testdata/xmp")
+	testFile := findTestFile(t, "testdata/xmp")
 
 	// Run with verbose flag
 	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3", "-v", "--overwrite")
@@ -158,7 +158,7 @@ func TestVerboseConversion_StructuredFields(t *testing.T) {
 
 	cmd.Wait()
 
-	// Verify structured fields (AC-2)
+	// Verify structured fields
 	requiredFields := []string{
 		"level=",      // Log level
 		"msg=",        // Message
@@ -174,7 +174,7 @@ func TestVerboseConversion_StructuredFields(t *testing.T) {
 	}
 }
 
-// TestNormalMode_NoVerboseLogs verifies normal mode has no debug logs (AC-2)
+// TestNormalMode_NoVerboseLogs verifies normal mode has no debug logs
 func TestNormalMode_NoVerboseLogs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -185,7 +185,7 @@ func TestNormalMode_NoVerboseLogs(t *testing.T) {
 	defer os.Remove(binPath)
 
 	// Find a test file
-	testFile := findTestFile(t, "../../testdata/xmp")
+	testFile := findTestFile(t, "testdata/xmp")
 
 	// Run WITHOUT verbose flag
 	cmd := exec.Command(binPath, "convert", testFile, "--to", "np3")
@@ -204,7 +204,7 @@ func TestNormalMode_NoVerboseLogs(t *testing.T) {
 
 	cmd.Wait()
 
-	// Verify NO debug logs in normal mode (AC-2)
+	// Verify NO debug logs in normal mode
 	if strings.Contains(stderrStr, "level=DEBUG") {
 		t.Errorf("Debug logs should not appear in normal mode:\n%s", stderrStr)
 	}

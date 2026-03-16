@@ -40,27 +40,27 @@ func runConvert(cmd *cobra.Command, args []string) error {
 	overwrite, _ := cmd.Flags().GetBool("overwrite")
 	jsonMode := isJSONMode(cmd)
 
-	// Validate target format (AC-7)
+	// Validate target format
 	if err := validateFormat(toFormat); err != nil {
 		return err
 	}
 
-	// Start timing for performance logging (AC-6)
+	// Start timing for performance logging
 	start := time.Now()
 
-	// Initialize result structure (AC-2)
+	// Initialize result structure
 	result := ConversionResult{
 		Input:        inputPath,
 		TargetFormat: toFormat,
 	}
 
-	// Auto-detect source format if not specified (AC-2)
+	// Auto-detect source format if not specified
 	if fromFormat == "" {
 		logger.Debug("detecting format", "file", inputPath)
 		var err error
 		fromFormat, err = detectFormat(inputPath)
 		if err != nil {
-			// AC-3: Failed conversions still output valid JSON
+			// Failed conversions still output valid JSON
 			result.Error = fmt.Sprintf("auto-detect failed: %v", err)
 			result.DurationMs = time.Since(start).Milliseconds()
 			outputConversionResult(result, jsonMode)
@@ -79,13 +79,13 @@ func runConvert(cmd *cobra.Command, args []string) error {
 	}
 	result.SourceFormat = fromFormat
 
-	// Generate output path if not specified (AC-3)
+	// Generate output path if not specified
 	if outputPath == "" {
 		outputPath = generateOutputPath(inputPath, toFormat)
 	}
 	result.Output = outputPath
 
-	// Check overwrite protection (AC-4)
+	// Check overwrite protection
 	if err := checkOutputExists(outputPath, overwrite); err != nil {
 		result.Error = err.Error()
 		result.DurationMs = time.Since(start).Milliseconds()
@@ -93,7 +93,7 @@ func runConvert(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Read input file (AC-5)
+	// Read input file
 	logger.Debug("reading input", "file", inputPath)
 	inputBytes, err := os.ReadFile(inputPath)
 	if err != nil {
@@ -103,7 +103,7 @@ func runConvert(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to read input file: %w", err)
 	}
 
-	// Parse and log parameter extraction (AC-4)
+	// Parse and log parameter extraction
 	// Note: We parse separately here for logging purposes only.
 	// The actual conversion still happens via converter.Convert() which does its own parsing.
 	logger.Debug("parsing file", "format", fromFormat, "file", inputPath)
@@ -120,22 +120,22 @@ func runConvert(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Convert (single API call to converter - AC-8)
+	// Convert via single API call to converter
 	logger.Debug("converting formats", "from", fromFormat, "to", toFormat)
 	outputBytes, err := converter.Convert(inputBytes, fromFormat, toFormat)
 
 	if err != nil {
-		// AC-3: Handle conversion errors (invalid format, parse errors)
+		// Handle conversion errors (invalid format, parse errors)
 		result.Error = fmt.Sprintf("conversion failed: %v", err)
 		result.DurationMs = time.Since(start).Milliseconds()
 		outputConversionResult(result, jsonMode)
 		return fmt.Errorf("conversion failed: %w", err)
 	}
 
-	// Log generation (AC-3)
+	// Log generation
 	logger.Debug("generating output", "format", toFormat)
 
-	// Ensure output directory exists (AC-3)
+	// Ensure output directory exists
 	if err := ensureOutputDir(outputPath); err != nil {
 		result.Error = fmt.Sprintf("failed to create output directory: %v", err)
 		result.DurationMs = time.Since(start).Milliseconds()
@@ -143,7 +143,7 @@ func runConvert(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Write output file (AC-1)
+	// Write output file
 	logger.Debug("writing output", "file", outputPath)
 	if err := os.WriteFile(outputPath, outputBytes, 0644); err != nil {
 		result.Error = fmt.Sprintf("failed to write output file: %v", err)
@@ -152,19 +152,19 @@ func runConvert(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to write output file: %w", err)
 	}
 
-	// Success! (AC-2)
+	// Success!
 	result.Success = true
 	result.FileSizeBytes = int64(len(outputBytes))
 	result.DurationMs = time.Since(start).Milliseconds()
 
-	// Log completion with timing (AC-6)
+	// Log completion with timing
 	logger.Info("conversion completed",
 		"file", outputPath,
 		"duration_ms", result.DurationMs,
 		"from", fromFormat,
 		"to", toFormat)
 
-	// Output result (AC-2, AC-7)
+	// Output result
 	outputConversionResult(result, jsonMode)
 
 	return nil
@@ -179,7 +179,7 @@ func generateOutputPath(inputPath, targetFormat string) string {
 }
 
 // checkOutputExists returns error if file exists and overwrite is false.
-// Used for overwrite protection (AC-4).
+// Used for overwrite protection.
 func checkOutputExists(outputPath string, overwrite bool) error {
 	if !overwrite {
 		if _, err := os.Stat(outputPath); err == nil {
@@ -196,7 +196,7 @@ func ensureOutputDir(outputPath string) error {
 	return os.MkdirAll(dir, 0755)
 }
 
-// formatBytes converts bytes to human-readable format (AC-9).
+// formatBytes converts bytes to human-readable format.
 // Examples: 1234 → "1.2 KB", 1048576 → "1.0 MB"
 func formatBytes(bytes int) string {
 	const kb = 1024
@@ -211,7 +211,7 @@ func formatBytes(bytes int) string {
 	}
 }
 
-// formatDuration converts duration to human-readable format (AC-9).
+// formatDuration converts duration to human-readable format.
 // Examples: 15ms, 1.23s
 func formatDuration(d time.Duration) string {
 	if d < time.Second {
@@ -235,7 +235,7 @@ func init() {
 }
 
 // countParameters counts the number of non-zero fields in a UniversalRecipe.
-// Used for verbose logging to show how many parameters were extracted (AC-4).
+// Used for verbose logging to show how many parameters were extracted.
 func countParameters(recipe *models.UniversalRecipe) int {
 	if recipe == nil {
 		return 0
@@ -290,7 +290,7 @@ func isZeroValue(v reflect.Value) bool {
 	}
 }
 
-// formatParameterSummary creates a summary string of key parameters (AC-4).
+// formatParameterSummary creates a summary string of key parameters.
 // Shows first 'limit' parameters with their values for verbose logging.
 func formatParameterSummary(recipe *models.UniversalRecipe, limit int) string {
 	if recipe == nil {

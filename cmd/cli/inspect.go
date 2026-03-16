@@ -29,7 +29,7 @@ JSON Output (default):
 Binary Mode (NP3 only):
   - Annotated hex dump with byte offsets
   - Field labels and human-readable values
-  - Useful for reverse engineering and parser validation
+  - Useful for format analysis and parser validation
 
 Examples:
   recipe inspect portrait.np3
@@ -57,14 +57,14 @@ func runInspect(cmd *cobra.Command, args []string) error {
 	outputPath, _ := cmd.Flags().GetString("output")
 	binaryMode, _ := cmd.Flags().GetBool("binary")
 
-	// Read input file (AC-5)
+	// Read input file
 	logger.Debug("reading input", "file", inputPath)
 	inputBytes, err := os.ReadFile(inputPath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %s: %w", inputPath, err)
 	}
 
-	// Auto-detect format (AC-5)
+	// Auto-detect format
 	logger.Debug("detecting format", "file", inputPath)
 	format, err := detectFormat(inputPath)
 	if err != nil {
@@ -74,7 +74,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 
 	var outputBytes []byte
 
-	// Binary mode (AC-3, AC-4)
+	// Binary mode
 	if binaryMode {
 		logger.Debug("generating binary hex dump", "format", format)
 
@@ -87,11 +87,11 @@ func runInspect(cmd *cobra.Command, args []string) error {
 		outputBytes = []byte(hexDump)
 	} else {
 		// JSON mode (default)
-		// Parse based on format (AC-3)
+		// Parse based on format
 		logger.Debug("parsing file", "format", format, "file", inputPath)
 		recipe, err := parseFile(inputBytes, format)
 		if err != nil {
-			// Wrap with ConversionError for consistent error handling (AC-6)
+			// Wrap with ConversionError for consistent error handling
 			return &converter.ConversionError{
 				Operation: "parse",
 				Format:    format,
@@ -99,7 +99,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		// Generate JSON output with metadata (AC-1, AC-2)
+		// Generate JSON output with metadata
 		logger.Debug("generating JSON output")
 		jsonBytes, err := inspect.ToJSONWithMetadata(recipe, inputPath, format, version)
 		if err != nil {
@@ -109,22 +109,22 @@ func runInspect(cmd *cobra.Command, args []string) error {
 		outputBytes = jsonBytes
 	}
 
-	// Output to file or stdout (AC-4)
+	// Output to file or stdout
 	if outputPath != "" {
 		// Write to file
 		logger.Debug("writing output", "file", outputPath)
 
-		// Create parent directories if needed (AC-4)
+		// Create parent directories if needed
 		if err := ensureOutputDir(outputPath); err != nil {
 			return fmt.Errorf("failed to create output directory: %w", err)
 		}
 
-		// Write file with 0644 permissions (AC-4)
+		// Write file with 0644 permissions
 		if err := os.WriteFile(outputPath, outputBytes, 0644); err != nil {
 			return fmt.Errorf("failed to write output file: %w", err)
 		}
 
-		// Success message to stderr (AC-4)
+		// Success message to stderr
 		if binaryMode {
 			fmt.Fprintf(os.Stderr, "✓ Binary dump saved to %s\n", outputPath)
 		} else {
@@ -151,7 +151,7 @@ func binaryModeStr(binary bool) string {
 }
 
 // parseFile parses input bytes based on detected format.
-// Returns UniversalRecipe or error (AC-3).
+// Returns UniversalRecipe or error.
 func parseFile(input []byte, format string) (*models.UniversalRecipe, error) {
 	switch format {
 	case converter.FormatNP3:

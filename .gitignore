@@ -1,41 +1,64 @@
-*.nef
-*.tif
-*.tiff
+# === OS ===
 .DS_Store
-.archive/.reverse-engineering/
-.bak
-.html
-.legacy/
-.txt
-.venv
+Thumbs.db
+
+# === IDE / Editor ===
 .vscode/
-coverage/
-examples/
-legacy/
-.archive/
+.idea/
+*.swp
+*.swo
 
-# Test coverage reports
-coverage.html
-coverage.out
+# === AI Agent State & Internal Planning ===
+.claude/
+.agent/
+.agents/
+_bmad/
+_bmad-output/
+skills-lock.json
 
-# Performance benchmarking outputs
-*.prof
-*/skills/nx-studio/assets/images
-benchmark-results.txt
-benchmarks.txt
-cpu.prof
-mem.prof
-node_modules/
-output/Logfile.XML
+# === WASM Build Artifacts (built in CI) ===
+web/public/recipe.wasm
+web/recipe.wasm
 
-# Extension build artifacts
+# === Build Artifacts ===
+/bin/
+/recipe
+/recipe-cli
+/recipe-nx
+*.exe
+*.dll
+*.dylib
+*.so
+np3tool
 extension/bin/
 extension/dist/
 
-# Compiled Go binaries
-*.dll
-*.dylib
-*.exe
-*.exe~
-*.so
-np3tool
+# === Test Data (full corpus — committed fixtures live in internal/formats/*/testdata/) ===
+/testdata/
+
+# === Scripts (internal) ===
+/scripts/
+
+# === Archive ===
+.archive/
+
+# === Dependencies ===
+node_modules/
+
+# === Coverage & Profiling ===
+coverage/
+coverage.html
+coverage.out
+*.prof
+benchmark-results.txt
+benchmarks.txt
+
+# === Python ===
+.venv/
+__pycache__/
+*.pyc
+
+# === Misc ===
+*.log
+*.bak
+output/

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// BenchmarkDetectFormatExtension benchmarks extension-based detection (AC-7)
+// BenchmarkDetectFormatExtension benchmarks extension-based detection
 // Target: <1μs (should be nanoseconds)
 func BenchmarkDetectFormatExtension(b *testing.B) {
 	testPath := "portrait.xmp"
@@ -24,11 +24,11 @@ func BenchmarkDetectFormatExtensionNP3(b *testing.B) {
 	}
 }
 
-// BenchmarkDetectFormatFromBytes benchmarks content-based detection (AC-7)
+// BenchmarkDetectFormatFromBytes benchmarks content-based detection
 // Target: <5ms for typical files
 func BenchmarkDetectFormatFromBytes(b *testing.B) {
 	// Load a real XMP file if available
-	data, err := os.ReadFile("../../testdata/xmp/portrait.xmp")
+	data, err := os.ReadFile("testdata/xmp/AFGA APX 100.xmp")
 	if err != nil {
 		// Use synthetic data if real file not available
 		data = []byte(`<?xml version="1.0"?>
@@ -47,7 +47,7 @@ func BenchmarkDetectFormatFromBytes(b *testing.B) {
 // BenchmarkDetectFormatFromBytesNP3 benchmarks NP3 content detection
 func BenchmarkDetectFormatFromBytesNP3(b *testing.B) {
 	// Load a real NP3 file if available
-	data, err := os.ReadFile("../../testdata/np3/sample.np3")
+	data, err := os.ReadFile("testdata/np3/Classic Chrome.np3")
 	if err != nil {
 		// Use synthetic NP3 data if real file not available
 		data = make([]byte, 300)

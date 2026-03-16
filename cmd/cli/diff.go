@@ -56,7 +56,7 @@ func runDiff(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", format)
 	}
 
-	// Validate files exist (AC-6)
+	// Validate files exist
 	if _, err := os.Stat(file1Path); os.IsNotExist(err) {
 		return fmt.Errorf("file not found: %s", file1Path)
 	}
@@ -120,7 +120,7 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	output := inspect.FormatDiff(results, unified, colorize)
 	fmt.Println(output)
 
-	// Exit codes (AC-6):
+	// Exit codes:
 	// 0 = no differences
 	// 1 = differences found
 	// 2 = error (handled by cobra error return)

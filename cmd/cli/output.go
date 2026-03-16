@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ConversionResult represents the result of a single file conversion (AC-2)
+// ConversionResult represents the result of a single file conversion
 type ConversionResult struct {
 	Input         string   `json:"input"`
 	Output        string   `json:"output"`
@@ -22,7 +22,7 @@ type ConversionResult struct {
 	Error         string   `json:"error,omitempty"`
 }
 
-// BatchResult aggregates results from all file conversions (AC-4)
+// BatchResult aggregates results from all file conversions
 type BatchResult struct {
 	Batch        bool               `json:"batch"`
 	Total        int                `json:"total"`
@@ -32,16 +32,16 @@ type BatchResult struct {
 	Results      []ConversionResult `json:"results"`
 }
 
-// isJSONMode checks if the --json flag is enabled (AC-1)
+// isJSONMode checks if the --json flag is enabled
 func isJSONMode(cmd *cobra.Command) bool {
 	json, _ := cmd.Flags().GetBool("json")
 	return json
 }
 
-// outputConversionResult outputs a single conversion result (AC-2, AC-3, AC-7)
+// outputConversionResult outputs a single conversion result
 func outputConversionResult(result ConversionResult, jsonMode bool) {
 	if jsonMode {
-		// JSON mode: output to stdout only (AC-7)
+		// JSON mode: output to stdout only
 		data, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
 			// This should never happen with our simple structs, but handle it gracefully
@@ -52,7 +52,7 @@ func outputConversionResult(result ConversionResult, jsonMode bool) {
 	} else {
 		// Human-readable mode
 		if result.Success {
-			// Success messages go to stdout (AC-7)
+			// Success messages go to stdout
 			fileSize := formatBytes(int(result.FileSizeBytes))
 			duration := formatMilliseconds(result.DurationMs)
 			fmt.Fprintf(os.Stdout, "✓ Converted %s → %s (%s, %s)\n",
@@ -66,16 +66,16 @@ func outputConversionResult(result ConversionResult, jsonMode bool) {
 				}
 			}
 		} else {
-			// Error messages go to stderr (AC-7)
+			// Error messages go to stderr
 			fmt.Fprintf(os.Stderr, "✗ Error converting %s: %s\n", result.Input, result.Error)
 		}
 	}
 }
 
-// outputBatchResult outputs batch conversion results (AC-4, AC-7)
+// outputBatchResult outputs batch conversion results
 func outputBatchResult(result BatchResult, jsonMode bool) {
 	if jsonMode {
-		// JSON mode: output to stdout only (AC-7)
+		// JSON mode: output to stdout only
 		data, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
 			// This should never happen with our simple structs, but handle it gracefully
@@ -89,12 +89,12 @@ func outputBatchResult(result BatchResult, jsonMode bool) {
 			fmt.Fprint(os.Stderr, "\r\033[K") // Clear line
 		}
 
-		// Summary message to stdout (AC-7)
+		// Summary message to stdout
 		fmt.Fprintf(os.Stdout, "✓ Converted %d files: %d success, %d errors (%s total)\n",
 			result.Total, result.SuccessCount, result.ErrorCount,
 			formatMilliseconds(result.DurationMs))
 
-		// Error details to stderr (AC-7)
+		// Error details to stderr
 		if result.ErrorCount > 0 {
 			fmt.Fprintln(os.Stderr, "\nErrors:")
 			for _, r := range result.Results {

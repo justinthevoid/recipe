@@ -51,8 +51,8 @@ func BenchmarkDiff_CompareOnly(b *testing.B) {
 // BenchmarkDiff_EndToEnd benchmarks full diff including file I/O and parsing
 func BenchmarkDiff_EndToEnd(b *testing.B) {
 	// Use real sample files if available
-	file1 := "./../../examples/np3/Denis Zeqiri/Classic Chrome.np3"
-	file2 := "./../../examples/np3/Denis Zeqiri/Filmic.np3"
+	file1 := "testdata/np3/Classic Chrome.np3"
+	file2 := "testdata/np3/Kodachrome 64.np3"
 
 	// Check if files exist, skip if not
 	if _, err := os.Stat(file1); os.IsNotExist(err) {
@@ -93,8 +93,8 @@ func BenchmarkDiff_EndToEnd(b *testing.B) {
 
 // BenchmarkDiff_CrossFormat benchmarks NP3 vs XMP diff
 func BenchmarkDiff_CrossFormat(b *testing.B) {
-	np3File := "./../../examples/np3/Denis Zeqiri/Classic Chrome.np3"
-	xmpFile := "./../../examples/xmp/sample.xmp"
+	np3File := "testdata/np3/Classic Chrome.np3"
+	xmpFile := "testdata/xmp/AFGA APX 100.xmp"
 
 	// Check if files exist, skip if not
 	if _, err := os.Stat(np3File); os.IsNotExist(err) {

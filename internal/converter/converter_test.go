@@ -32,8 +32,8 @@ func TestConvert_AllPaths(t *testing.T) {
 		dir  string
 		ext  string
 	}{
-		{"NP3→XMP", FormatNP3, FormatXMP, "../../testdata/np3", ".np3"},
-		{"XMP→NP3", FormatXMP, FormatNP3, "../../testdata/xmp", ".xmp"},
+		{"NP3→XMP", FormatNP3, FormatXMP, "testdata/np3", ".np3"},
+		{"XMP→NP3", FormatXMP, FormatNP3, "testdata/xmp", ".xmp"},
 	}
 
 	for _, tt := range tests {

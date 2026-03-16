@@ -46,29 +46,29 @@ make coverage
 
 ## Decision Summary
 
-| Category | Decision | Version/Choice | Affects Epics | Rationale |
-|----------|----------|----------------|---------------|-----------|
-| **Critical Decisions** | | | | |
-| Frontend Language | Vanilla JavaScript (ES6+) | No frameworks | Epic 1 (Web Interface) | Zero build step, simple deployment, <100ms WASM goal achievable |
-| Language Version | Go 1.24.0+ | Released Feb 2025 | All epics | go:wasmexport directive, reduced WASM memory, enhanced type support |
-| Project Structure | cmd/{cli,tui,wasm}/ + internal/ + web/ | Standard Go layout | All epics | Clear separation, shared internal/ packages, WASM-friendly |
-| Shared Library Design | `converter.Convert([]byte, string, string) ([]byte, error)` | Single API | All epics | Stateless, no OS deps, works in WASM, easy to test |
-| **Important Decisions** | | | | |
-| Error Handling | Wrapped errors with custom ConversionError type | stdlib errors | All epics | Type-safe error checking, format-specific context, no dependencies |
-| WebAssembly Bridge | go:wasmexport directive | Go 1.24+ | Epic 1 (Web) | Direct memory access, <100ms goal, zero reflection overhead |
-| File I/O (Web) | FileReader API → ArrayBuffer pattern | Standard Web API | Epic 1 (Web) | Works with go:wasmexport, zero dependencies, 90%+ browser support |
-| Testing Strategy | Table-driven tests with 1,501 real sample files | Standard Go | All epics | Comprehensive validation, 95%+ accuracy goal, idiomatic Go |
-| Logging | slog with structured fields | Go stdlib | CLI, TUI | Type-safe, log levels, zero dependencies, Go 1.21+ standard |
-| Build System | Makefile with targets for all interfaces | make | All epics | Simple, universal, 90%+ dev env support, no learning curve |
-| **Nice-to-Have Decisions** | | | | |
-| CSS Framework | Vanilla CSS with CSS custom properties | No framework | Epic 1 (Web) | Simple, fast, no build step, <10 KB, consistent with JS choice |
-| State Management | DOM-centric with vanilla JS | No framework | Epic 1 (Web) | Direct manipulation, fast, no state library needed for simple UI |
-| Validation Strategy | Inline validation in parsers | No separate layer | All epics | Fail-fast, clear error messages, simpler architecture |
-| Performance Monitoring | Benchmarks only (`go test -bench`) | No runtime metrics | All epics | Development-focused, sufficient for <100ms validation |
-| CI/CD Platform | GitHub Actions with Cloudflare Pages integration | Free tier | All epics | Zero cost, auto-deploy Web, build all interfaces, standard choice |
-| Linting/Formatting | gofmt + go vet (stdlib) | No external linters | All epics | Zero dependencies, good enough, fast, standard Go practice |
-| Pre-commit Hooks | None initially | Can add later | All epics | Simpler workflow, faster iteration, add if team grows |
-| Documentation | README + examples/ + godoc comments | No separate docs | All epics | Godoc for API reference, README for users, examples for learning |
+| Category | Decision | Version/Choice | Rationale |
+|----------|----------|----------------|-----------|
+| **Critical Decisions** | | | |
+| Frontend Language | Vanilla JavaScript (ES6+) | No frameworks | Zero build step, simple deployment, <100ms WASM goal achievable |
+| Language Version | Go 1.24.0+ | Released Feb 2025 | go:wasmexport directive, reduced WASM memory, enhanced type support |
+| Project Structure | cmd/{cli,tui,wasm}/ + internal/ + web/ | Standard Go layout | Clear separation, shared internal/ packages, WASM-friendly |
+| Shared Library Design | `converter.Convert([]byte, string, string) ([]byte, error)` | Single API | Stateless, no OS deps, works in WASM, easy to test |
+| **Important Decisions** | | | |
+| Error Handling | Wrapped errors with custom ConversionError type | stdlib errors | Type-safe error checking, format-specific context, no dependencies |
+| WebAssembly Bridge | go:wasmexport directive | Go 1.24+ | Direct memory access, <100ms goal, zero reflection overhead |
+| File I/O (Web) | FileReader API → ArrayBuffer pattern | Standard Web API | Works with go:wasmexport, zero dependencies, 90%+ browser support |
+| Testing Strategy | Table-driven tests with 1,501 real sample files | Standard Go | Comprehensive validation, 95%+ accuracy goal, idiomatic Go |
+| Logging | slog with structured fields | Go stdlib | Type-safe, log levels, zero dependencies, Go 1.21+ standard |
+| Build System | Makefile with targets for all interfaces | make | Simple, universal, 90%+ dev env support, no learning curve |
+| **Nice-to-Have Decisions** | | | |
+| CSS Framework | Vanilla CSS with CSS custom properties | No framework | Simple, fast, no build step, <10 KB, consistent with JS choice |
+| State Management | DOM-centric with vanilla JS | No framework | Direct manipulation, fast, no state library needed for simple UI |
+| Validation Strategy | Inline validation in parsers | No separate layer | Fail-fast, clear error messages, simpler architecture |
+| Performance Monitoring | Benchmarks only (`go test -bench`) | No runtime metrics | Development-focused, sufficient for <100ms validation |
+| CI/CD Platform | GitHub Actions with Cloudflare Pages integration | Free tier | Zero cost, auto-deploy Web, build all interfaces, standard choice |
+| Linting/Formatting | gofmt + go vet (stdlib) | No external linters | Zero dependencies, good enough, fast, standard Go practice |
+| Pre-commit Hooks | None initially | Can add later | Simpler workflow, faster iteration, add if team grows |
+| Documentation | README + examples/ + godoc comments | No separate docs | Godoc for API reference, README for users, examples for learning |
 
 ---
 
@@ -146,7 +146,6 @@ recipe/
 │   └── nx-fixtures/               # NX Studio integration fixtures
 │
 ├── docs/                          # Documentation (25 files)
-├── scripts/                       # Build and utility scripts
 ├── bin/                           # Build output directory
 ├── Makefile                       # Build automation (139 lines)
 ├── go.mod                         # Go 1.25.1
@@ -162,19 +161,6 @@ recipe/
 - **internal/formats** follows identical pattern for each format (parse.go, generate.go)
 - **internal/batch** provides parallel processing with idempotency via manifests
 - **web/** uses Svelte 5 + Vite 7 for modern component-based UI
-
----
-
-## Epic to Architecture Mapping
-
-> **Note**: This section will be populated after epic definitions are finalized in the PRD workflow. Each epic will reference specific architectural components and decisions from this document.
-
-**Expected Mapping Structure:**
-- **Epic 1: Web Interface** → WASM module, vanilla JS client, FileReader API, Cloudflare Pages
-- **Epic 2: CLI Interface** → Cobra CLI, converter.Convert() API, Makefile build
-- **Epic 3: TUI Interface** → Bubbletea TUI, converter.Convert() API
-- **Epic 4: Format Parsers** → internal/formats/{np3,xmp}/, table-driven tests
-- **Epic 5: Round-Trip Testing** → testdata/ fixtures, benchmark suite
 
 ---
 

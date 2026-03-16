@@ -265,7 +265,7 @@ func createTestNP3File(t *testing.T) string {
 	t.Helper()
 
 	// Use a real NP3 file from testdata
-	realFile := filepath.Join("..", "..", "testdata", "np3", "Hawthorn.NP3")
+	realFile := filepath.Join("testdata", "Hawthorn.NP3")
 	data, err := os.ReadFile(realFile)
 	if err != nil {
 		t.Fatalf("Failed to read test NP3 file: %v", err)

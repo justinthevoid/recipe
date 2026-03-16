@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestInitLogger_VerboseTrue verifies logger level is Debug when verbose=true (AC-2)
+// TestInitLogger_VerboseTrue verifies logger level is Debug when verbose=true
 func TestInitLogger_VerboseTrue(t *testing.T) {
 	logger := initLogger(true)
 
@@ -20,7 +20,7 @@ func TestInitLogger_VerboseTrue(t *testing.T) {
 	}
 }
 
-// TestInitLogger_VerboseFalse verifies logger level is Error when verbose=false (AC-2)
+// TestInitLogger_VerboseFalse verifies logger level is Error when verbose=false
 func TestInitLogger_VerboseFalse(t *testing.T) {
 	logger := initLogger(false)
 
@@ -38,7 +38,7 @@ func TestInitLogger_VerboseFalse(t *testing.T) {
 	}
 }
 
-// TestInitLogger_OutputsToStderr verifies logs are written to stderr (AC-2)
+// TestInitLogger_OutputsToStderr verifies logs are written to stderr
 func TestInitLogger_OutputsToStderr(t *testing.T) {
 	// The initLogger function uses os.Stderr for the handler
 	// This is verified by code inspection - slog.NewTextHandler(os.Stderr, opts)

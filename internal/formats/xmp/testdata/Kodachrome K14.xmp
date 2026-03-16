@@ -1,0 +1,186 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="DD0B6CECA35245AC9D287A3BA9BDCFB3"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:CameraModelRestriction=""
+   crs:Copyright=""
+   crs:ContactInfo=""
+   crs:Version="16.5"
+   crs:ProcessVersion="15.4"
+   crs:WhiteBalance="As Shot"
+   crs:IncrementalTemperature="0"
+   crs:IncrementalTint="0"
+   crs:Exposure2012="+0.01"
+   crs:Contrast2012="+9"
+   crs:Highlights2012="-22"
+   crs:Shadows2012="+22"
+   crs:Whites2012="-10"
+   crs:Blacks2012="+30"
+   crs:Texture="+10"
+   crs:Clarity2012="+7"
+   crs:Dehaze="0"
+   crs:Vibrance="+15"
+   crs:Saturation="+5"
+   crs:ParametricShadows="0"
+   crs:ParametricDarks="0"
+   crs:ParametricLights="0"
+   crs:ParametricHighlights="0"
+   crs:ParametricShadowSplit="14"
+   crs:ParametricMidtoneSplit="60"
+   crs:ParametricHighlightSplit="75"
+   crs:Sharpness="42"
+   crs:SharpenRadius="+1.2"
+   crs:SharpenDetail="25"
+   crs:SharpenEdgeMasking="0"
+   crs:LuminanceSmoothing="0"
+   crs:ColorNoiseReduction="25"
+   crs:ColorNoiseReductionDetail="50"
+   crs:ColorNoiseReductionSmoothness="50"
+   crs:HueAdjustmentRed="-5"
+   crs:HueAdjustmentOrange="+10"
+   crs:HueAdjustmentYellow="-8"
+   crs:HueAdjustmentGreen="+5"
+   crs:HueAdjustmentAqua="+15"
+   crs:HueAdjustmentBlue="+5"
+   crs:HueAdjustmentPurple="0"
+   crs:HueAdjustmentMagenta="0"
+   crs:SaturationAdjustmentRed="-15"
+   crs:SaturationAdjustmentOrange="0"
+   crs:SaturationAdjustmentYellow="0"
+   crs:SaturationAdjustmentGreen="0"
+   crs:SaturationAdjustmentAqua="-10"
+   crs:SaturationAdjustmentBlue="-10"
+   crs:SaturationAdjustmentPurple="-20"
+   crs:SaturationAdjustmentMagenta="-20"
+   crs:LuminanceAdjustmentRed="-30"
+   crs:LuminanceAdjustmentOrange="-12"
+   crs:LuminanceAdjustmentYellow="-20"
+   crs:LuminanceAdjustmentGreen="-10"
+   crs:LuminanceAdjustmentAqua="-10"
+   crs:LuminanceAdjustmentBlue="-15"
+   crs:LuminanceAdjustmentPurple="+5"
+   crs:LuminanceAdjustmentMagenta="-15"
+   crs:SplitToningShadowHue="31"
+   crs:SplitToningShadowSaturation="5"
+   crs:SplitToningHighlightHue="180"
+   crs:SplitToningHighlightSaturation="3"
+   crs:SplitToningBalance="+60"
+   crs:ColorGradeMidtoneHue="0"
+   crs:ColorGradeMidtoneSat="0"
+   crs:ColorGradeShadowLum="0"
+   crs:ColorGradeMidtoneLum="0"
+   crs:ColorGradeHighlightLum="0"
+   crs:ColorGradeBlending="100"
+   crs:ColorGradeGlobalHue="0"
+   crs:ColorGradeGlobalSat="0"
+   crs:ColorGradeGlobalLum="0"
+   crs:AutoLateralCA="0"
+   crs:LensProfileEnable="0"
+   crs:DefringePurpleAmount="0"
+   crs:DefringePurpleHueLo="30"
+   crs:DefringePurpleHueHi="70"
+   crs:DefringeGreenAmount="0"
+   crs:DefringeGreenHueLo="40"
+   crs:DefringeGreenHueHi="60"
+   crs:GrainAmount="35"
+   crs:GrainSize="27"
+   crs:GrainFrequency="48"
+   crs:PostCropVignetteAmount="0"
+   crs:ShadowTint="+10"
+   crs:RedHue="+5"
+   crs:RedSaturation="0"
+   crs:GreenHue="+20"
+   crs:GreenSaturation="-15"
+   crs:BlueHue="-10"
+   crs:BlueSaturation="+20"
+   crs:HDREditMode="0"
+   crs:CurveRefineSaturation="100"
+   crs:ConvertToGrayscale="False"
+   crs:OverrideLookVignette="False"
+   crs:ToneCurveName2012="Custom"
+   crs:CameraProfile="Embedded"
+   crs:CameraProfileDigest="54650A341B5B5CCAE8442D0B43A92BCE"
+   crs:HasSettings="True">
+   <crs:Name>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default">Kodachrome K14</rdf:li>
+    </rdf:Alt>
+   </crs:Name>
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+   <crs:Group>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default">Alex Ruskman Kodachrome 1974 Collection</rdf:li>
+    </rdf:Alt>
+   </crs:Group>
+   <crs:Description>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:Description>
+   <crs:ToneCurvePV2012>
+    <rdf:Seq>
+     <rdf:li>0, 0</rdf:li>
+     <rdf:li>20, 9</rdf:li>
+     <rdf:li>35, 29</rdf:li>
+     <rdf:li>63, 62</rdf:li>
+     <rdf:li>126, 124</rdf:li>
+     <rdf:li>189, 189</rdf:li>
+     <rdf:li>255, 226</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012>
+   <crs:ToneCurvePV2012Red>
+    <rdf:Seq>
+     <rdf:li>0, 0</rdf:li>
+     <rdf:li>46, 19</rdf:li>
+     <rdf:li>115, 123</rdf:li>
+     <rdf:li>179, 200</rdf:li>
+     <rdf:li>255, 255</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012Red>
+   <crs:ToneCurvePV2012Green>
+    <rdf:Seq>
+     <rdf:li>0, 0</rdf:li>
+     <rdf:li>45, 20</rdf:li>
+     <rdf:li>116, 123</rdf:li>
+     <rdf:li>178, 200</rdf:li>
+     <rdf:li>255, 255</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012Green>
+   <crs:ToneCurvePV2012Blue>
+    <rdf:Seq>
+     <rdf:li>0, 0</rdf:li>
+     <rdf:li>44, 20</rdf:li>
+     <rdf:li>116, 124</rdf:li>
+     <rdf:li>179, 200</rdf:li>
+     <rdf:li>255, 255</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012Blue>
+   <crs:PointColors>
+    <rdf:Seq>
+     <rdf:li>-1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000, -1.000000</rdf:li>
+    </rdf:Seq>
+   </crs:PointColors>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

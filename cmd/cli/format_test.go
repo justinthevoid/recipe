@@ -8,7 +8,7 @@ import (
 	"github.com/justin/recipe/internal/converter"
 )
 
-// TestDetectFormat tests extension-based format detection (AC-1)
+// TestDetectFormat tests extension-based format detection
 func TestDetectFormat(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -48,7 +48,7 @@ func TestDetectFormat(t *testing.T) {
 	}
 }
 
-// TestDetectFormatFromBytes tests content-based format detection (AC-2)
+// TestDetectFormatFromBytes tests content-based format detection
 func TestDetectFormatFromBytes(t *testing.T) {
 	// NP3: Magic bytes + minimum size
 	np3Data := make([]byte, 300)
@@ -87,7 +87,7 @@ func TestDetectFormatFromBytes(t *testing.T) {
 	}
 }
 
-// TestValidateFormat tests format validation (AC-3)
+// TestValidateFormat tests format validation
 func TestValidateFormat(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -116,7 +116,7 @@ func TestValidateFormat(t *testing.T) {
 	}
 }
 
-// TestFormatConstants verifies format constants exist and have correct values (AC-4)
+// TestFormatConstants verifies format constants exist and have correct values
 func TestFormatConstants(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -136,7 +136,7 @@ func TestFormatConstants(t *testing.T) {
 	}
 }
 
-// TestErrorMessages verifies error messages are user-friendly (AC-6)
+// TestErrorMessages verifies error messages are user-friendly
 func TestErrorMessages(t *testing.T) {
 	t.Run("extension detection error", func(t *testing.T) {
 		_, err := detectFormat("test.txt")
@@ -176,15 +176,15 @@ func TestErrorMessages(t *testing.T) {
 	})
 }
 
-// TestDetectFormatUsesConverter verifies CLI detection wraps converter package (AC-5)
+// TestDetectFormatUsesConverter verifies CLI detection wraps converter package
 func TestDetectFormatUsesConverter(t *testing.T) {
 	// Test that CLI format detection defers to converter package
 	testFiles := []struct {
 		path   string
 		format string
 	}{
-		{"../../testdata/xmp/portrait.xmp", "xmp"},
-		{"../../testdata/np3/sample.np3", "np3"},
+		{"testdata/xmp/AFGA APX 100.xmp", "xmp"},
+		{"testdata/np3/Classic Chrome.np3", "np3"},
 	}
 
 	for _, tt := range testFiles {
@@ -218,14 +218,14 @@ func TestDetectFormatUsesConverter(t *testing.T) {
 	}
 }
 
-// TestFormatDetectionIntegration tests format detection with real files (AC-5 Integration)
+// TestFormatDetectionIntegration tests format detection with real files
 func TestFormatDetectionIntegration(t *testing.T) {
 	testFiles := []struct {
 		path   string
 		format string
 	}{
-		{"../../testdata/xmp/portrait.xmp", "xmp"},
-		{"../../testdata/np3/sample.np3", "np3"},
+		{"testdata/xmp/AFGA APX 100.xmp", "xmp"},
+		{"testdata/np3/Classic Chrome.np3", "np3"},
 	}
 
 	for _, tt := range testFiles {

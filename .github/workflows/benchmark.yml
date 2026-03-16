@@ -24,7 +24,7 @@ jobs:
       - name: Run Benchmarks
         run: |
           echo "Running Recipe Performance Benchmarks..."
-          go test -bench="BenchmarkConvert_(NP3|XMP|LRTemplate)" -benchmem ./internal/converter/ | tee benchmarks.txt
+          go test -bench="BenchmarkConvert_(NP3|XMP)" -benchmem ./internal/converter/ | tee benchmarks.txt
 
       - name: Display Benchmark Summary
         run: |
@@ -99,7 +99,7 @@ jobs:
           echo "      Manual review required if performance changes significantly"
           echo ""
           echo "Current benchmark results available in artifacts."
-          echo "Compare against documented baseline in docs/performance-benchmarks.md"
+          echo "Compare against previous benchmark artifacts"
           echo ""
           echo "Regression thresholds:"
           echo "  - Performance degradation: >10% slowdown"
@@ -130,7 +130,7 @@ jobs:
             - ✅ Memory: <4096 B/op per conversion
 
             📈 See full results in workflow artifacts
-            📋 Baseline: [docs/performance-benchmarks.md](https://github.com/${{ github.repository }}/blob/main/docs/performance-benchmarks.md)
+            📋 Baseline: See previous benchmark artifacts for comparison
 
             **Note:** Please verify no significant performance regressions (>10% slowdown) compared to baseline.
             `;

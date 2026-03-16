@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestConvertJSONOutput tests single file conversion with JSON output (AC-2)
+// TestConvertJSONOutput tests single file conversion with JSON output
 func TestConvertJSONOutput(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -20,7 +20,7 @@ func TestConvertJSONOutput(t *testing.T) {
 	defer os.Remove("recipe-test.exe")
 
 	// Use existing test file - use absolute path from project root
-	inputFile := filepath.Join("..", "..", "testdata", "xmp", "sample.xmp")
+	inputFile := filepath.Join("testdata", "xmp", "AFGA APX 100.xmp")
 
 	cmd := exec.Command("./recipe-test.exe", "convert", inputFile,
 		"--to", "np3", "--json", "--overwrite")
@@ -35,7 +35,7 @@ func TestConvertJSONOutput(t *testing.T) {
 		t.Fatalf("failed to parse JSON output: %v\nOutput: %s", err, output)
 	}
 
-	// Verify required fields (AC-2)
+	// Verify required fields
 	if result.Input == "" {
 		t.Error("JSON output missing input field")
 	}
@@ -59,7 +59,7 @@ func TestConvertJSONOutput(t *testing.T) {
 	}
 }
 
-// TestConvertJSONOutput_FailedConversion tests JSON output for errors (AC-3)
+// TestConvertJSONOutput_FailedConversion tests JSON output for errors
 func TestConvertJSONOutput_FailedConversion(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -86,18 +86,18 @@ func TestConvertJSONOutput_FailedConversion(t *testing.T) {
 	cmd.Stdout = &stdout
 	err := cmd.Run()
 
-	// Should exit with error code (AC-3)
+	// Should exit with error code
 	if err == nil {
 		t.Error("expected non-zero exit code for failed conversion")
 	}
 
-	// But should still output valid JSON to stdout (AC-3)
+	// But should still output valid JSON to stdout
 	var result ConversionResult
 	if err := json.Unmarshal([]byte(stdout.String()), &result); err != nil {
 		t.Fatalf("failed to parse JSON output for error case: %v\nOutput: %s", err, stdout.String())
 	}
 
-	// Verify error fields (AC-3)
+	// Verify error fields
 	if result.Success {
 		t.Error("success should be false for failed conversion")
 	}
@@ -106,7 +106,7 @@ func TestConvertJSONOutput_FailedConversion(t *testing.T) {
 	}
 }
 
-// TestBatchJSONOutput tests batch conversion with JSON output (AC-4)
+// TestBatchJSONOutput tests batch conversion with JSON output
 func TestBatchJSONOutput(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -133,7 +133,7 @@ func TestBatchJSONOutput(t *testing.T) {
 		t.Fatalf("failed to parse batch JSON output: %v\nOutput: %s", err, output)
 	}
 
-	// Verify batch fields (AC-4)
+	// Verify batch fields
 	if !result.Batch {
 		t.Error("batch field should be true")
 	}
@@ -153,7 +153,7 @@ func TestBatchJSONOutput(t *testing.T) {
 		t.Errorf("len(results) = %d, want 3", len(result.Results))
 	}
 
-	// Verify each result follows single conversion schema (AC-4)
+	// Verify each result follows single conversion schema
 	for i, r := range result.Results {
 		if r.Input == "" {
 			t.Errorf("results[%d].input is empty", i)
@@ -173,7 +173,7 @@ func TestBatchJSONOutput(t *testing.T) {
 	}
 }
 
-// TestJSONWithVerbose tests JSON output with verbose flag (AC-7)
+// TestJSONWithVerbose tests JSON output with verbose flag
 func TestJSONWithVerbose(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -183,7 +183,7 @@ func TestJSONWithVerbose(t *testing.T) {
 	}
 	defer os.Remove("recipe-test.exe")
 
-	inputFile := filepath.Join("..", "..", "testdata", "xmp", "sample.xmp")
+	inputFile := filepath.Join("testdata", "xmp", "AFGA APX 100.xmp")
 
 	cmd := exec.Command("./recipe-test.exe", "convert", inputFile,
 		"--to", "np3", "--json", "--verbose", "--overwrite")
@@ -215,18 +215,18 @@ func TestJSONWithVerbose(t *testing.T) {
 	stdoutStr := string(stdoutData[:n1])
 	stderrStr := string(stderrData[:n2])
 
-	// Verify stdout contains ONLY valid JSON (AC-7)
+	// Verify stdout contains ONLY valid JSON
 	var result ConversionResult
 	if err := json.Unmarshal([]byte(stdoutStr), &result); err != nil {
 		t.Errorf("stdout should contain valid JSON: %v\nStdout: %s", err, stdoutStr)
 	}
 
-	// Verify stdout does NOT contain log messages (AC-7)
+	// Verify stdout does NOT contain log messages
 	if strings.Contains(stdoutStr, "DEBUG") || strings.Contains(stdoutStr, "INFO") {
 		t.Errorf("stdout should not contain log messages, got: %s", stdoutStr)
 	}
 
-	// Verify stderr contains verbose logs (AC-7)
+	// Verify stderr contains verbose logs
 	if !strings.Contains(stderrStr, "DEBUG") && !strings.Contains(stderrStr, "INFO") {
 		t.Errorf("stderr should contain verbose logs, got: %s", stderrStr)
 	}
@@ -237,7 +237,7 @@ func writeTestFile(path string, content []byte) error {
 	return os.WriteFile(path, content, 0644)
 }
 
-// TestJSONFieldNamingConvention tests snake_case field names (AC-5)
+// TestJSONFieldNamingConvention tests snake_case field names
 func TestJSONFieldNamingConvention(t *testing.T) {
 	// Build CLI
 	buildCmd := exec.Command("go", "build", "-o", "recipe-test.exe", ".")
@@ -247,7 +247,7 @@ func TestJSONFieldNamingConvention(t *testing.T) {
 	}
 	defer os.Remove("recipe-test.exe")
 
-	inputFile := filepath.Join("..", "..", "testdata", "xmp", "sample.xmp")
+	inputFile := filepath.Join("testdata", "xmp", "AFGA APX 100.xmp")
 
 	cmd := exec.Command("./recipe-test.exe", "convert", inputFile,
 		"--to", "np3", "--json", "--overwrite")
@@ -258,7 +258,7 @@ func TestJSONFieldNamingConvention(t *testing.T) {
 
 	outputStr := string(output)
 
-	// Verify snake_case field names (AC-5)
+	// Verify snake_case field names
 	expectedFields := []string{
 		"\"input\"",
 		"\"output\"",

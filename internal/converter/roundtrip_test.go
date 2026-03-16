@@ -15,13 +15,13 @@ import (
 func TestRoundTrip_NP3_XMP_NP3(t *testing.T) {
 	t.Parallel()
 
-	files, err := findFilesRecursive("../../testdata/np3", ".np3")
+	files, err := findFilesRecursive("testdata/np3", ".np3")
 	if err != nil {
 		t.Fatalf("Failed to find NP3 files: %v", err)
 	}
 
 	// Also check for .NP3 (uppercase)
-	filesUpper, err := findFilesRecursive("../../testdata/np3", ".NP3")
+	filesUpper, err := findFilesRecursive("testdata/np3", ".NP3")
 	if err == nil {
 		files = append(files, filesUpper...)
 	}
@@ -82,7 +82,7 @@ func TestRoundTrip_NP3_XMP_NP3(t *testing.T) {
 func TestRoundTrip_XMP_NP3_XMP(t *testing.T) {
 	t.Parallel()
 
-	files, err := findFilesRecursive("../../testdata/xmp", ".xmp")
+	files, err := findFilesRecursive("testdata/xmp", ".xmp")
 	if err != nil {
 		t.Fatalf("Failed to find XMP files: %v", err)
 	}
