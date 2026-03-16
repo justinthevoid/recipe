@@ -1,0 +1,25 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-border mt-auto">
+	<div class="max-w-6xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-foreground-muted">
+		<div class="flex items-center gap-2">
+			<span class="font-medium text-foreground">Recipe</span>
+			<span>·</span>
+			<span>Powered by <a href="https://shuttercoach.app" target="_blank" rel="noopener" class="text-interactive hover:underline">ShutterCoach</a></span>
+		</div>
+		<div class="flex items-center gap-4">
+			<a href="https://github.com/shuttercoach/recipe" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">GitHub</a>
+			<details class="relative">
+				<summary class="cursor-pointer hover:text-foreground transition-colors list-none">Legal</summary>
+				<div class="absolute bottom-full right-0 mb-2 w-72 glass-regular rounded-lg p-4 text-xs text-foreground-muted">
+					<p class="font-medium text-foreground mb-1">Legal Disclaimer</p>
+					<p>Recipe is provided "AS IS" without warranty. Files are processed locally via WebAssembly. No server uploads. No data stored.</p>
+					<p class="mt-2">Recipe uses reverse-engineered file formats for interoperability. Not affiliated with Nikon, Adobe, or Phase One.</p>
+				</div>
+			</details>
+			<span>&copy; {year}</span>
+		</div>
+	</div>
+</footer>

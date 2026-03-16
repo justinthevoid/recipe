@@ -1,7 +1,11 @@
 /**
  * WASM loader for web context.
  * Manages Go WASM initialization and exposes conversion + LUT generation functions.
+ *
+ * Uses nanostores for cross-island state sharing (Astro islands are isolated).
  */
+
+import { wasmStatusStore, wasmErrorStore, wasmVersionStore } from "./shared-stores";
 
 // Go class is defined globally by wasm_exec.js
 declare class Go {
@@ -27,20 +31,22 @@ export type WasmStatus = "idle" | "loading" | "ready" | "error";
 
 const WASM_READY_TIMEOUT_MS = 10_000;
 
+// Island-local reactive wrappers that read from shared nanostores
 class WasmState {
-	status = $state<WasmStatus>("idle");
-	error = $state<string | null>(null);
-	version = $state<string>("...");
-	ready = $derived(this.status === "ready");
+	get status() { return wasmStatusStore.get(); }
+	get error() { return wasmErrorStore.get(); }
+	get version() { return wasmVersionStore.get(); }
+	get ready() { return wasmStatusStore.get() === "ready"; }
 }
 
 export const wasm = new WasmState();
 
 export async function initWasm(): Promise<void> {
-	if (wasm.status === "loading" || wasm.status === "ready") return;
+	const status = wasmStatusStore.get();
+	if (status === "loading" || status === "ready") return;
 
-	wasm.status = "loading";
-	wasm.error = null;
+	wasmStatusStore.set("loading");
+	wasmErrorStore.set(null);
 
 	try {
 		if (typeof Go === "undefined") {
@@ -74,26 +80,26 @@ export async function initWasm(): Promise<void> {
 
 		go.run(result.instance).catch((err) => {
 			console.error("WASM runtime exited unexpectedly:", err);
-			wasm.status = "error";
-			wasm.error = err instanceof Error ? err.message : "WASM runtime crashed";
+			wasmStatusStore.set("error");
+			wasmErrorStore.set(err instanceof Error ? err.message : "WASM runtime crashed");
 		});
 
 		await wasmReadyPromise;
 
 		if (typeof getVersion === "function") {
-			wasm.version = getVersion();
+			wasmVersionStore.set(getVersion());
 		}
 
-		wasm.status = "ready";
+		wasmStatusStore.set("ready");
 	} catch (err) {
-		wasm.status = "error";
-		wasm.error = err instanceof Error ? err.message : "Failed to load WASM";
+		wasmStatusStore.set("error");
+		wasmErrorStore.set(err instanceof Error ? err.message : "Failed to load WASM");
 		console.error("WASM initialization failed:", err);
 	}
 }
 
 export function isWasmReady(): boolean {
-	return wasm.ready;
+	return wasmStatusStore.get() === "ready";
 }
 
 export async function wasmConvert(

@@ -1,4 +1,4 @@
-.PHONY: cli cli-all tui tui-all clean wasm test
+.PHONY: cli cli-all tui tui-all clean wasm test branding
 
 # Version injection (git-based or override with VERSION=x.y.z)
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -75,22 +75,16 @@ profile-mem:
 	@echo "Memory profile generated: mem.prof"
 	@echo "View with: go tool pprof -http=:8080 mem.prof"
 
-# Build web interface (Story 10-6: Performance Optimization)
+# Build web interface (Astro + WASM)
 web:
 	@echo "Building optimized web interface..."
 	@$(MAKE) wasm
-	@echo "Minifying JavaScript..."
-	@npm run build:js 2>/dev/null || echo "Warning: npm build failed, install deps with 'npm install'"
-	@echo "Web build complete!"
-	@echo "  - WASM: web/recipe.wasm (stripped + optimized)"
-	@echo "  - JS:   web/static/bundle.min.js (minified)"
-	@echo "  - CSS:  web/static/critical.css (inlined in index.html)"
+	cd web && npm run build
+	@echo "Web build complete! Output: web/dist/"
 
-# Build web interface for development (no minification)
+# Start web dev server (Astro)
 web-dev:
-	@echo "Building web interface for development..."
-	@$(MAKE) wasm-dev
-	@echo "Development build complete (no minification)"
+	cd web && npm run dev
 
 # Clean build artifacts
 clean:
@@ -100,6 +94,9 @@ clean:
 	rm -rf bin/
 	rm -f web/static/bundle.min.js web/static/bundle.min.js.map
 
+
+branding: ## Render branding assets (logo, OG image) via Remotion
+	cd web/remotion && bun run render:all
 
 # Check import graph constraints
 check-imports:

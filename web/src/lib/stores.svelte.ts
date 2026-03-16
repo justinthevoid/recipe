@@ -1,118 +1,70 @@
 /**
  * Web app state management using Svelte 5 runes.
+ * Shared cross-island state lives in shared-stores.ts (nanostores).
+ * This module handles island-local state (undo/redo history, etc.)
+ * and provides convenience functions that write to both.
  */
 
 import type { UniversalRecipe } from "@recipe/ui";
-
-// File management
-export interface UploadedFile {
-	id: number;
-	file: File;
-	name: string;
-	size: number;
-	format: string | null;
-	status: "queued" | "processing" | "complete" | "error";
-	outputData: Uint8Array | null;
-	outputFormat: string | null;
-	errorMessage?: string;
-}
-
-let fileIdCounter = 0;
-
-// Reactive store object — all state in one place for reliable reactivity
-class AppStore {
-	files = $state<UploadedFile[]>([]);
-	currentRecipe = $state<UniversalRecipe | null>(null);
-	originalRecipe = $state<UniversalRecipe | null>(null);
-	previewImage = $state<HTMLImageElement | null>(null);
-	editorMode = $state(false);
-	targetFormat = $state("xmp");
-	currentFileName = $state("");
-
-	// Undo/redo
-	recipeHistory = $state<UniversalRecipe[]>([]);
-	historyIndex = $state(-1);
-
-	// Derived
-	isDirty = $derived(
-		this.currentRecipe !== null &&
-			this.originalRecipe !== null &&
-			JSON.stringify(this.currentRecipe) !==
-				JSON.stringify(this.originalRecipe),
-	);
-	canUndo = $derived(this.historyIndex > 0);
-	canRedo = $derived(this.historyIndex < this.recipeHistory.length - 1);
-	canConvert = $derived(
-		this.currentRecipe !== null && this.files.length > 0,
-	);
-}
-
-export const store = new AppStore();
+import {
+	editorModeStore,
+	currentRecipeStore,
+	originalRecipeStore,
+	currentFileNameStore,
+	previewImageStore,
+} from "./shared-stores";
 
 const MAX_HISTORY = 50;
 
-// File actions
-export function addFile(file: File): number {
-	const id = fileIdCounter++;
-	store.files.push({
-		id,
-		file,
-		name: file.name,
-		size: file.size,
-		format: null,
-		status: "queued",
-		outputData: null,
-		outputFormat: null,
+// Island-local undo/redo state (no need to share across islands)
+class EditorHistory {
+	recipeHistory = $state<UniversalRecipe[]>([]);
+	historyIndex = $state(-1);
+
+	canUndo = $derived(this.historyIndex > 0);
+	canRedo = $derived(this.historyIndex < this.recipeHistory.length - 1);
+	isDirty = $derived.by(() => {
+		const current = currentRecipeStore.get();
+		const original = originalRecipeStore.get();
+		return current !== null && original !== null &&
+			JSON.stringify(current) !== JSON.stringify(original);
 	});
-	return id;
 }
 
-export function updateFileStatus(
-	id: number,
-	updates: Partial<UploadedFile>,
-): void {
-	const idx = store.files.findIndex((f) => f.id === id);
-	if (idx !== -1) {
-		store.files[idx] = { ...store.files[idx], ...updates };
-	}
-}
-
-export function removeFile(id: number): void {
-	const idx = store.files.findIndex((f) => f.id === id);
-	if (idx !== -1) {
-		store.files.splice(idx, 1);
-	}
-}
+export const history = new EditorHistory();
 
 // Recipe actions
 export function openPreset(
 	recipe: UniversalRecipe,
 	fileName: string,
 ): void {
-	store.currentRecipe = structuredClone(recipe);
-	store.originalRecipe = structuredClone(recipe);
-	store.currentFileName = fileName;
-	store.editorMode = true;
-	store.recipeHistory = [structuredClone(recipe)];
-	store.historyIndex = 0;
+	currentRecipeStore.set(structuredClone(recipe));
+	originalRecipeStore.set(structuredClone(recipe));
+	currentFileNameStore.set(fileName);
+	editorModeStore.set(true);
+	history.recipeHistory = [structuredClone(recipe)];
+	history.historyIndex = 0;
 }
 
 export function updateParameter(key: string, value: number): void {
-	if (!store.currentRecipe) return;
+	const current = currentRecipeStore.get();
+	if (!current) return;
+
+	const updated = structuredClone(current);
 
 	// Discard future states when branching
-	if (store.historyIndex < store.recipeHistory.length - 1) {
-		store.recipeHistory = store.recipeHistory.slice(
+	if (history.historyIndex < history.recipeHistory.length - 1) {
+		history.recipeHistory = history.recipeHistory.slice(
 			0,
-			store.historyIndex + 1,
+			history.historyIndex + 1,
 		);
 	}
 
 	const parts = key.split(".");
 	if (parts.length === 1) {
-		(store.currentRecipe as Record<string, unknown>)[key] = value;
+		(updated as Record<string, unknown>)[key] = value;
 	} else {
-		let obj = store.currentRecipe as Record<string, unknown>;
+		let obj = updated as Record<string, unknown>;
 		for (let i = 0; i < parts.length - 1; i++) {
 			if (!obj[parts[i]] || typeof obj[parts[i]] !== "object") {
 				obj[parts[i]] = {};
@@ -122,45 +74,44 @@ export function updateParameter(key: string, value: number): void {
 		obj[parts[parts.length - 1]] = value;
 	}
 
-	store.recipeHistory.push(structuredClone(store.currentRecipe));
-	if (store.recipeHistory.length > MAX_HISTORY) {
-		store.recipeHistory.shift();
+	currentRecipeStore.set(updated);
+
+	history.recipeHistory.push(structuredClone(updated));
+	if (history.recipeHistory.length > MAX_HISTORY) {
+		history.recipeHistory.shift();
 	} else {
-		store.historyIndex++;
+		history.historyIndex++;
 	}
 }
 
 export function undo(): void {
-	if (!store.canUndo) return;
-	store.historyIndex--;
-	store.currentRecipe = structuredClone(
-		store.recipeHistory[store.historyIndex],
-	);
+	if (!history.canUndo) return;
+	history.historyIndex--;
+	currentRecipeStore.set(structuredClone(
+		history.recipeHistory[history.historyIndex],
+	));
 }
 
 export function redo(): void {
-	if (!store.canRedo) return;
-	store.historyIndex++;
-	store.currentRecipe = structuredClone(
-		store.recipeHistory[store.historyIndex],
-	);
+	if (!history.canRedo) return;
+	history.historyIndex++;
+	currentRecipeStore.set(structuredClone(
+		history.recipeHistory[history.historyIndex],
+	));
 }
 
 export function resetRecipe(): void {
-	if (!store.originalRecipe) return;
-	store.currentRecipe = structuredClone(store.originalRecipe);
-	store.recipeHistory = [structuredClone(store.originalRecipe)];
-	store.historyIndex = 0;
+	const original = originalRecipeStore.get();
+	if (!original) return;
+	currentRecipeStore.set(structuredClone(original));
+	history.recipeHistory = [structuredClone(original)];
+	history.historyIndex = 0;
 }
 
 export function setPreviewImage(img: HTMLImageElement | null): void {
-	store.previewImage = img;
+	previewImageStore.set(img);
 }
 
 export function closeEditor(): void {
-	store.editorMode = false;
-}
-
-export function setTargetFormat(format: string): void {
-	store.targetFormat = format;
+	editorModeStore.set(false);
 }
