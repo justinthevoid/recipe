@@ -4,7 +4,7 @@ Convert photo presets between Nikon NP3 and Adobe Lightroom XMP formats.
 
 All processing happens locally on your device. Files are never uploaded to any server.
 
-**Web app:** [recipe.pages.dev](https://recipe.pages.dev) -- no install needed, runs entirely in your browser via WebAssembly.
+**Web app:** [recipe.shuttercoach.app](https://recipe.shuttercoach.app) -- no install needed, runs entirely in your browser via WebAssembly.
 
 ## Features
 
