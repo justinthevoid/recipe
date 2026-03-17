@@ -1,43 +1,62 @@
-# Svelte + Vite
+# Recipe — Web Interface
 
-This template should help get you started developing with Svelte in Vite.
+The public-facing website and interactive preset converter at [recipe.shuttercoach.app](https://recipe.shuttercoach.app). Built with Astro and Svelte 5, all processing runs client-side via WebAssembly.
 
-## Recommended IDE Setup
+## Tech Stack
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+- **Framework:** Astro 6 (static site generation)
+- **Interactive components:** Svelte 5 (embedded in Astro pages)
+- **Styling:** Tailwind CSS 4
+- **State management:** nanostores
+- **Conversion engine:** Go compiled to WebAssembly
 
-## Need an official Svelte framework?
+## Structure
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
-
-## Technical considerations
-
-**Why use this over SvelteKit?**
-
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `checkJs` in the JS template?**
-
-It is likely that most cases of changing variable types in runtime are likely to be accidental, rather than deliberate. This provides advanced typechecking out of the box. Should you like to take advantage of the dynamically-typed nature of JavaScript, it is trivial to change the configuration.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/sveltejs/svelte-hmr/tree/master/packages/svelte-hmr#preservation-of-local-state).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```js
-// store.js
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
 ```
+web/
+├── src/
+│   ├── pages/index.astro      # Landing page
+│   ├── layouts/Layout.astro   # Base HTML layout with SEO meta
+│   ├── components/            # Astro + Svelte components
+│   │   ├── ConversionCard.svelte   # Drag-and-drop file conversion
+│   │   ├── EditorView.svelte       # Full parameter editor
+│   │   ├── AuroraBackground.svelte # Animated background
+│   │   ├── Explainer.astro         # How-it-works section
+│   │   ├── FAQ.astro               # Frequently asked questions
+│   │   └── ...
+│   └── lib/
+│       ├── wasm.ts            # WASM module initialization
+│       ├── converter.ts       # Conversion function wrappers
+│       ├── format-detector.ts # NP3/XMP file detection
+│       └── stores/            # Shared state (nanostores)
+├── public/
+│   ├── recipe.wasm            # Go WASM binary (built in CI)
+│   └── images/                # Demo and OG images
+├── astro.config.mjs           # Astro config with Svelte + sitemap
+└── wrangler.jsonc             # Cloudflare Pages deployment config
+```
+
+## Development
+
+```bash
+cd web
+bun install
+bun run dev        # Start dev server with hot reload
+bun run build      # Production build to dist/
+bun run preview    # Preview production build locally
+```
+
+The WASM binary must be built separately before the converter will work locally:
+
+```bash
+# From repository root
+make wasm
+```
+
+## Deployment
+
+Deployed automatically to Cloudflare Pages on push to `main` via GitHub Actions. The workflow builds the WASM binary, runs `astro build`, and deploys `web/dist/`.
+
+## Shared Components
+
+Interactive UI components (sliders, color grading, tone curves) are imported from `@recipe/ui` — the shared component library in [`packages/ui/`](../packages/ui/).
