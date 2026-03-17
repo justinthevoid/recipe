@@ -2,7 +2,7 @@
 
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Cloudflare Pages](https://img.shields.io/badge/Deployed-Cloudflare%20Pages-F38020?logo=cloudflare&logoColor=white)](https://recipe.pages.dev)
+[![Cloudflare Pages](https://img.shields.io/badge/Deployed-Cloudflare%20Pages-F38020?logo=cloudflare&logoColor=white)](https://recipe.shuttercoach.app)
 [![WebAssembly](https://img.shields.io/badge/WebAssembly-654FF0?logo=webassembly&logoColor=white)](https://webassembly.org)
 [![Svelte](https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
 
@@ -64,8 +64,8 @@ All conversions flow through a single entry point: `converter.Convert(input, fro
 
 ## Supported Formats
 
-| Format | Extension | Used In            | Direction |
-| ------ | --------- | ------------------ | --------- |
+| Format | Extension | Used In            | Direction   |
+| ------ | --------- | ------------------ | ----------- |
 | NP3    | .np3      | Nikon Z cameras    | NP3 <-> XMP |
 | XMP    | .xmp      | Adobe Lightroom CC | XMP <-> NP3 |
 

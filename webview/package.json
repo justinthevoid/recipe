@@ -18,7 +18,7 @@
 		"@tsconfig/svelte": "^5.0.0",
 		"jsdom": "^28.1.0",
 		"mode-watcher": "^1.1.0",
-		"svelte": "^5.43.8",
+		"svelte": "^5.53.12",
 		"svelte-check": "^4.0.0",
 		"svelte-sonner": "^1.0.7",
 		"tailwind-variants": "^3.2.2",
