@@ -15,6 +15,7 @@ Thumbs.db
 _bmad/
 _bmad-output/
 skills-lock.json
+.github/skills/
 
 # === WASM Build Artifacts (built in CI) ===
 web/public/recipe.wasm
@@ -47,8 +48,9 @@ node_modules/
 
 # === Coverage & Profiling ===
 coverage/
-coverage.html
-coverage.out
+coverage*.html
+coverage*.out
+gen_coverage.out
 *.prof
 benchmark-results.txt
 benchmarks.txt
