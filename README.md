@@ -17,7 +17,7 @@ All processing happens locally on your device. Files are never uploaded to any s
 
 ### Web
 
-Visit [recipe.pages.dev](https://recipe.pages.dev), drag and drop your preset files, and download the converted output.
+Visit [recipe.shuttercoach.app](https://recipe.shuttercoach.app), drag and drop your preset files, and download the converted output.
 
 ### CLI
 
