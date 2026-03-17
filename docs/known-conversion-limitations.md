@@ -283,7 +283,7 @@ See `docs/visual-regression-results.md` for detailed test results and side-by-si
 
 We welcome feedback on conversion limitations! If you discover additional limitations or have suggestions for better approximations:
 
-- **Open an issue:** https://github.com/yourusername/recipe/issues
+- **Open an issue:** https://github.com/justinthevoid/recipe/issues
 - **Share test results:** Include reference/test images to help improve conversions
 - **Suggest workarounds:** Community-contributed workarounds are valuable
 
