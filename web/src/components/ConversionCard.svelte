@@ -138,7 +138,7 @@
 
 	function handleEditInPreview() {
 		if (!convertedRecipe) return;
-		openPreset(convertedRecipe as UniversalRecipe, resultFileName);
+		openPreset($state.snapshot(convertedRecipe) as UniversalRecipe, resultFileName);
 	}
 
 	function reset() {
