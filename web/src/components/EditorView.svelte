@@ -1,20 +1,10 @@
 <script lang="ts">
-	import {
-		CollapsibleSection,
-		ColorBlender,
-		ColorGrading,
-		getNested,
-		ParameterSliderUnit,
-		PhotoPreview,
-		ToneCurveVisual,
-	} from "@recipe/ui";
-	import type { ParameterDefinition, UniversalRecipe } from "@recipe/ui";
+	import type { UniversalRecipe } from "@recipe/ui";
 	import { convertAndDownload } from "$lib/converter.svelte";
 	import {
 		history,
 		closeEditor,
 		resetRecipe,
-		setPreviewImage,
 		undo,
 		redo,
 		updateParameter,
@@ -24,22 +14,13 @@
 		currentRecipeStore,
 		originalRecipeStore,
 		currentFileNameStore,
-		previewImageStore,
 	} from "$lib/shared-stores";
-	import { initWasm, wasm, wasmGenerateLUT } from "$lib/wasm.svelte";
-	import { loadImage } from "$lib/image-loader";
-	import { onMount } from "svelte";
-
-	onMount(() => {
-		initWasm();
-	});
 
 	// Read shared nanostores reactively via subscriptions
 	let editorMode = $state(editorModeStore.get());
 	let currentRecipe = $state<UniversalRecipe | null>(currentRecipeStore.get());
 	let originalRecipe = $state<UniversalRecipe | null>(originalRecipeStore.get());
 	let currentFileName = $state(currentFileNameStore.get());
-	let previewImage = $state<HTMLImageElement | null>(previewImageStore.get());
 
 	$effect(() => {
 		const unsubs = [
@@ -47,7 +28,6 @@
 			currentRecipeStore.subscribe(v => { currentRecipe = v; }),
 			originalRecipeStore.subscribe(v => { originalRecipe = v; }),
 			currentFileNameStore.subscribe(v => { currentFileName = v; }),
-			previewImageStore.subscribe(v => { previewImage = v; }),
 		];
 		return () => unsubs.forEach(u => u());
 	});
@@ -56,91 +36,30 @@
 	let convertError = $state<string | null>(null);
 	let showFormatPicker = $state(false);
 
-	// Static parameter definitions (same as Go backend)
-	const basicParams: ParameterDefinition[] = [
-		{ key: "exposure", label: "Exposure", type: "continuous", min: -5, max: 5, step: 0.01, defaultValue: 0, group: "Basic" },
-		{ key: "contrast", label: "Contrast", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Basic" },
-		{ key: "highlights", label: "Highlights", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Basic" },
-		{ key: "shadows", label: "Shadows", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Basic" },
-		{ key: "whites", label: "Whites", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Basic" },
-		{ key: "blacks", label: "Blacks", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Basic" },
-		{ key: "clarity", label: "Clarity", type: "continuous", min: -5, max: 5, step: 0.25, defaultValue: 0, group: "Basic" },
-		{ key: "saturation", label: "Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Basic" },
-		{ key: "sharpness", label: "Sharpness", type: "continuous", min: 0, max: 150, step: 1, defaultValue: 0, group: "Basic" },
-	];
-
-	const colorMixerParams: ParameterDefinition[] = [
-		{ key: "red.hue", label: "Red Hue", type: "continuous", min: -180, max: 180, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "red.saturation", label: "Red Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "red.luminance", label: "Red Luminance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "orange.hue", label: "Orange Hue", type: "continuous", min: -180, max: 180, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "orange.saturation", label: "Orange Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "orange.luminance", label: "Orange Luminance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "yellow.hue", label: "Yellow Hue", type: "continuous", min: -180, max: 180, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "yellow.saturation", label: "Yellow Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "yellow.luminance", label: "Yellow Luminance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "green.hue", label: "Green Hue", type: "continuous", min: -180, max: 180, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "green.saturation", label: "Green Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "green.luminance", label: "Green Luminance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "aqua.hue", label: "Aqua Hue", type: "continuous", min: -180, max: 180, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "aqua.saturation", label: "Aqua Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "aqua.luminance", label: "Aqua Luminance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "blue.hue", label: "Blue Hue", type: "continuous", min: -180, max: 180, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "blue.saturation", label: "Blue Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "blue.luminance", label: "Blue Luminance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "purple.hue", label: "Purple Hue", type: "continuous", min: -180, max: 180, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "purple.saturation", label: "Purple Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "purple.luminance", label: "Purple Luminance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "magenta.hue", label: "Magenta Hue", type: "continuous", min: -180, max: 180, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "magenta.saturation", label: "Magenta Saturation", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-		{ key: "magenta.luminance", label: "Magenta Luminance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Mixer" },
-	];
-
-	const colorGradingParams: ParameterDefinition[] = [
-		{ key: "colorGrading.highlights.hue", label: "Highlights Hue", type: "continuous", min: 0, max: 360, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.highlights.chroma", label: "Highlights Chroma", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.highlights.brightness", label: "Highlights Brightness", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.midtone.hue", label: "Midtone Hue", type: "continuous", min: 0, max: 360, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.midtone.chroma", label: "Midtone Chroma", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.midtone.brightness", label: "Midtone Brightness", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.shadows.hue", label: "Shadows Hue", type: "continuous", min: 0, max: 360, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.shadows.chroma", label: "Shadows Chroma", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.shadows.brightness", label: "Shadows Brightness", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Grading" },
-		{ key: "colorGrading.blending", label: "Blending", type: "continuous", min: 0, max: 100, step: 1, defaultValue: 50, group: "Color Grading" },
-		{ key: "colorGrading.balance", label: "Balance", type: "continuous", min: -100, max: 100, step: 1, defaultValue: 0, group: "Color Grading" },
-	];
-
 	const formats = ["np3", "xmp"];
 
-	function handleParameterChange(key: string, value: number) {
-		updateParameter(key, value);
+	// Inline getNested — avoids @recipe/ui runtime dependency
+	function getNested(obj: unknown, path: string): unknown {
+		const parts = path.split(".");
+		let curr: unknown = obj;
+		for (const p of parts) curr = (curr as Record<string, unknown>)?.[p];
+		return curr;
 	}
 
-	async function handlePhotoUpload() {
-		const input = document.createElement("input");
-		input.type = "file";
-		input.accept = "image/jpeg,image/png,image/webp";
-		input.onchange = async () => {
-			const file = input.files?.[0];
-			if (!file) return;
-			try {
-				const img = await loadImage(file);
-				setPreviewImage(img);
-			} catch (err) {
-				console.error("Image load failed:", err);
-			}
-		};
-		input.click();
+	function getVal(key: string): number {
+		return Number(getNested(currentRecipe, key) ?? 0);
+	}
+
+	function handleChange(key: string, value: number) {
+		updateParameter(key, value);
 	}
 
 	async function handleConvert(format: string) {
 		showFormatPicker = false;
 		const recipe = currentRecipe;
 		if (!recipe) return;
-
 		isConverting = true;
 		convertError = null;
-
 		try {
 			await convertAndDownload(recipe, format, currentFileName || "preset");
 		} catch (err) {
@@ -150,183 +69,250 @@
 		}
 	}
 
-	function getRecipeValue(key: string): number {
-		if (!currentRecipe) return 0;
-		return Number(getNested(currentRecipe, key) ?? 0);
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === "Escape") closeEditor();
 	}
 
-	function getOriginalValue(key: string): number {
-		if (!originalRecipe) return 0;
-		return Number(getNested(originalRecipe, key) ?? 0);
-	}
+	// Parameter definitions
+	const basicParams = [
+		{ key: "exposure",   label: "Exposure",   min: -5,   max: 5,   step: 0.01 },
+		{ key: "contrast",   label: "Contrast",   min: -100, max: 100, step: 1 },
+		{ key: "highlights", label: "Highlights", min: -100, max: 100, step: 1 },
+		{ key: "shadows",    label: "Shadows",    min: -100, max: 100, step: 1 },
+		{ key: "whites",     label: "Whites",     min: -100, max: 100, step: 1 },
+		{ key: "blacks",     label: "Blacks",     min: -100, max: 100, step: 1 },
+		{ key: "clarity",    label: "Clarity",    min: -100, max: 100, step: 1 },
+		{ key: "saturation", label: "Saturation", min: -100, max: 100, step: 1 },
+		{ key: "sharpness",  label: "Sharpness",  min: 0,    max: 150, step: 1 },
+	] as const;
+
+	const colorChannels = ["red", "orange", "yellow", "green", "aqua", "blue", "purple", "magenta"] as const;
+
+	const colorGradingParams = [
+		{ key: "colorGrading.highlights.hue",    label: "Highlights Hue",        min: 0,    max: 360, step: 1 },
+		{ key: "colorGrading.highlights.chroma", label: "Highlights Chroma",     min: -100, max: 100, step: 1 },
+		{ key: "colorGrading.highlights.brightness", label: "Highlights Brightness", min: -100, max: 100, step: 1 },
+		{ key: "colorGrading.midtone.hue",       label: "Midtone Hue",           min: 0,    max: 360, step: 1 },
+		{ key: "colorGrading.midtone.chroma",    label: "Midtone Chroma",        min: -100, max: 100, step: 1 },
+		{ key: "colorGrading.midtone.brightness","label": "Midtone Brightness",  min: -100, max: 100, step: 1 },
+		{ key: "colorGrading.shadows.hue",       label: "Shadows Hue",           min: 0,    max: 360, step: 1 },
+		{ key: "colorGrading.shadows.chroma",    label: "Shadows Chroma",        min: -100, max: 100, step: 1 },
+		{ key: "colorGrading.shadows.brightness","label": "Shadows Brightness",  min: -100, max: 100, step: 1 },
+		{ key: "colorGrading.blending",          label: "Blending",              min: 0,    max: 100, step: 1 },
+		{ key: "colorGrading.balance",           label: "Balance",               min: -100, max: 100, step: 1 },
+	] as const;
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
+
 {#if editorMode}
-<div class="fixed inset-0 bg-canvas-base z-50 flex flex-col">
-	<!-- Toolbar -->
-	<div class="flex items-center justify-between px-4 h-12 border-b border-border bg-surface-elevated/80 backdrop-blur-sm shrink-0">
-		<div class="flex items-center gap-3">
-			<button
-				type="button"
-				class="text-sm text-foreground-muted hover:text-foreground transition-colors"
-				onclick={closeEditor}
-			>
-				← Back
-			</button>
-			<span class="text-sm text-foreground font-medium truncate max-w-[200px]">
-				{currentFileName || "Untitled"}
-			</span>
-			{#if history.isDirty}
-				<span class="text-xs text-modified">Modified</span>
-			{/if}
-		</div>
+<!-- Backdrop -->
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<div
+	class="fixed inset-0 z-50 flex items-center justify-center p-4"
+	role="presentation"
+	onclick={(e) => { if (e.target === e.currentTarget) closeEditor(); }}
+>
+	<!-- Dim overlay — pointer-events-none so clicks pass through to the outer wrapper for close-on-backdrop -->
+	<div class="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-none"></div>
 
-		<div class="flex items-center gap-2">
-			<button
-				type="button"
-				class="px-2 py-1 text-xs text-foreground-muted hover:text-foreground disabled:opacity-30 transition-colors"
-				disabled={!history.canUndo}
-				onclick={undo}
-				title="Undo"
-			>
-				Undo
-			</button>
-			<button
-				type="button"
-				class="px-2 py-1 text-xs text-foreground-muted hover:text-foreground disabled:opacity-30 transition-colors"
-				disabled={!history.canRedo}
-				onclick={redo}
-				title="Redo"
-			>
-				Redo
-			</button>
-
-			<button
-				type="button"
-				class="px-2 py-1 text-xs text-foreground-muted hover:text-foreground transition-colors"
-				onclick={resetRecipe}
-				title="Reset All"
-			>
-				Reset
-			</button>
-
-			<button
-				type="button"
-				class="px-2 py-1 text-xs text-foreground-muted hover:text-foreground transition-colors"
-				onclick={handlePhotoUpload}
-			>
-				Change Photo
-			</button>
-
-			<div class="relative">
-				<button
-					type="button"
-					class="px-3 py-1.5 text-xs font-medium bg-interactive text-interactive-foreground rounded transition-colors hover:opacity-90 disabled:opacity-50"
-					disabled={isConverting}
-					onclick={() => showFormatPicker = !showFormatPicker}
-				>
-					{isConverting ? "Converting..." : "Convert & Download"}
-				</button>
-
-				{#if showFormatPicker}
-					<!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
-					<div
-						class="absolute right-0 top-full mt-1 bg-surface-elevated border border-border rounded shadow-lg z-10 min-w-[140px]"
-						onclick={(e: MouseEvent) => e.stopPropagation()}
-					>
-						{#each formats as fmt}
-							<button
-								type="button"
-								class="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-surface-hover transition-colors"
-								onclick={() => handleConvert(fmt)}
-							>
-								{fmt.toUpperCase()}
-								{#if fmt !== "np3"}
-									<span class="text-foreground-muted ml-1">(via NP3)</span>
-								{/if}
-							</button>
-						{/each}
-					</div>
+	<!-- Modal card -->
+	<div
+		class="glass-regular rounded-2xl relative z-10 w-full max-w-lg flex flex-col"
+		style="max-height: 85dvh;"
+	>
+		<!-- Header -->
+		<div class="flex items-center justify-between px-5 py-3.5 border-b border-white/5 shrink-0">
+			<div class="flex items-center gap-2 min-w-0">
+				<span class="text-sm font-medium text-foreground truncate">
+					{currentFileName || "Untitled"}
+				</span>
+				{#if history.isDirty}
+					<span class="text-xs text-modified shrink-0">Modified</span>
 				{/if}
 			</div>
-		</div>
-	</div>
-
-	{#if convertError}
-		<div class="px-4 py-2 bg-error/10 text-error text-xs border-b border-error/20">
-			{convertError}
-		</div>
-	{/if}
-
-	<!-- Main editor area -->
-	<div class="flex flex-1 overflow-hidden min-h-0" style="height: calc(100vh - 3rem);">
-		<!-- Canvas area -->
-		<div class="flex-1 min-w-0 flex flex-col p-4">
-			{#if !previewImage}
-				<div class="flex flex-col items-center justify-center flex-1 bg-surface-elevated/30 rounded-xl gap-4 border border-dashed border-border">
-					<span class="text-4xl">📷</span>
-					<p class="text-sm text-foreground-muted text-center max-w-xs">
-						Upload a photo to see a live preview of your preset adjustments
-					</p>
-					<button
-						type="button"
-						class="px-4 py-2 text-sm font-medium bg-interactive text-interactive-foreground rounded-lg hover:opacity-90 transition-opacity"
-						onclick={handlePhotoUpload}
-					>
-						Upload Photo
-					</button>
-				</div>
-			{:else}
-				<div class="flex-1 min-h-0" style="position: relative;">
-					<PhotoPreview
-						recipe={currentRecipe}
-						imageData={previewImage}
-						wasmReady={wasm.ready}
-						generateLUT={wasmGenerateLUT}
-					/>
-				</div>
-			{/if}
+			<button
+				type="button"
+				class="text-foreground-muted hover:text-foreground text-xl leading-none transition-colors ml-4 shrink-0"
+				onclick={closeEditor}
+				aria-label="Close"
+			>
+				×
+			</button>
 		</div>
 
-		<!-- Sidebar -->
-		<div class="w-80 border-l border-border overflow-y-auto bg-surface-elevated/50 p-4 space-y-2 shrink-0 hidden lg:block">
-			<CollapsibleSection title="Basic" expanded={true}>
-				<div class="flex flex-col gap-3">
-					{#each basicParams as def}
-						<ParameterSliderUnit
-							definition={def}
-							value={getRecipeValue(def.key)}
-							originalValue={getOriginalValue(def.key)}
-							onchange={handleParameterChange}
-						/>
+		<!-- Scrollable body -->
+		<div class="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
+
+			<!-- Basic section (open by default) -->
+			<details open>
+				<summary class="text-xs font-semibold uppercase tracking-wider text-foreground-muted cursor-pointer select-none hover:text-foreground transition-colors py-1">
+					Basic
+				</summary>
+				<div class="mt-3 space-y-3">
+					{#each basicParams as p}
+						{@const val = getVal(p.key)}
+						<label class="flex items-center gap-3 text-xs">
+							<span class="w-24 shrink-0 text-foreground-muted">{p.label}</span>
+							<input
+								type="range"
+								min={p.min}
+								max={p.max}
+								step={p.step}
+								value={val}
+								oninput={(e) => handleChange(p.key, +(e.currentTarget as HTMLInputElement).value)}
+								class="flex-1 accent-interactive h-1 cursor-pointer"
+							/>
+							<span class="w-10 text-right tabular-nums text-foreground shrink-0">
+								{val > 0 ? `+${val}` : val}
+							</span>
+						</label>
 					{/each}
 				</div>
-			</CollapsibleSection>
+			</details>
 
-			<CollapsibleSection title="Color Mixer">
-				<ColorBlender
-					parameters={colorMixerParams}
-					recipe={currentRecipe ?? {}}
-					originalRecipe={originalRecipe ?? {}}
-					onchange={handleParameterChange}
-				/>
-			</CollapsibleSection>
+			<!-- Color Mixer section -->
+			<details>
+				<summary class="text-xs font-semibold uppercase tracking-wider text-foreground-muted cursor-pointer select-none hover:text-foreground transition-colors py-1">
+					Color Mixer
+				</summary>
+				<div class="mt-3 space-y-4">
+					{#each colorChannels as channel}
+						<div>
+							<p class="text-xs text-foreground-muted/60 mb-2 capitalize">{channel}</p>
+							<div class="space-y-2">
+								{#each ["hue", "saturation", "luminance"] as aspect}
+									{@const key = `${channel}.${aspect}`}
+									{@const val = getVal(key)}
+									{@const min = aspect === "hue" ? -180 : -100}
+									{@const max = aspect === "hue" ? 180 : 100}
+									<label class="flex items-center gap-3 text-xs">
+										<span class="w-24 shrink-0 text-foreground-muted capitalize">{aspect}</span>
+										<input
+											type="range"
+											{min}
+											{max}
+											step={1}
+											value={val}
+											oninput={(e) => handleChange(key, +(e.currentTarget as HTMLInputElement).value)}
+											class="flex-1 accent-interactive h-1 cursor-pointer"
+										/>
+										<span class="w-10 text-right tabular-nums text-foreground shrink-0">
+											{val > 0 ? `+${val}` : val}
+										</span>
+									</label>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			</details>
 
-			<CollapsibleSection title="Tone Curve">
-				<ToneCurveVisual
-					points={currentRecipe?.pointCurve ?? []}
-				/>
-			</CollapsibleSection>
+			<!-- Color Grading section -->
+			<details>
+				<summary class="text-xs font-semibold uppercase tracking-wider text-foreground-muted cursor-pointer select-none hover:text-foreground transition-colors py-1">
+					Color Grading
+				</summary>
+				<div class="mt-3 space-y-3">
+					{#each colorGradingParams as p}
+						{@const val = getVal(p.key)}
+						<label class="flex items-center gap-3 text-xs">
+							<span class="w-32 shrink-0 text-foreground-muted">{p.label}</span>
+							<input
+								type="range"
+								min={p.min}
+								max={p.max}
+								step={p.step}
+								value={val}
+								oninput={(e) => handleChange(p.key, +(e.currentTarget as HTMLInputElement).value)}
+								class="flex-1 accent-interactive h-1 cursor-pointer"
+							/>
+							<span class="w-10 text-right tabular-nums text-foreground shrink-0">
+								{val > 0 ? `+${val}` : val}
+							</span>
+						</label>
+					{/each}
+				</div>
+			</details>
+		</div>
 
-			<CollapsibleSection title="Color Grading">
-				<ColorGrading
-					parameters={colorGradingParams}
-					recipe={currentRecipe ?? {}}
-					originalRecipe={originalRecipe ?? {}}
-					onchange={handleParameterChange}
-				/>
-			</CollapsibleSection>
+		<!-- Footer -->
+		<div class="px-5 py-3.5 border-t border-white/5 shrink-0 space-y-2">
+			{#if convertError}
+				<p class="text-xs text-error">{convertError}</p>
+			{/if}
+			<div class="flex items-center justify-between gap-2">
+				<!-- Left: undo/redo/reset -->
+				<div class="flex items-center gap-1">
+					<button
+						type="button"
+						class="px-2 py-1 text-xs text-foreground-muted hover:text-foreground disabled:opacity-30 transition-colors"
+						disabled={!history.canUndo}
+						onclick={undo}
+					>Undo</button>
+					<button
+						type="button"
+						class="px-2 py-1 text-xs text-foreground-muted hover:text-foreground disabled:opacity-30 transition-colors"
+						disabled={!history.canRedo}
+						onclick={redo}
+					>Redo</button>
+					<button
+						type="button"
+						class="px-2 py-1 text-xs text-foreground-muted hover:text-foreground transition-colors"
+						onclick={resetRecipe}
+					>Reset</button>
+				</div>
+
+				<!-- Right: Convert & Download -->
+				<div class="relative">
+					<button
+						type="button"
+						class="px-3 py-1.5 text-xs font-medium bg-interactive text-interactive-foreground rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
+						disabled={isConverting}
+						onclick={() => { showFormatPicker = !showFormatPicker; convertError = null; }}
+					>
+						{isConverting ? "Converting…" : "Convert & Download"}
+					</button>
+
+					{#if showFormatPicker}
+						<!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
+						<div
+							class="absolute right-0 bottom-full mb-1 glass-regular rounded-lg shadow-lg z-10 min-w-[140px] overflow-hidden"
+							onclick={(e) => e.stopPropagation()}
+						>
+							{#each formats as fmt}
+								<button
+									type="button"
+									class="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-white/5 transition-colors"
+									onclick={() => handleConvert(fmt)}
+								>
+									{fmt.toUpperCase()}
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
 {/if}
+
+<style>
+	details > summary {
+		list-style: none;
+	}
+	details > summary::before {
+		content: "▶ ";
+		font-size: 0.6rem;
+		opacity: 0.5;
+		transition: transform 0.15s;
+		display: inline-block;
+	}
+	details[open] > summary::before {
+		transform: rotate(90deg);
+	}
+	details > summary::-webkit-details-marker {
+		display: none;
+	}
+</style>
