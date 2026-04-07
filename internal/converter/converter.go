@@ -114,7 +114,7 @@ func ConvertWithOptions(input []byte, from, to string, opts ConvertOptions) ([]b
 	}
 
 	// Apply optional pre-generation transforms
-	if opts.FlattenCurves && from == FormatNP3 && to == FormatXMP {
+	if opts.FlattenCurves && ((from == FormatNP3 && to == FormatXMP) || (from == FormatXMP && to == FormatNP3)) {
 		flattenCurvesToBasicParams(recipe)
 	}
 

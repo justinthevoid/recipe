@@ -259,7 +259,7 @@
 				>
 					{wasmStatus !== "ready" ? "Initializing engine…" : `Convert to ${getFormatLabel(targetFormat)}`}
 				</button>
-				{#if sourceFormat === "np3" && targetFormat === "xmp"}
+				{#if (sourceFormat === "np3" && targetFormat === "xmp") || (sourceFormat === "xmp" && targetFormat === "np3")}
 					<label class="flex items-center gap-2 text-xs text-foreground-muted cursor-pointer select-none">
 						<input
 							type="checkbox"
