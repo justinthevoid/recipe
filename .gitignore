@@ -34,6 +34,7 @@ cmd/np3tool/np3tool
 cmd/np3tool/np3tool.exe
 extension/bin/
 extension/dist/
+/web/.astro/
 
 # === Test Data (full corpus — committed fixtures live in internal/formats/*/testdata/) ===
 /testdata/
