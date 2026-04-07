@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 // TestGetMetadataIPC simulates network/I/O errors (e.g. os.IsPermission) and tests IPC response grace (Task 4).
 func TestGetMetadataIPC(t *testing.T) {
 	tempDir := t.TempDir()
-	badFile := filepath.Join(tempDir, "nonexistent.np3")
+	badFile := strings.ReplaceAll(filepath.Join(tempDir, "nonexistent.np3"), `\`, `/`)
 
 	reqMsg := Message{
 		Type:    "np3.open",
