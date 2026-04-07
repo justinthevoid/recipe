@@ -44,7 +44,12 @@ func convertWrapper(this js.Value, args []js.Value) interface{} {
 			fromFormat := args[1].String()
 			toFormat := args[2].String()
 
-			outputBytes, err := converter.Convert(inputBytes, fromFormat, toFormat)
+			opts := converter.ConvertOptions{}
+			if len(args) >= 4 && args[3].Type() == js.TypeBoolean {
+				opts.FlattenCurves = args[3].Bool()
+			}
+
+			outputBytes, err := converter.ConvertWithOptions(inputBytes, fromFormat, toFormat, opts)
 			if err != nil {
 				reject.Invoke(err.Error())
 				return

@@ -3,6 +3,7 @@ package converter
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/justin/recipe/internal/formats/np3"
 	"github.com/justin/recipe/internal/formats/xmp"
@@ -17,6 +18,14 @@ const (
 
 // NP3 magic bytes (first 3 bytes: "NCP" in ASCII)
 var np3MagicBytes = []byte{'N', 'C', 'P'}
+
+// ConvertOptions controls optional behaviors during conversion.
+type ConvertOptions struct {
+	// FlattenCurves, when true and converting NP3→XMP, approximates the NP3 tone
+	// curve as basic parameters (Contrast, Highlights, Shadows, Whites, Blacks) and
+	// suppresses all curve fields in the output XMP. Ignored for all other paths.
+	FlattenCurves bool
+}
 
 // Convert performs bidirectional conversion between supported photo editing recipe formats.
 //
@@ -51,6 +60,11 @@ var np3MagicBytes = []byte{'N', 'C', 'P'}
 //	    }
 //	}
 func Convert(input []byte, from, to string) ([]byte, error) {
+	return ConvertWithOptions(input, from, to, ConvertOptions{})
+}
+
+// ConvertWithOptions is like Convert but accepts ConvertOptions for opt-in behaviors.
+func ConvertWithOptions(input []byte, from, to string, opts ConvertOptions) ([]byte, error) {
 	// Auto-detect source format if not specified
 	if from == "" {
 		detectedFormat, err := DetectFormat(input)
@@ -99,6 +113,11 @@ func Convert(input []byte, from, to string) ([]byte, error) {
 		}
 	}
 
+	// Apply optional pre-generation transforms
+	if opts.FlattenCurves && from == FormatNP3 && to == FormatXMP {
+		flattenCurvesToBasicParams(recipe)
+	}
+
 	// Generate output from UniversalRecipe
 	var output []byte
 
@@ -143,6 +162,102 @@ func DetectFormat(input []byte) (string, error) {
 	}
 
 	return "", fmt.Errorf("unknown format: unable to detect from file content (size: %d bytes)", len(input))
+}
+
+// flattenCurvesToBasicParams approximates the tone curve in recipe as basic parameters
+// (Contrast, Highlights, Shadows, Whites, Blacks) and clears all curve fields.
+//
+// Priority: PointCurve (control points) is used when it has ≥2 points; otherwise
+// ToneCurveParametric zone values are used. If neither is present, the recipe is unchanged.
+//
+// Derived values are added to any existing basic params and clamped to -100..+100,
+// which is safe because NP3 cannot have both curves and basic params simultaneously
+// (existing basic params will be at their zero defaults when a curve is present).
+func flattenCurvesToBasicParams(recipe *models.UniversalRecipe) {
+	if len(recipe.PointCurve) >= 2 {
+		// Sort control points by input in case third-party NP3 tools store them unsorted
+		pts := make([]models.ToneCurvePoint, len(recipe.PointCurve))
+		copy(pts, recipe.PointCurve)
+		sort.Slice(pts, func(i, j int) bool { return pts[i].Input < pts[j].Input })
+
+		// Linear interpolation: find output value for a given input x
+		interpolate := func(x int) int {
+			if x <= pts[0].Input {
+				return pts[0].Output
+			}
+			if x >= pts[len(pts)-1].Input {
+				return pts[len(pts)-1].Output
+			}
+			for i := 1; i < len(pts); i++ {
+				if x <= pts[i].Input {
+					x0, y0 := pts[i-1].Input, pts[i-1].Output
+					x1, y1 := pts[i].Input, pts[i].Output
+					if x1 == x0 {
+						return y0
+					}
+					return y0 + (y1-y0)*(x-x0)/(x1-x0)
+				}
+			}
+			return pts[len(pts)-1].Output
+		}
+
+		// Sample curve and compute deviation from linear at key input points
+		dev := func(x int) int { return interpolate(x) - x }
+		scale := func(d int) int { return clampInt(d*100/128, -100, 100) }
+
+		dev10 := dev(10)
+		dev64 := dev(64)
+		dev192 := dev(192)
+		dev245 := dev(245)
+
+		recipe.Blacks = clampInt(recipe.Blacks+scale(dev10), -100, 100)
+		recipe.Shadows = clampInt(recipe.Shadows+scale(dev64), -100, 100)
+		recipe.Highlights = clampInt(recipe.Highlights+scale(dev192), -100, 100)
+		recipe.Whites = clampInt(recipe.Whites+scale(dev245), -100, 100)
+		// Contrast from differential: positive S-curve → positive contrast
+		contrastDev := (dev192 - dev64) / 2
+		recipe.Contrast = clampInt(recipe.Contrast+scale(contrastDev), -100, 100)
+
+	} else if recipe.ToneCurveShadows != 0 || recipe.ToneCurveDarks != 0 ||
+		recipe.ToneCurveLights != 0 || recipe.ToneCurveHighlights != 0 {
+		// Map parametric zone values to basic params
+		s := recipe.ToneCurveShadows
+		d := recipe.ToneCurveDarks
+		l := recipe.ToneCurveLights
+		h := recipe.ToneCurveHighlights
+
+		recipe.Blacks = clampInt(recipe.Blacks+s, -100, 100)
+		recipe.Shadows = clampInt(recipe.Shadows+(s+d)/2, -100, 100)
+		recipe.Highlights = clampInt(recipe.Highlights+(l+h)/2, -100, 100)
+		recipe.Whites = clampInt(recipe.Whites+h, -100, 100)
+		recipe.Contrast = clampInt(recipe.Contrast+(l+h-s-d)/4, -100, 100)
+	} else {
+		// No curve data — nothing to flatten
+		return
+	}
+
+	// Clear all curve fields (master + per-channel)
+	recipe.PointCurve = nil
+	recipe.PointCurveRed = nil
+	recipe.PointCurveGreen = nil
+	recipe.PointCurveBlue = nil
+	recipe.ToneCurveShadows = 0
+	recipe.ToneCurveDarks = 0
+	recipe.ToneCurveLights = 0
+	recipe.ToneCurveHighlights = 0
+	recipe.ToneCurveShadowSplit = 0
+	recipe.ToneCurveMidtoneSplit = 0
+	recipe.ToneCurveHighlightSplit = 0
+}
+
+func clampInt(v, min, max int) int {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }
 
 // validateFormat checks if a format string is supported.

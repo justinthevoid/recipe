@@ -22,6 +22,7 @@ declare function convert(
 	data: Uint8Array,
 	from: string,
 	to: string,
+	flattenCurves?: boolean,
 ): Promise<Uint8Array>;
 declare function generate(recipeJSON: string): Promise<Uint8Array>;
 declare function detectFormat(data: Uint8Array): string;
@@ -106,9 +107,10 @@ export async function wasmConvert(
 	data: Uint8Array,
 	from: string,
 	to: string,
+	flattenCurves?: boolean,
 ): Promise<Uint8Array> {
 	if (!wasm.ready) throw new Error("WASM not ready");
-	return await convert(data, from, to);
+	return await convert(data, from, to, flattenCurves);
 }
 
 export async function wasmGenerate(

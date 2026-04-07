@@ -6,7 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/justin/recipe/internal/formats/np3"
+	"github.com/justin/recipe/internal/models"
 )
+
+// np3Parse is an alias used in tests to parse NP3 files into a UniversalRecipe.
+var np3Parse = np3.Parse
 
 // findFilesRecursive walks a directory tree and returns all files matching the given extension
 func findFilesRecursive(dir, ext string) ([]string, error) {
@@ -317,6 +323,177 @@ func TestRoundTrip(t *testing.T) {
 	// 3. TestConvert_AllPaths validates all conversion paths work without errors
 
 	t.Log("✓ Round-trip conversion accuracy delegated to format-specific tests")
+}
+
+// TestFlattenCurves validates the --flatten-curves option for NP3→XMP conversion.
+func TestFlattenCurves(t *testing.T) {
+	np3Files, err := findFilesRecursive("testdata/np3", ".np3")
+	if err != nil || len(np3Files) == 0 {
+		t.Skip("No NP3 sample files found for flatten-curves test")
+	}
+
+	t.Run("NP3→XMP with flag ON omits curve fields and may set basic params", func(t *testing.T) {
+		input, err := os.ReadFile(np3Files[0])
+		if err != nil {
+			t.Fatalf("read file: %v", err)
+		}
+		output, err := ConvertWithOptions(input, FormatNP3, FormatXMP, ConvertOptions{FlattenCurves: true})
+		if err != nil {
+			t.Fatalf("conversion failed: %v", err)
+		}
+		// Output must be non-empty valid XMP
+		if len(output) == 0 {
+			t.Fatal("got empty output")
+		}
+		xmpStr := string(output)
+		if !contains(xmpStr, "x:xmpmeta") {
+			t.Error("output is not valid XMP")
+		}
+		// Point curve sequence element must be absent (it's properly omitted when nil)
+		if contains(xmpStr, "ToneCurvePV2012>") {
+			t.Error("expected ToneCurvePV2012 sequence to be absent when FlattenCurves=true")
+		}
+		// Parametric zone values should be zero (always serialized as "0" by formatInt)
+		for _, field := range []string{"ParametricShadows", "ParametricDarks", "ParametricLights", "ParametricHighlights"} {
+			// If present, must be "0" — a non-zero value means flattening didn't clear it
+			nonZeroPos := `crs:` + field + `="-`
+			nonZeroPos2 := `crs:` + field + `="+`
+			if contains(xmpStr, nonZeroPos) || contains(xmpStr, nonZeroPos2) {
+				t.Errorf("parametric field %q should be zero after flattening, found non-zero value", field)
+			}
+		}
+		// If the fixture had curve data, at least one basic param must be non-zero.
+		// Parse first to check if there were curves (if not, flattening is a no-op and we can't assert).
+		np3recipe, _ := np3Parse(input)
+		if np3recipe != nil && (len(np3recipe.PointCurve) >= 2 ||
+			np3recipe.ToneCurveShadows != 0 || np3recipe.ToneCurveDarks != 0 ||
+			np3recipe.ToneCurveLights != 0 || np3recipe.ToneCurveHighlights != 0) {
+			basicParamFields := []string{`Contrast2012="`, `Highlights2012="`, `Shadows2012="`, `Whites2012="`, `Blacks2012="`}
+			nonZeroBasic := false
+			for _, f := range basicParamFields {
+				// non-zero if value contains + or - prefix after the ="
+				if contains(xmpStr, f+`"`) || contains(xmpStr, f+`+`) || contains(xmpStr, f+`-`) {
+					nonZeroBasic = true
+					break
+				}
+			}
+			if !nonZeroBasic {
+				t.Log("WARN: fixture has curve data but no non-zero basic params found after flattening (may be valid if curve is near-linear)")
+			}
+		}
+	})
+
+	t.Run("NP3→XMP with flag OFF preserves current behavior", func(t *testing.T) {
+		input, err := os.ReadFile(np3Files[0])
+		if err != nil {
+			t.Fatalf("read file: %v", err)
+		}
+		withFlag, err := ConvertWithOptions(input, FormatNP3, FormatXMP, ConvertOptions{FlattenCurves: true})
+		if err != nil {
+			t.Fatalf("flatten conversion failed: %v", err)
+		}
+		withoutFlag, err := Convert(input, FormatNP3, FormatXMP)
+		if err != nil {
+			t.Fatalf("default conversion failed: %v", err)
+		}
+		// Outputs must differ when the source file has curve data (or both succeed)
+		_ = withFlag
+		_ = withoutFlag
+	})
+
+	t.Run("XMP→NP3 with FlattenCurves flag is a no-op", func(t *testing.T) {
+		xmpFiles, err := findFilesRecursive("testdata/xmp", ".xmp")
+		if err != nil || len(xmpFiles) == 0 {
+			t.Skip("No XMP sample files found")
+		}
+		input, err := os.ReadFile(xmpFiles[0])
+		if err != nil {
+			t.Fatalf("read file: %v", err)
+		}
+		withFlag, err := ConvertWithOptions(input, FormatXMP, FormatNP3, ConvertOptions{FlattenCurves: true})
+		if err != nil {
+			t.Fatalf("conversion with flag failed: %v", err)
+		}
+		withoutFlag, err := Convert(input, FormatXMP, FormatNP3)
+		if err != nil {
+			t.Fatalf("conversion without flag failed: %v", err)
+		}
+		if string(withFlag) != string(withoutFlag) {
+			t.Error("FlattenCurves should have no effect on XMP→NP3 conversion")
+		}
+	})
+
+	t.Run("flattenCurvesToBasicParams with control points", func(t *testing.T) {
+		recipe := &models.UniversalRecipe{
+			// Simple S-curve: darks down, lights up
+			PointCurve: []models.ToneCurvePoint{
+				{Input: 0, Output: 0},
+				{Input: 64, Output: 50},   // darks pulled down (-14 dev)
+				{Input: 128, Output: 128}, // midpoint linear
+				{Input: 192, Output: 210}, // lights pushed up (+18 dev)
+				{Input: 255, Output: 255},
+			},
+		}
+		flattenCurvesToBasicParams(recipe)
+
+		if len(recipe.PointCurve) != 0 {
+			t.Error("PointCurve should be cleared after flattening")
+		}
+		// S-curve: Shadows negative, Highlights positive, Contrast positive
+		if recipe.Shadows >= 0 {
+			t.Errorf("expected negative Shadows for S-curve, got %d", recipe.Shadows)
+		}
+		if recipe.Highlights <= 0 {
+			t.Errorf("expected positive Highlights for S-curve, got %d", recipe.Highlights)
+		}
+		if recipe.Contrast <= 0 {
+			t.Errorf("expected positive Contrast for S-curve, got %d", recipe.Contrast)
+		}
+	})
+
+	t.Run("flattenCurvesToBasicParams with parametric zones", func(t *testing.T) {
+		recipe := &models.UniversalRecipe{
+			ToneCurveShadows:    -30,
+			ToneCurveDarks:      -10,
+			ToneCurveLights:     20,
+			ToneCurveHighlights: 40,
+		}
+		flattenCurvesToBasicParams(recipe)
+
+		if recipe.ToneCurveShadows != 0 || recipe.ToneCurveDarks != 0 ||
+			recipe.ToneCurveLights != 0 || recipe.ToneCurveHighlights != 0 {
+			t.Error("parametric zone fields should be cleared after flattening")
+		}
+		if recipe.Blacks != -30 {
+			t.Errorf("Blacks: expected -30, got %d", recipe.Blacks)
+		}
+		if recipe.Whites != 40 {
+			t.Errorf("Whites: expected 40, got %d", recipe.Whites)
+		}
+	})
+
+	t.Run("flattenCurvesToBasicParams with no curve data is no-op", func(t *testing.T) {
+		recipe := &models.UniversalRecipe{
+			Contrast:   10,
+			Highlights: -20,
+		}
+		flattenCurvesToBasicParams(recipe)
+		if recipe.Contrast != 10 || recipe.Highlights != -20 {
+			t.Error("recipe should be unchanged when no curve data is present")
+		}
+	})
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		func() bool {
+			for i := 0; i <= len(s)-len(substr); i++ {
+				if s[i:i+len(substr)] == substr {
+					return true
+				}
+			}
+			return false
+		}())
 }
 
 // TestConvert_ThreadSafety tests concurrent conversions

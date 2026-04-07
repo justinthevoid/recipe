@@ -120,9 +120,14 @@ func runConvert(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Parse optional flags
+	flattenCurves, _ := cmd.Flags().GetBool("flatten-curves")
+
 	// Convert via single API call to converter
 	logger.Debug("converting formats", "from", fromFormat, "to", toFormat)
-	outputBytes, err := converter.Convert(inputBytes, fromFormat, toFormat)
+	outputBytes, err := converter.ConvertWithOptions(inputBytes, fromFormat, toFormat, converter.ConvertOptions{
+		FlattenCurves: flattenCurves,
+	})
 
 	if err != nil {
 		// Handle conversion errors (invalid format, parse errors)
@@ -232,6 +237,7 @@ func init() {
 	convertCmd.Flags().StringP("from", "f", "", "Source format (auto-detected if omitted)")
 	convertCmd.Flags().StringP("output", "o", "", "Output file path (default: replace input extension)")
 	convertCmd.Flags().Bool("overwrite", false, "Overwrite existing output file")
+	convertCmd.Flags().Bool("flatten-curves", false, "Convert tone curves to approximate basic parameters (Contrast, Highlights, Shadows, Whites, Blacks). Only affects NP3→XMP conversions.")
 }
 
 // countParameters counts the number of non-zero fields in a UniversalRecipe.

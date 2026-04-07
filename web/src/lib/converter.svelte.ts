@@ -66,6 +66,7 @@ export async function convertFile(
 	sourceFormat: string,
 	targetFormat: string,
 	originalFileName: string,
+	flattenCurves?: boolean,
 ): Promise<{ data: Uint8Array; fileName: string }> {
 	if (!isWasmReady()) {
 		throw new ConversionError("WASM not ready");
@@ -76,7 +77,7 @@ export async function convertFile(
 	}
 
 	try {
-		const outputData = await wasmConvert(fileData, sourceFormat, targetFormat);
+		const outputData = await wasmConvert(fileData, sourceFormat, targetFormat, flattenCurves);
 		validateOutput(outputData, targetFormat);
 		return {
 			data: outputData,

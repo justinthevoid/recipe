@@ -22,6 +22,9 @@
 	let sourceFormat = $state("");
 	let targetFormat = $state("");
 
+	// Conversion options
+	let flattenCurves = $state(false);
+
 	// Result state
 	let resultData = $state<Uint8Array | null>(null);
 	let resultFileName = $state("");
@@ -102,7 +105,7 @@
 		await new Promise(r => setTimeout(r, 350));
 
 		try {
-			const result = await convertFile(fileData, sourceFormat, targetFormat, fileName);
+			const result = await convertFile(fileData, sourceFormat, targetFormat, fileName, flattenCurves);
 			resultData = result.data;
 			resultFileName = result.fileName;
 
@@ -145,6 +148,7 @@
 		convertedRecipe = null;
 		isDemo = false;
 		paramExpanded = false;
+		flattenCurves = false;
 	}
 
 	async function handleDemo() {
@@ -255,6 +259,16 @@
 				>
 					{wasmStatus !== "ready" ? "Initializing engine…" : `Convert to ${getFormatLabel(targetFormat)}`}
 				</button>
+				{#if sourceFormat === "np3" && targetFormat === "xmp"}
+					<label class="flex items-center gap-2 text-xs text-foreground-muted cursor-pointer select-none">
+						<input
+							type="checkbox"
+							bind:checked={flattenCurves}
+							class="accent-interactive"
+						/>
+						Flatten curves to basic parameters
+					</label>
+				{/if}
 			</div>
 
 		{:else if cardState === "converting"}
