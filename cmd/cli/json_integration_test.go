@@ -20,7 +20,7 @@ func TestConvertJSONOutput(t *testing.T) {
 	defer os.Remove("recipe-test.exe")
 
 	// Use existing test file - use absolute path from project root
-	inputFile := filepath.Join("testdata", "xmp", "AFGA APX 100.xmp")
+	inputFile := filepath.Join("testdata", "xmp", "preset-1.xmp")
 
 	cmd := exec.Command("./recipe-test.exe", "convert", inputFile,
 		"--to", "np3", "--json", "--overwrite")
@@ -183,7 +183,7 @@ func TestJSONWithVerbose(t *testing.T) {
 	}
 	defer os.Remove("recipe-test.exe")
 
-	inputFile := filepath.Join("testdata", "xmp", "AFGA APX 100.xmp")
+	inputFile := filepath.Join("testdata", "xmp", "preset-1.xmp")
 
 	cmd := exec.Command("./recipe-test.exe", "convert", inputFile,
 		"--to", "np3", "--json", "--verbose", "--overwrite")
@@ -247,7 +247,7 @@ func TestJSONFieldNamingConvention(t *testing.T) {
 	}
 	defer os.Remove("recipe-test.exe")
 
-	inputFile := filepath.Join("testdata", "xmp", "AFGA APX 100.xmp")
+	inputFile := filepath.Join("testdata", "xmp", "preset-1.xmp")
 
 	cmd := exec.Command("./recipe-test.exe", "convert", inputFile,
 		"--to", "np3", "--json", "--overwrite")

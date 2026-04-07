@@ -80,7 +80,7 @@ func BenchmarkToJSONWithMetadata(b *testing.B) {
 // Target: <50ms for file read + parse + JSON (actual target is <100ms total)
 func BenchmarkInspectEndToEnd_NP3(b *testing.B) {
 	// Find a sample NP3 file
-	testFile := findTestFile(b, "testdata/np3/Classic Chrome.np3")
+	testFile := findTestFile(b, "testdata/np3/preset-1.np3")
 	if testFile == "" {
 		b.Skip("No sample NP3 file found for benchmark")
 	}

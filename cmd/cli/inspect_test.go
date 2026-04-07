@@ -14,8 +14,8 @@ func TestInspectCommand_ValidFile(t *testing.T) {
 		file   string
 		format string
 	}{
-		{"NP3 file", "testdata/np3/Classic Chrome.np3", "np3"},
-		{"XMP file", "testdata/xmp/AFGA APX 100.xmp", "xmp"},
+		{"NP3 file", "testdata/np3/preset-1.np3", "np3"},
+		{"XMP file", "testdata/xmp/preset-1.xmp", "xmp"},
 	}
 
 	for _, tt := range tests {
@@ -39,7 +39,7 @@ func TestInspectCommand_OutputFlag(t *testing.T) {
 
 	// Run inspect with --output flag
 	cmd := rootCmd
-	cmd.SetArgs([]string{"inspect", "testdata/np3/Classic Chrome.np3", "--output", outputFile})
+	cmd.SetArgs([]string{"inspect", "testdata/np3/preset-1.np3", "--output", outputFile})
 
 	err := cmd.Execute()
 	if err != nil {
@@ -77,7 +77,7 @@ func TestInspectCommand_OutputDirectoryCreation(t *testing.T) {
 
 	// Run inspect with nested output path
 	cmd := rootCmd
-	cmd.SetArgs([]string{"inspect", "testdata/np3/Classic Chrome.np3", "--output", outputPath})
+	cmd.SetArgs([]string{"inspect", "testdata/np3/preset-1.np3", "--output", outputPath})
 
 	err := cmd.Execute()
 	if err != nil {

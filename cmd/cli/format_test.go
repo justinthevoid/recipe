@@ -183,8 +183,8 @@ func TestDetectFormatUsesConverter(t *testing.T) {
 		path   string
 		format string
 	}{
-		{"testdata/xmp/AFGA APX 100.xmp", "xmp"},
-		{"testdata/np3/Classic Chrome.np3", "np3"},
+		{"testdata/xmp/preset-1.xmp", "xmp"},
+		{"testdata/np3/preset-1.np3", "np3"},
 	}
 
 	for _, tt := range testFiles {
@@ -224,8 +224,8 @@ func TestFormatDetectionIntegration(t *testing.T) {
 		path   string
 		format string
 	}{
-		{"testdata/xmp/AFGA APX 100.xmp", "xmp"},
-		{"testdata/np3/Classic Chrome.np3", "np3"},
+		{"testdata/xmp/preset-1.xmp", "xmp"},
+		{"testdata/np3/preset-1.np3", "np3"},
 	}
 
 	for _, tt := range testFiles {

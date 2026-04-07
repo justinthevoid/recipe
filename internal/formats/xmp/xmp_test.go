@@ -516,9 +516,9 @@ func TestParseComprehensive(t *testing.T) {
 
 // TestParseAllParameters validates all 50+ parameters are correctly extracted
 func TestParseAllParameters(t *testing.T) {
-	data, err := os.ReadFile("testdata/Kodachrome K14.xmp")
+	data, err := os.ReadFile("testdata/preset-4.xmp")
 	if err != nil {
-		t.Fatalf("failed to read Kodachrome K14.xmp: %v", err)
+		t.Fatalf("failed to read preset-4.xmp: %v", err)
 	}
 
 	recipe, err := Parse(data)
@@ -773,7 +773,7 @@ func TestParseInvalidDataType(t *testing.T) {
 
 // BenchmarkParse validates performance target of <30ms
 func BenchmarkParse(b *testing.B) {
-	data, err := os.ReadFile("testdata/AFGA APX 100.xmp")
+	data, err := os.ReadFile("testdata/preset-1.xmp")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -1117,9 +1117,9 @@ func TestGenerateInvalidRange(t *testing.T) {
 // TestGenerateRoundTrip validates round-trip conversion: XMP → Parse → Generate → Parse
 func TestGenerateRoundTrip(t *testing.T) {
 	// Read sample XMP file
-	originalData, err := os.ReadFile("testdata/AFGA APX 100.xmp")
+	originalData, err := os.ReadFile("testdata/preset-1.xmp")
 	if err != nil {
-		t.Fatalf("failed to read AFGA APX 100.xmp: %v", err)
+		t.Fatalf("failed to read preset-1.xmp: %v", err)
 	}
 
 	// Parse original
