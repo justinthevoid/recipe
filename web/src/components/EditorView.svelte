@@ -8,6 +8,7 @@
 		undo,
 		redo,
 		updateParameter,
+		updateMetadata,
 		updateCurvePoints,
 		type CurveChannel,
 	} from "$lib/stores.svelte";
@@ -202,6 +203,35 @@
 
 		<!-- Scrollable body -->
 		<div class="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
+
+			<!-- Metadata section -->
+			<details open>
+				<summary class="text-xs font-semibold uppercase tracking-wider text-foreground-muted cursor-pointer select-none hover:text-foreground transition-colors py-1">
+					Metadata
+				</summary>
+				<div class="mt-3 space-y-3">
+					<label class="flex items-center gap-3 text-xs">
+						<span class="w-24 shrink-0 text-foreground-muted">Name</span>
+						<input
+							type="text"
+							maxlength="20"
+							value={currentRecipe?.name ?? ""}
+							oninput={(e) => updateMetadata("name", (e.currentTarget as HTMLInputElement).value)}
+							class="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-foreground focus:outline-none focus:border-white/30"
+						/>
+					</label>
+					<label class="flex items-start gap-3 text-xs">
+						<span class="w-24 shrink-0 text-foreground-muted pt-1">Description</span>
+						<textarea
+							maxlength="256"
+							rows="2"
+							value={currentRecipe?.description ?? ""}
+							oninput={(e) => updateMetadata("description", (e.currentTarget as HTMLTextAreaElement).value)}
+							class="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-foreground focus:outline-none focus:border-white/30 resize-none"
+						></textarea>
+					</label>
+				</div>
+			</details>
 
 			<!-- Basic section (open by default) -->
 			<details open>

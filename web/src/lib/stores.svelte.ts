@@ -84,6 +84,28 @@ export function updateParameter(key: string, value: number): void {
 	}
 }
 
+export function updateMetadata(field: "name" | "description", value: string): void {
+	const current = currentRecipeStore.get();
+	if (!current) return;
+
+	const updated = structuredClone(current);
+
+	if (history.historyIndex < history.recipeHistory.length - 1) {
+		history.recipeHistory = history.recipeHistory.slice(0, history.historyIndex + 1);
+	}
+
+	(updated as Record<string, unknown>)[field] = value;
+
+	currentRecipeStore.set(updated);
+
+	history.recipeHistory.push(structuredClone(updated));
+	if (history.recipeHistory.length > MAX_HISTORY) {
+		history.recipeHistory.shift();
+	} else {
+		history.historyIndex++;
+	}
+}
+
 export function undo(): void {
 	if (!history.canUndo) return;
 	history.historyIndex--;

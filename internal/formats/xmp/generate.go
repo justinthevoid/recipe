@@ -238,6 +238,7 @@ func buildXMPDocument(recipe *models.UniversalRecipe) *xmpDocWrapper {
 		XMLNS: nsCameraRaw,
 
 		// Required Lightroom metadata (without these, Lightroom ignores most settings)
+		Name:           recipe.Name,
 		Version:        "15.0", // Lightroom version compatibility
 		ProcessVersion: "11.0", // Camera Raw process version (PV2012+)
 		HasSettings:    "True", // Indicates this preset has settings to apply
@@ -612,6 +613,7 @@ type descriptionWrapper struct {
 	SupportsOutputReferred     string `xml:"crs:SupportsOutputReferred,attr,omitempty"`
 	RequiresRGBTables          string `xml:"crs:RequiresRGBTables,attr,omitempty"`
 	Copyright                  string `xml:"crs:Copyright,attr,omitempty"`
+	Name                       string `xml:"crs:Name,attr,omitempty"`
 	Version                    string `xml:"crs:Version,attr,omitempty"`        // Required for Lightroom to recognize settings
 	ProcessVersion             string `xml:"crs:ProcessVersion,attr,omitempty"` // Required for Lightroom to recognize settings
 	HasSettings                string `xml:"crs:HasSettings,attr,omitempty"`    // Indicates preset has settings to apply
