@@ -410,7 +410,7 @@ func TestFlattenCurves(t *testing.T) {
 		if err != nil || len(xmpFiles) == 0 {
 			t.Skip("No XMP sample files found")
 		}
-		// Use first XMP file with curve data (AFGA APX 100 is known to have curves)
+		// Use first XMP file with curve data (preset-1.xmp is known to have curves)
 		var curveFile string
 		for _, f := range xmpFiles {
 			data, readErr := os.ReadFile(f)
