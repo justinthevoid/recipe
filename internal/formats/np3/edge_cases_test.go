@@ -2,6 +2,7 @@ package np3
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	"github.com/justin/recipe/internal/models"
 )
@@ -228,6 +229,187 @@ func TestEstimateParametersEdgeCases(t *testing.T) {
 	}
 	if recipe.Saturation < -100 || recipe.Saturation > 100 {
 		t.Errorf("Saturation out of range: %d", recipe.Saturation)
+	}
+}
+
+// TestTruncateToBytes tests the rune-boundary-safe truncation helper directly.
+func TestTruncateToBytes(t *testing.T) {
+	star := "🌟" // U+1F31F: 4 UTF-8 bytes (0xF0 0x9F 0x8C 0x9F)
+
+	tests := []struct {
+		name  string
+		input string
+		limit int
+		want  string
+	}{
+		{
+			name:  "ASCII under limit unchanged",
+			input: "Vivid",
+			limit: 20,
+			want:  "Vivid",
+		},
+		{
+			name:  "ASCII exactly at limit unchanged",
+			input: "abcdefghijklmnopqrst", // 20 bytes
+			limit: 20,
+			want:  "abcdefghijklmnopqrst",
+		},
+		{
+			name:  "ASCII over limit truncated at byte boundary",
+			input: "abcdefghijklmnopqrstuvwxyz",
+			limit: 20,
+			want:  "abcdefghijklmnopqrst",
+		},
+		{
+			name:  "emoji exactly at limit unchanged",
+			input: star + star + star + star + star, // 5×4 = 20 bytes
+			limit: 20,
+			want:  star + star + star + star + star,
+		},
+		{
+			name:  "emoji over limit truncated at rune boundary",
+			input: star + star + star + star + star + star, // 6×4 = 24 bytes
+			limit: 20,
+			want:  star + star + star + star + star,
+		},
+		{
+			name:  "mixed ASCII+emoji straddling boundary drops emoji",
+			input: "abcdefghijklmnopqr" + star, // 18 + 4 = 22 bytes
+			limit: 20,
+			want:  "abcdefghijklmnopqr", // emoji dropped; 18 bytes fits, 22 does not
+		},
+		{
+			name:  "empty string unchanged",
+			input: "",
+			limit: 20,
+			want:  "",
+		},
+		{
+			name:  "zero limit returns empty",
+			input: "abc",
+			limit: 0,
+			want:  "",
+		},
+		{
+			name:  "2-byte rune straddling boundary dropped",
+			input: "abcdefghijklmnopqrst" + "\u00e9", // 20 ASCII + 2-byte U+00E9 = 22 bytes
+			limit: 20,
+			want:  "abcdefghijklmnopqrst",
+		},
+		{
+			name:  "3-byte rune straddling boundary dropped",
+			input: "abcdefghijklmnopqr\u4e2d", // 18 ASCII + 3-byte U+4E2D = 21 bytes
+			limit: 20,
+			want:  "abcdefghijklmnopqr",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := truncateToBytes(tc.input, tc.limit)
+			if got != tc.want {
+				t.Errorf("truncateToBytes(%q, %d) = %q, want %q", tc.input, tc.limit, got, tc.want)
+			}
+			if len(got) > tc.limit {
+				t.Errorf("result exceeds limit: %d bytes > %d", len(got), tc.limit)
+			}
+			if !utf8.ValidString(got) {
+				t.Errorf("result is not valid UTF-8: %q", got)
+			}
+		})
+	}
+}
+
+// TestGenerateMultibyteMetadata verifies that Generate handles multibyte UTF-8 characters
+// in name and description without errors, and that descriptions (which are not ASCII-filtered
+// on parse) round-trip as valid UTF-8 within byte limits.
+//
+// Note: The NP3 name field is parsed as printable ASCII only (bytes 32–126), so multibyte
+// characters in the name are stripped on round-trip — this is expected NP3 format behavior.
+// The correctness guarantee for names is at the truncateToBytes level (TestTruncateToBytes).
+func TestGenerateMultibyteMetadata(t *testing.T) {
+	star := "🌟" // 4 UTF-8 bytes
+
+	// Build a description at exactly MaxDescriptionLength bytes, then one emoji over.
+	// Computed without assuming MaxDescriptionLength is a multiple of 4.
+	atLimitDesc := ""
+	for len(atLimitDesc)+len(star) <= MaxDescriptionLength {
+		atLimitDesc += star
+	}
+	overLimitDesc := atLimitDesc + star // one emoji over MaxDescriptionLength
+
+	tests := []struct {
+		name       string
+		recipeName string
+		recipeDesc string
+		wantDesc   string // expected round-tripped description
+	}{
+		{
+			name:       "emoji name does not crash Generate",
+			recipeName: star + star + star + star + star + star, // 6 emoji, over limit
+			recipeDesc: "plain",
+			wantDesc:   "plain",
+		},
+		{
+			name:       "mixed ASCII+emoji name straddling boundary",
+			recipeName: "abcdefghijklmnopqr" + star, // 18 ASCII + 4-byte emoji = 22 bytes
+			recipeDesc: "plain",
+			wantDesc:   "plain",
+		},
+		{
+			name:       "emoji description exactly at limit round-trips correctly",
+			recipeName: "test",
+			recipeDesc: star + star + star + star + star, // 5×4 = 20 bytes, well under 256
+			wantDesc:   star + star + star + star + star,
+		},
+		{
+			name:       "emoji description over limit truncated at rune boundary",
+			recipeName: "test",
+			recipeDesc: overLimitDesc,
+			wantDesc:   atLimitDesc,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			recipe := &models.UniversalRecipe{
+				Name:        tc.recipeName,
+				Description: tc.recipeDesc,
+			}
+
+			data, err := Generate(recipe)
+			if err != nil {
+				t.Fatalf("Generate failed: %v", err)
+			}
+
+			parsed, err := Parse(data)
+			if err != nil {
+				t.Fatalf("Parse failed after Generate: %v", err)
+			}
+
+			// Name must always be valid UTF-8 and within byte limit after parse.
+			// Exact name value is not asserted: the NP3 parser reads a 40-byte window
+			// that includes header bytes, so the round-tripped name may include extra
+			// printable ASCII bytes from the binary structure. Correctness of name
+			// truncation is covered by TestTruncateToBytes.
+			if !utf8.ValidString(parsed.Name) {
+				t.Errorf("parsed name is not valid UTF-8: %q", parsed.Name)
+			}
+			if len(parsed.Name) > 40 {
+				t.Errorf("parsed name exceeds 40 bytes (parser window size): got %d bytes", len(parsed.Name))
+			}
+
+			// Description must be valid UTF-8 and within byte limit
+			if !utf8.ValidString(parsed.Description) {
+				t.Errorf("parsed description is not valid UTF-8: %q", parsed.Description)
+			}
+			if len(parsed.Description) > MaxDescriptionLength {
+				t.Errorf("parsed description exceeds %d bytes: got %d", MaxDescriptionLength, len(parsed.Description))
+			}
+			if parsed.Description != tc.wantDesc {
+				t.Errorf("parsed description: got %q, want %q", parsed.Description, tc.wantDesc)
+			}
+		})
 	}
 }
 

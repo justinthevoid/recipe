@@ -6,9 +6,25 @@ package np3
 import (
 	"fmt"
 	"math"
+	"unicode/utf8"
 
 	"github.com/justin/recipe/internal/models"
 )
+
+// truncateToBytes returns s truncated to at most limit UTF-8 bytes, always cutting
+// at a rune boundary so the result is valid UTF-8.
+func truncateToBytes(s string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+	if len(s) <= limit {
+		return s
+	}
+	for limit > 0 && !utf8.RuneStart(s[limit]) {
+		limit--
+	}
+	return s[:limit]
+}
 
 // Generate encodes a UniversalRecipe into a Nikon Picture Control (.np3) binary file.
 //
@@ -57,11 +73,8 @@ func GenerateWithWarnings(recipe *models.UniversalRecipe) ([]byte, *models.Conve
 	}
 
 	// Build binary structure
-	// Truncate name to 20 chars (NP3 name field limit)
-	name := recipe.Name
-	if len(name) > 20 {
-		name = name[:20]
-	}
+	// Truncate name to 20 bytes (NP3 name field limit); rune-boundary-safe
+	name := truncateToBytes(recipe.Name, 20)
 
 	data, err := encodeBinary(params, name)
 	if err != nil {
@@ -243,13 +256,9 @@ func convertToNP3Parameters(recipe *models.UniversalRecipe) (*np3Parameters, err
 	params := &np3Parameters{}
 
 	// === Metadata ===
-	// Copy description (max 256 chars for NP3)
+	// Copy description (max 256 bytes for NP3); rune-boundary-safe
 	if recipe.Description != "" {
-		desc := recipe.Description
-		if len(desc) > MaxDescriptionLength {
-			desc = desc[:MaxDescriptionLength]
-		}
-		params.description = desc
+		params.description = truncateToBytes(recipe.Description, MaxDescriptionLength)
 	}
 
 	// === Basic Adjustments (2 parameters) ===
@@ -1109,10 +1118,6 @@ func writeDescription(data []byte, params *np3Parameters) {
 
 	descBytes := []byte(params.description)
 	descLen := len(descBytes)
-	if descLen > MaxDescriptionLength {
-		descLen = MaxDescriptionLength
-		descBytes = descBytes[:descLen]
-	}
 
 	// Check if buffer is large enough for description
 	endOffset := OffsetDescriptionText + descLen + 1 // +1 for null terminator

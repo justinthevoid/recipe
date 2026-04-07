@@ -161,6 +161,22 @@
 		const val = currentRecipe[activeTabDef.key];
 		return Array.isArray(val) ? (val as ToneCurvePoint[]) : ([] as ToneCurvePoint[]);
 	});
+
+	const _enc = new TextEncoder();
+
+	// Clamp a string to at most maxBytes UTF-8 bytes, cutting at code-point boundaries.
+	function limitToBytes(value: string, maxBytes: number): string {
+		if (_enc.encode(value).length <= maxBytes) return value;
+		let result = "";
+		let count = 0;
+		for (const ch of value) {
+			const bytes = _enc.encode(ch).length;
+			if (count + bytes > maxBytes) break;
+			result += ch;
+			count += bytes;
+		}
+		return result;
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -214,19 +230,27 @@
 						<span class="w-24 shrink-0 text-foreground-muted">Name</span>
 						<input
 							type="text"
-							maxlength="20"
 							value={currentRecipe?.name ?? ""}
-							oninput={(e) => updateMetadata("name", (e.currentTarget as HTMLInputElement).value)}
+							oninput={(e) => {
+								if (e.isComposing) return;
+								const clamped = limitToBytes((e.currentTarget as HTMLInputElement).value, 20);
+								(e.currentTarget as HTMLInputElement).value = clamped;
+								updateMetadata("name", clamped);
+							}}
 							class="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-foreground focus:outline-none focus:border-white/30"
 						/>
 					</label>
 					<label class="flex items-start gap-3 text-xs">
 						<span class="w-24 shrink-0 text-foreground-muted pt-1">Description</span>
 						<textarea
-							maxlength="256"
 							rows="2"
 							value={currentRecipe?.description ?? ""}
-							oninput={(e) => updateMetadata("description", (e.currentTarget as HTMLTextAreaElement).value)}
+							oninput={(e) => {
+								if (e.isComposing) return;
+								const clamped = limitToBytes((e.currentTarget as HTMLTextAreaElement).value, 256);
+								(e.currentTarget as HTMLTextAreaElement).value = clamped;
+								updateMetadata("description", clamped);
+							}}
 							class="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-foreground focus:outline-none focus:border-white/30 resize-none"
 						></textarea>
 					</label>
