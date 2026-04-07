@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { UniversalRecipe } from "@recipe/ui";
+	import type { ToneCurvePoint, UniversalRecipe } from "@recipe/ui";
 	import { convertAndDownload } from "$lib/converter.svelte";
 	import {
 		history,
@@ -8,7 +8,10 @@
 		undo,
 		redo,
 		updateParameter,
+		updateCurvePoints,
+		type CurveChannel,
 	} from "$lib/stores.svelte";
+	import CurveEditor from "./CurveEditor.svelte";
 	import {
 		editorModeStore,
 		currentRecipeStore,
@@ -101,6 +104,62 @@
 		{ key: "colorGrading.blending",          label: "Blending",              min: 0,    max: 100, step: 1 },
 		{ key: "colorGrading.balance",           label: "Balance",               min: -100, max: 100, step: 1 },
 	] as const;
+
+	const parametricCurveParams = [
+		{ key: "toneCurveShadows",    label: "Shadows",    min: -100, max: 100, step: 1 },
+		{ key: "toneCurveDarks",      label: "Darks",      min: -100, max: 100, step: 1 },
+		{ key: "toneCurveLights",     label: "Lights",     min: -100, max: 100, step: 1 },
+		{ key: "toneCurveHighlights", label: "Highlights", min: -100, max: 100, step: 1 },
+	] as const;
+
+	const curveChannelDefs = [
+		{ id: "master" as const,  label: "Master", key: "pointCurve"      as CurveChannel, color: "rgba(255,255,255,0.9)" },
+		{ id: "red"    as const,  label: "Red",    key: "pointCurveRed"   as CurveChannel, color: "#ff6b6b" },
+		{ id: "green"  as const,  label: "Green",  key: "pointCurveGreen" as CurveChannel, color: "#6bff8a" },
+		{ id: "blue"   as const,  label: "Blue",   key: "pointCurveBlue"  as CurveChannel, color: "#6b9fff" },
+	];
+
+	function hasCurveData(r: UniversalRecipe | null): boolean {
+		if (!r) return false;
+		return curveChannelDefs.some((ch) => {
+			const v = r[ch.key];
+			return Array.isArray(v) && v.length > 0;
+		}) || [r.toneCurveShadows, r.toneCurveDarks, r.toneCurveLights, r.toneCurveHighlights]
+			.some((v) => v != null && v !== 0);
+	}
+
+	function hasParametricCurves(r: UniversalRecipe | null): boolean {
+		if (!r) return false;
+		return [r.toneCurveShadows, r.toneCurveDarks, r.toneCurveLights, r.toneCurveHighlights]
+			.some((v) => v != null && v !== 0);
+	}
+
+	let activeCurveTab = $state<"master" | "red" | "green" | "blue">("master");
+
+	const availableCurveTabs = $derived(
+		curveChannelDefs.filter((ch) => {
+			const v = currentRecipe?.[ch.key];
+			return Array.isArray(v) && v.length > 0;
+		}),
+	);
+
+	// Keep active tab valid when recipe changes
+	$effect(() => {
+		const tabs = availableCurveTabs;
+		if (tabs.length > 0 && !tabs.some((t) => t.id === activeCurveTab)) {
+			activeCurveTab = tabs[0].id;
+		}
+	});
+
+	const activeTabDef = $derived(
+		availableCurveTabs.find((t) => t.id === activeCurveTab) ?? availableCurveTabs[0],
+	);
+
+	const activePoints = $derived.by(() => {
+		if (!activeTabDef || !currentRecipe) return [] as ToneCurvePoint[];
+		const val = currentRecipe[activeTabDef.key];
+		return Array.isArray(val) ? (val as ToneCurvePoint[]) : ([] as ToneCurvePoint[]);
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -234,6 +293,76 @@
 					{/each}
 				</div>
 			</details>
+
+			<!-- Tone Curves section — only shown when recipe has curve data -->
+			{#if hasCurveData(currentRecipe)}
+			<details>
+				<summary class="text-xs font-semibold uppercase tracking-wider text-foreground-muted cursor-pointer select-none hover:text-foreground transition-colors py-1">
+					Tone Curves
+				</summary>
+				<div class="mt-3 space-y-3">
+
+					<!-- Point curve channel tabs + canvas editor -->
+					{#if availableCurveTabs.length > 0}
+					<div>
+						<!-- Channel tabs -->
+						<div class="flex gap-1 mb-3">
+							{#each availableCurveTabs as tab}
+								{@const isActive = activeCurveTab === tab.id}
+								<button
+									type="button"
+									class="px-2.5 py-1 text-xs rounded transition-colors {isActive ? 'text-black font-medium' : 'text-foreground-muted hover:text-foreground'}"
+									style={isActive
+										? (tab.id !== 'master' ? `background:${tab.color}` : 'background:rgba(255,255,255,0.9)')
+										: 'background:rgba(255,255,255,0.08)'}
+									onclick={() => { activeCurveTab = tab.id; }}
+								>{tab.label}</button>
+							{/each}
+						</div>
+
+						<!-- Canvas curve editor -->
+						{#if activeTabDef}
+						<div class="flex justify-center">
+							<CurveEditor
+								points={activePoints}
+								color={activeTabDef.color}
+								onchange={(pts) => updateCurvePoints(activeTabDef.key, pts)}
+							/>
+						</div>
+						<p class="text-xs text-foreground-muted/50 text-center mt-1.5">
+							Click to add point · Right-click to remove · Drag to adjust
+						</p>
+						{/if}
+					</div>
+					{/if}
+
+					<!-- Parametric curve sliders -->
+					{#if hasParametricCurves(currentRecipe)}
+					<div class="space-y-3 pt-1">
+						<p class="text-xs text-foreground-muted/60 uppercase tracking-wider">Parametric</p>
+						{#each parametricCurveParams as p}
+							{@const val = getVal(p.key)}
+							<label class="flex items-center gap-3 text-xs">
+								<span class="w-24 shrink-0 text-foreground-muted">{p.label}</span>
+								<input
+									type="range"
+									min={p.min}
+									max={p.max}
+									step={p.step}
+									value={val}
+									oninput={(e) => handleChange(p.key, +(e.currentTarget as HTMLInputElement).value)}
+									class="flex-1 accent-interactive h-1 cursor-pointer"
+								/>
+								<span class="w-10 text-right tabular-nums text-foreground shrink-0">
+									{val > 0 ? `+${val}` : val}
+								</span>
+							</label>
+						{/each}
+					</div>
+					{/if}
+				</div>
+			</details>
+			{/if}
 		</div>
 
 		<!-- Footer -->

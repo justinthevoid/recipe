@@ -5,7 +5,7 @@
  * and provides convenience functions that write to both.
  */
 
-import type { UniversalRecipe } from "@recipe/ui";
+import type { ToneCurvePoint, UniversalRecipe } from "@recipe/ui";
 import {
 	editorModeStore,
 	currentRecipeStore,
@@ -110,6 +110,34 @@ export function resetRecipe(): void {
 
 export function setPreviewImage(img: HTMLImageElement | null): void {
 	previewImageStore.set(img);
+}
+
+export type CurveChannel = "pointCurve" | "pointCurveRed" | "pointCurveGreen" | "pointCurveBlue";
+
+export function updateCurvePoints(channel: CurveChannel, newPoints: ToneCurvePoint[]): void {
+	const current = currentRecipeStore.get();
+	if (!current) return;
+
+	const updated = structuredClone(current);
+
+	if (history.historyIndex < history.recipeHistory.length - 1) {
+		history.recipeHistory = history.recipeHistory.slice(0, history.historyIndex + 1);
+	}
+
+	const sorted = [...newPoints]
+		.filter((p) => p.input >= 0 && p.input <= 255)
+		.sort((a, b) => a.input - b.input);
+
+	(updated as Record<string, unknown>)[channel] = sorted;
+
+	currentRecipeStore.set(updated);
+
+	history.recipeHistory.push(structuredClone(updated));
+	if (history.recipeHistory.length > MAX_HISTORY) {
+		history.recipeHistory.shift();
+	} else {
+		history.historyIndex++;
+	}
 }
 
 export function closeEditor(): void {

@@ -72,6 +72,16 @@ export interface UniversalRecipe {
 	magenta?: ColorAdjustment;
 	colorGrading?: ColorGrading;
 	pointCurve?: ToneCurvePoint[];
+	pointCurveRed?: ToneCurvePoint[];
+	pointCurveGreen?: ToneCurvePoint[];
+	pointCurveBlue?: ToneCurvePoint[];
+	toneCurveShadows?: number;
+	toneCurveDarks?: number;
+	toneCurveLights?: number;
+	toneCurveHighlights?: number;
+	toneCurveShadowSplit?: number;
+	toneCurveMidtoneSplit?: number;
+	toneCurveHighlightSplit?: number;
 	[key: string]:
 		| number
 		| string
