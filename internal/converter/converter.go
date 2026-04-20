@@ -245,9 +245,20 @@ func flattenCurvesToBasicParams(recipe *models.UniversalRecipe) {
 	recipe.ToneCurveDarks = 0
 	recipe.ToneCurveLights = 0
 	recipe.ToneCurveHighlights = 0
-	recipe.ToneCurveShadowSplit = 0
-	recipe.ToneCurveMidtoneSplit = 0
-	recipe.ToneCurveHighlightSplit = 0
+	// Lift zone boundaries to Lightroom defaults only when they're absent (NP3-sourced
+	// recipes have no split fields, so they enter as zero). Emitting 0/0/0 into XMP
+	// produces a degenerate parametric curve that Lightroom applies as a visible tonal
+	// lift even when every zone adjustment is zero. Preserve non-zero values so
+	// XMP→NP3 paths don't silently corrupt user-specified splits.
+	if recipe.ToneCurveShadowSplit == 0 {
+		recipe.ToneCurveShadowSplit = 25
+	}
+	if recipe.ToneCurveMidtoneSplit == 0 {
+		recipe.ToneCurveMidtoneSplit = 50
+	}
+	if recipe.ToneCurveHighlightSplit == 0 {
+		recipe.ToneCurveHighlightSplit = 75
+	}
 }
 
 func clampInt(v, min, max int) int {

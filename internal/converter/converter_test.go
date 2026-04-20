@@ -539,6 +539,91 @@ func TestFlattenCurves(t *testing.T) {
 			t.Error("recipe should be unchanged when no curve data is present")
 		}
 	})
+
+	t.Run("flattenCurvesToBasicParams lifts zero splits to Lightroom defaults", func(t *testing.T) {
+		// NP3-sourced recipes enter with all split fields at zero; emitting 0/0/0 to
+		// XMP produces a degenerate parametric curve Lightroom applies as a visible
+		// fog even when every zone adjustment is zero.
+		recipe := &models.UniversalRecipe{
+			PointCurve: []models.ToneCurvePoint{
+				{Input: 0, Output: 0},
+				{Input: 128, Output: 140},
+				{Input: 255, Output: 255},
+			},
+			// Splits intentionally zero — represents NP3 parse output.
+		}
+		flattenCurvesToBasicParams(recipe)
+		if recipe.ToneCurveShadowSplit != 25 ||
+			recipe.ToneCurveMidtoneSplit != 50 ||
+			recipe.ToneCurveHighlightSplit != 75 {
+			t.Errorf("zero splits must be lifted to 25/50/75, got %d/%d/%d",
+				recipe.ToneCurveShadowSplit, recipe.ToneCurveMidtoneSplit, recipe.ToneCurveHighlightSplit)
+		}
+	})
+
+	t.Run("flattenCurvesToBasicParams preserves non-default XMP splits", func(t *testing.T) {
+		// XMP-sourced recipes may carry user-edited splits (e.g. preset-1.xmp uses
+		// 22/53/75). Flattening must not silently overwrite them.
+		recipe := &models.UniversalRecipe{
+			ToneCurveShadows:        -10,
+			ToneCurveDarks:          -5,
+			ToneCurveLights:         5,
+			ToneCurveHighlights:     10,
+			ToneCurveShadowSplit:    22,
+			ToneCurveMidtoneSplit:   53,
+			ToneCurveHighlightSplit: 80,
+		}
+		flattenCurvesToBasicParams(recipe)
+		if recipe.ToneCurveShadowSplit != 22 ||
+			recipe.ToneCurveMidtoneSplit != 53 ||
+			recipe.ToneCurveHighlightSplit != 80 {
+			t.Errorf("non-zero splits must be preserved, got %d/%d/%d",
+				recipe.ToneCurveShadowSplit, recipe.ToneCurveMidtoneSplit, recipe.ToneCurveHighlightSplit)
+		}
+	})
+
+	t.Run("NP3→XMP with flag ON emits default split points, not zeros", func(t *testing.T) {
+		if len(np3Files) == 0 {
+			t.Skip("No NP3 sample files found")
+		}
+		// Find a fixture that actually has curve data — otherwise flattening is a
+		// no-op and the split fields stay at the NP3 parse default of zero.
+		var curveFile string
+		for _, f := range np3Files {
+			data, readErr := os.ReadFile(f)
+			if readErr != nil {
+				continue
+			}
+			r, parseErr := np3Parse(data)
+			if parseErr == nil && r != nil && (len(r.PointCurve) >= 2 ||
+				r.ToneCurveShadows != 0 || r.ToneCurveDarks != 0 ||
+				r.ToneCurveLights != 0 || r.ToneCurveHighlights != 0) {
+				curveFile = f
+				break
+			}
+		}
+		if curveFile == "" {
+			t.Skip("No NP3 fixture with curve data found")
+		}
+		input, err := os.ReadFile(curveFile)
+		if err != nil {
+			t.Fatalf("read file: %v", err)
+		}
+		output, err := ConvertWithOptions(input, FormatNP3, FormatXMP, ConvertOptions{FlattenCurves: true})
+		if err != nil {
+			t.Fatalf("conversion failed: %v", err)
+		}
+		xmpStr := string(output)
+		for _, bad := range []string{
+			`crs:ParametricShadowSplit="0"`,
+			`crs:ParametricMidtoneSplit="0"`,
+			`crs:ParametricHighlightSplit="0"`,
+		} {
+			if contains(xmpStr, bad) {
+				t.Errorf("flattened XMP must not emit %s (Lightroom interprets 0/0/0 as a foggy degenerate curve)", bad)
+			}
+		}
+	})
 }
 
 func contains(s, substr string) bool {
