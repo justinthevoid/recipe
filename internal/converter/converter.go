@@ -25,6 +25,13 @@ type ConvertOptions struct {
 	// curve as basic parameters (Contrast, Highlights, Shadows, Whites, Blacks) and
 	// suppresses all curve fields in the output XMP. Ignored for all other paths.
 	FlattenCurves bool
+
+	// DensifyCurves, when true and converting NP3→XMP, replaces the master PointCurve
+	// with 16 samples of a Fritsch–Carlson monotonic cubic spline so Lightroom's
+	// linear-segment curve rendering approximates NX Studio's smooth-spline rendering.
+	// Silently ignored when FlattenCurves is also set (flatten wins) or on any path
+	// other than NP3→XMP.
+	DensifyCurves bool
 }
 
 // Convert performs bidirectional conversion between supported photo editing recipe formats.
@@ -116,6 +123,9 @@ func ConvertWithOptions(input []byte, from, to string, opts ConvertOptions) ([]b
 	// Apply optional pre-generation transforms
 	if opts.FlattenCurves && ((from == FormatNP3 && to == FormatXMP) || (from == FormatXMP && to == FormatNP3)) {
 		flattenCurvesToBasicParams(recipe)
+	} else if opts.DensifyCurves && from == FormatNP3 && to == FormatXMP && len(recipe.PointCurve) >= 2 {
+		densifyPointCurve(recipe)
+		recipe.SkipCurveSimplification = true
 	}
 
 	// Generate output from UniversalRecipe

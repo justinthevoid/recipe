@@ -19,12 +19,15 @@ import (
 //
 // JavaScript signature:
 //
-//	convert(inputBytes: Uint8Array, fromFormat: string, toFormat: string) -> Promise<Uint8Array>
+//	convert(inputBytes: Uint8Array, fromFormat: string, toFormat: string,
+//	        flattenCurves?: boolean, densifyCurves?: boolean) -> Promise<Uint8Array>
 //
 // Parameters:
 //   - inputBytes: Uint8Array containing the source file data
 //   - fromFormat: Source format ("np3", "xmp", or "" for auto-detect)
 //   - toFormat: Target format ("np3" or "xmp")
+//   - flattenCurves: optional; NP3→XMP curve → basic params
+//   - densifyCurves: optional; NP3→XMP 16-point monotonic cubic densification
 func convertWrapper(this js.Value, args []js.Value) interface{} {
 	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
 		resolve := promiseArgs[0]
@@ -47,6 +50,9 @@ func convertWrapper(this js.Value, args []js.Value) interface{} {
 			opts := converter.ConvertOptions{}
 			if len(args) >= 4 && args[3].Type() == js.TypeBoolean {
 				opts.FlattenCurves = args[3].Bool()
+			}
+			if len(args) >= 5 && args[4].Type() == js.TypeBoolean {
+				opts.DensifyCurves = args[4].Bool()
 			}
 
 			outputBytes, err := converter.ConvertWithOptions(inputBytes, fromFormat, toFormat, opts)

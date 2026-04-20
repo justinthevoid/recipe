@@ -122,11 +122,13 @@ func runConvert(cmd *cobra.Command, args []string) error {
 
 	// Parse optional flags
 	flattenCurves, _ := cmd.Flags().GetBool("flatten-curves")
+	densifyCurves, _ := cmd.Flags().GetBool("densify-curves")
 
 	// Convert via single API call to converter
 	logger.Debug("converting formats", "from", fromFormat, "to", toFormat)
 	outputBytes, err := converter.ConvertWithOptions(inputBytes, fromFormat, toFormat, converter.ConvertOptions{
 		FlattenCurves: flattenCurves,
+		DensifyCurves: densifyCurves,
 	})
 
 	if err != nil {
@@ -238,6 +240,7 @@ func init() {
 	convertCmd.Flags().StringP("output", "o", "", "Output file path (default: replace input extension)")
 	convertCmd.Flags().Bool("overwrite", false, "Overwrite existing output file")
 	convertCmd.Flags().Bool("flatten-curves", false, "Convert tone curves to approximate basic parameters (Contrast, Highlights, Shadows, Whites, Blacks). Applies to NP3→XMP and XMP→NP3 conversions.")
+	convertCmd.Flags().Bool("densify-curves", false, "Pre-bake a monotonic-cubic spline into the XMP tone curve so Lightroom approximates NX Studio's shape (NP3→XMP only; ignored when --flatten-curves is set).")
 }
 
 // countParameters counts the number of non-zero fields in a UniversalRecipe.

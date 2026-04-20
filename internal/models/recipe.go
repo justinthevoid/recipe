@@ -154,4 +154,8 @@ type UniversalRecipe struct {
 	// Complete raw binary data (for perfect round-trip of binary formats like NP3)
 	// Not serialized to JSON/XML - used only for in-memory conversions
 	FormatSpecificBinary map[string][]byte `json:"-" xml:"-"` // Raw binary data keyed by format (e.g., "np3_raw")
+
+	// Transient flag set by converter.densifyPointCurve; tells the XMP generator
+	// to skip its RDP simplifier so densified points survive to output. Not serialized.
+	SkipCurveSimplification bool `json:"-" xml:"-"`
 }

@@ -24,6 +24,7 @@
 
 	// Conversion options
 	let flattenCurves = $state(false);
+	let densifyCurves = $state(false);
 
 	// Result state
 	let resultData = $state<Uint8Array | null>(null);
@@ -80,6 +81,7 @@
 		fileSize = file.size;
 		sourceFormat = format;
 		targetFormat = getOppositeFormat(format);
+		densifyCurves = false;
 
 		const buffer = await file.arrayBuffer();
 		fileData = new Uint8Array(buffer);
@@ -94,6 +96,7 @@
 		fileData = data;
 		sourceFormat = format;
 		targetFormat = getOppositeFormat(format);
+		densifyCurves = false;
 		cardState = "file-ready";
 	}
 
@@ -105,7 +108,7 @@
 		await new Promise(r => setTimeout(r, 350));
 
 		try {
-			const result = await convertFile(fileData, sourceFormat, targetFormat, fileName, flattenCurves);
+			const result = await convertFile(fileData, sourceFormat, targetFormat, fileName, flattenCurves, densifyCurves);
 			resultData = result.data;
 			resultFileName = result.fileName;
 
@@ -149,6 +152,7 @@
 		isDemo = false;
 		paramExpanded = false;
 		flattenCurves = false;
+		densifyCurves = false;
 	}
 
 	async function handleDemo() {
@@ -267,6 +271,17 @@
 							class="accent-interactive"
 						/>
 						Flatten curves to basic parameters
+					</label>
+				{/if}
+				{#if sourceFormat === "np3" && targetFormat === "xmp"}
+					<label class="flex items-center gap-2 text-xs text-foreground-muted cursor-pointer select-none">
+						<input
+							type="checkbox"
+							bind:checked={densifyCurves}
+							disabled={flattenCurves}
+							class="accent-interactive"
+						/>
+						Densify tone curve (match NX Studio shape)
 					</label>
 				{/if}
 			</div>

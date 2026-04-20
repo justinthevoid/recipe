@@ -915,7 +915,28 @@ func formatToneCurvePV2012ParametricAware(recipe *models.UniversalRecipe) *toneC
 	if hasParametricCurve(recipe) {
 		return nil // Skip point curve, use parametric curve instead
 	}
+	if recipe.SkipCurveSimplification {
+		return formatToneCurvePV2012Raw(recipe.PointCurve)
+	}
 	return formatToneCurvePV2012(recipe.PointCurve)
+}
+
+// formatToneCurvePV2012Raw emits each input point verbatim without RDP simplification.
+// Used when the converter pre-densifies the curve (--densify-curves) and needs all
+// samples to survive to the output.
+func formatToneCurvePV2012Raw(points []models.ToneCurvePoint) *toneCurveSeqWrapper {
+	if len(points) == 0 {
+		return nil
+	}
+	pointStrings := make([]string, len(points))
+	for i, point := range points {
+		pointStrings[i] = fmt.Sprintf("%d, %d", point.Input, point.Output)
+	}
+	return &toneCurveSeqWrapper{
+		Seq: toneCurveSeqInner{
+			Points: pointStrings,
+		},
+	}
 }
 
 // formatColorGradingZoneHue formats the Hue value for a specific color grading zone.
