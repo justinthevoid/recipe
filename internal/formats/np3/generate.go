@@ -577,8 +577,11 @@ func writeChunks(data []byte, params *np3Parameters) {
 
 	// Chunk 0x14: Constant
 	// Previously mapped to Grain Size, but Grain is not supported in NP3.
-	// Setting to constant safe value.
-	offset = writeChunk(data, offset, npChunk{id: 0x14, length: 2, value: []byte{0x01, 0x01}})
+	// Value byte must be 0x80 (signed8 decode = 0), matching testdata/preset-1.np3,
+	// the fixture confirmed to load successfully on Nikon Imaging Cloud.
+	// Writing 0x01 here caused the UI to display Quick Sharp = -127 (0x01 - 0x80 = -127)
+	// and refuse to save the preset to the camera.
+	offset = writeChunk(data, offset, npChunk{id: 0x14, length: 2, value: []byte{0x80, 0x01}})
 
 	// Chunk 0x15: Constant
 	offset = writeChunk(data, offset, npChunk{id: 0x15, length: 2, value: []byte{0xff, 0x0a}})
@@ -718,10 +721,14 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 		//
 		// The following legacy functions are still needed for basic file structure:
 
-		// Write preset name at offset 24-43 (20 bytes, matching real NP3 files)
+		// Write preset name at offset 24-43. The field is a 20-byte slot, but the name
+		// must be null-terminated *inside* it — Nikon's reader treats it as a C-string.
+		// A 20-char name with no terminator causes Nikon Imaging Cloud's "Create Recipe"
+		// modal to crash with a ReferenceError as its JS parser runs past the buffer.
+		// Cap at 19 bytes so byte 20 is always null.
 		if presetName != "" {
 			nameBytes := []byte(presetName)
-			maxNameLen := 20 // Real files use exactly 20 bytes for name
+			const maxNameLen = 19
 			if len(nameBytes) > maxNameLen {
 				nameBytes = nameBytes[:maxNameLen]
 			}
@@ -757,7 +764,32 @@ func encodeBinary(params *np3Parameters, presetName string) ([]byte, error) {
 	writeDescription(data, params)
 	writeToneCurve(data, params)
 
-	// Return the complete 1050-byte buffer (matching real .np3 files)
+	// Trim trailing padding when no tone curve LUT was written. Real Nikon files with
+	// a description and no tone curve are exactly 480 bytes (see testdata/preset-1.np3).
+	// Leaving ~600 bytes of zero padding in the extended tone-curve LUT region causes
+	// Nikon Imaging Cloud to reject the file with "did not support recipe creation".
+	hasToneCurve := params.toneCurvePointCount > 0 ||
+		len(params.toneCurvePoints) > 0 ||
+		len(params.toneCurveRaw) > 0
+	if !hasToneCurve && len(params.rawData) == 0 {
+		descLen := len(params.description)
+		if descLen == 0 {
+			descLen = 1 // placeholder space written by writeDescription
+		}
+		// 0x18C (description text start) + length + null terminator, rounded up to a
+		// 4-byte boundary. Clamp to at least 480 to match preset-1's canonical size.
+		end := OffsetDescriptionText + descLen + 1
+		if end%4 != 0 {
+			end += 4 - (end % 4)
+		}
+		if end < 480 {
+			end = 480
+		}
+		if end < len(data) {
+			data = data[:end]
+		}
+	}
+
 	return data, nil
 }
 
@@ -1104,19 +1136,32 @@ func writeColorGrading(data []byte, params *np3Parameters) {
 // For now, we only write description if the file buffer is large enough and
 // we're not using rawData preservation (which already has correct layout).
 func writeDescription(data []byte, params *np3Parameters) {
-	// Only write description if we have one and enough buffer space
-	if params.description == "" {
-		// Write zero length to indicate no description
-		if len(data) > OffsetDescriptionLength+3 {
-			data[OffsetDescriptionLength] = 0
-			data[OffsetDescriptionLength+1] = 0
-			data[OffsetDescriptionLength+2] = 0
-			data[OffsetDescriptionLength+3] = 0
-		}
-		return
+	// Nikon Imaging Cloud's backend parser rejects NP3 files whose description field
+	// has an ODD byte length (verified empirically: lengths 1/3/5/9/13/15 fail, while
+	// 2/4/6/8/10/14/16/20/54/80 all pass; every real fixture in testdata/ uses an
+	// even-length description). The parser appears to read the field as 16-bit word
+	// pairs. Also emit a neutral placeholder when none was supplied so the file
+	// round-trips through Imaging Cloud rather than being marked dataStatus=4.
+	description := params.description
+	if description == "" {
+		description = "Imported preset."
+	}
+	if len(description)%2 == 1 {
+		description += " "
 	}
 
-	descBytes := []byte(params.description)
+	// Write the fixed 4-byte prefix at 0x184-0x187 that all real Nikon files with
+	// a description carry: 00 01 01 00. Bytes 0x185-0x186 double as the tone-curve
+	// enable flags, but they must also be set when only a description is present —
+	// otherwise Nikon Imaging Cloud fails with "System Error" on load.
+	if len(data) > OffsetToneCurveEnabled2+1 {
+		data[OffsetToneCurveEnabled1-1] = 0x00 // 0x184
+		data[OffsetToneCurveEnabled1] = 0x01   // 0x185
+		data[OffsetToneCurveEnabled2] = 0x01   // 0x186
+		data[OffsetToneCurveEnabled2+1] = 0x00 // 0x187
+	}
+
+	descBytes := []byte(description)
 	descLen := len(descBytes)
 
 	// Check if buffer is large enough for description

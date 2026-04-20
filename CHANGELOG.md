@@ -41,6 +41,15 @@ Recipe uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `vMAJOR.
 ### Removed
 - **Breaking**: Removed lrtemplate, DCP, costyle, and nksc format support. Recipe now focuses exclusively on NP3 ↔ XMP conversion.
 
+## [2.0.1] - 2026-04-20
+### Fixed
+- **NP3 generator now produces files that Nikon Imaging Cloud accepts end-to-end.** Previously, XMP→NP3 conversions loaded but were rejected by Nikon's backend parser ("did not support recipe creation") and would not sync to the camera. Five distinct bugs were identified by bisecting against a working reference fixture and verified via Imaging Cloud's API:
+  - Chunk `0x14` value byte was `0x01`, which Nikon decoded as signed8 `-127` and surfaced as Quick Sharp = -127, blocking the camera sync. Now written as `0x80` (= 0), matching the canonical layout.
+  - Bytes `0x184-0x187` were zeroed when no tone curve was generated — real Nikon files always carry the `00 01 01 00` prefix here (the bytes double as tone-curve enable flags). `writeDescription` now emits them unconditionally.
+  - Output was padded to 1072 bytes with ~600 trailing zero bytes in the extended tone-curve LUT region. Files without a tone curve are now truncated to 480 bytes, matching the single-description canonical size.
+  - Preset names longer than 19 bytes filled the 20-byte slot without a null terminator, crashing Nikon Imaging Cloud's JS parser (`ReferenceError: s is not defined`) when it read the field as a C-string. Names are now capped at 19 bytes.
+  - Nikon's backend parser rejects descriptions with an **odd** byte length (verified: lengths 1/3/5/9/13/15 fail; 2/4/6/8/10/14/16/20/54/80 all pass — every real fixture uses an even length). The generator now emits an `"Imported preset."` placeholder when the description is empty and pads any odd-length description with a trailing space.
+
 ## [0.1.0] - 2025-11-06
 ### Added
 - Universal Recipe data model for format-agnostic parameter representation

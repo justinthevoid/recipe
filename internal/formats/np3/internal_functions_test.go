@@ -156,10 +156,11 @@ func TestEncodeBinaryMinFileSize(t *testing.T) {
 		t.Fatalf("encodeBinary failed: %v", err)
 	}
 
-	// Phase 2: NP3 files are 1072 bytes to accommodate extended tone curve LUT at offset 560
-	// Note: Real NP3 files vary in size (392-1140 bytes), but generator uses 1072 for compatibility
-	if len(data) != 1072 {
-		t.Errorf("File size: got %d, want 1072", len(data))
+	// No tone curve data present, so the generator trims to 480 bytes to match the
+	// canonical no-curve layout in testdata/preset-1.np3. Files with tone curve data
+	// grow as needed to fit the LUT (up to 1072 bytes).
+	if len(data) != 480 {
+		t.Errorf("File size: got %d, want 480", len(data))
 	}
 }
 
