@@ -4,39 +4,64 @@ This file provides guidance to Claude Code (claude.ai/code) and similar AI agent
 
 ## Project Overview
 
-Recipe is a photo preset converter that converts between Nikon NP3 and Adobe Lightroom XMP formats. The project provides two interfaces (CLI, Web) that share a common Go conversion engine.
+Recipe is a photo preset converter for Nikon NP3 (Picture Control), Adobe Lightroom XMP, Fujifilm CoStyle, and Adobe DCP formats. A single Go conversion engine is shared across a CLI, a web app, and a VSCode extension — all in one monorepo.
 
 **Key Characteristics:**
 - **Privacy-first**: All processing happens locally (no server uploads)
 - **Performance**: Sub-millisecond conversions (<100ms WASM target)
-- **Accuracy**: 98%+ conversion fidelity via exact offset mapping (48 NP3 parameters)
-- **Architecture**: Hub-and-spoke pattern with UniversalRecipe intermediate representation
+- **Accuracy**: ~98% NP3↔XMP fidelity via exact offset mapping (56 NP3 parameters via dual-mode extraction)
+- **Architecture**: Hub-and-spoke pattern with `UniversalRecipe` intermediate representation
+
+## Repository Layout
+
+This is a **monorepo** managed with **bun workspaces** (see root `package.json`).
+
+| Workspace           | Purpose                                                                          |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `cmd/`, `internal/` | Go module `github.com/justin/recipe` — conversion engine, CLI, WASM, debug tools |
+| `web/`              | Public website + converter at recipe.shuttercoach.app (Astro + Svelte 5)         |
+| `extension/`        | VSCode extension `@recipe/extension` — custom editor for `.np3` files            |
+| `webview/`          | `@recipe/webview` — Svelte 5 UI bundled into the VSCode extension                |
+| `packages/ui`       | `@recipe/ui` — shared Svelte 5 + Tailwind 4 component library                    |
 
 ## Technology Stack
 
-| Component | Technology | Notes |
-|-----------|------------|-------|
-| Core Engine | Go 1.25.1+ | `go:wasmexport` for WASM |
-| CLI Framework | Cobra | github.com/spf13/cobra |
-| **Web Frontend** | **Vite + Svelte 5** | `web/` directory |
-| WASM | Go WebAssembly | Compiled from `cmd/wasm/` |
-| Deployment | Cloudflare Pages | Auto-deploy on push to main |
+| Component        | Technology                          | Notes                                                   |
+| ---------------- | ----------------------------------- | ------------------------------------------------------- |
+| Core Engine      | Go 1.25.1                           | Module `github.com/justin/recipe`; uses `go:wasmexport` |
+| CLI Framework    | Cobra                               | `github.com/spf13/cobra`                                |
+| Web Frontend     | Astro 6 + Svelte 5 + Tailwind 4     | Islands architecture, SSG                               |
+| VSCode Extension | TypeScript + Svelte 5 webview       | Bundles WASM + `np3tool` binary                         |
+| Shared UI        | `@recipe/ui` (Svelte 5, Tailwind 4) | Consumed by `web/` and `webview/`                       |
+| WASM             | Go WebAssembly                      | Compiled from `cmd/wasm/`                               |
+| Package Manager  | bun (workspaces)                    | `bun.lock` at repo root                                 |
+| Linter/Formatter | Biome                               | `biome.json` at repo root                               |
+| Deployment       | Cloudflare Pages                    | Auto-deploy on push to main                             |
 
 ## Essential Commands
 
 ### Building
 
 ```bash
-# Build CLI for current platform
-make cli
-# or: go build -o recipe cmd/cli/*.go
+# ---- Go (CLI / WASM) ----
+make cli               # Build CLI with version injection → ./recipe
+make cli-all           # Cross-compile for linux/darwin/windows (amd64/arm64) → ./bin/
+make wasm              # Build stripped WASM for web → web/public/recipe.wasm
+make wasm-dev          # WASM without -s -w (readable stack traces for debugging)
 
-# Build WASM for web interface (with size optimization)
-make wasm
-# or: GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/public/recipe.wasm cmd/wasm/main.go
+# ---- Monorepo (bun / workspaces) ----
+bun install            # Install all workspace dependencies
+bun run build          # Full build: np3tool + WASM + webview + extension
+bun run dev            # Run `dev` script across every workspace in parallel
+bun run lint           # Biome check across extension/, webview/, web/
+bun run lint:fix       # Biome autofix
 
-# Build for all platforms
-make cli-all
+# ---- Targeted workspace builds ----
+bun run build:go          # Build np3tool binary → extension/bin/np3tool
+bun run build:wasm-ext    # Build WASM for VSCode extension webview
+bun run build:wasm-web    # Build WASM for the public website
+bun run build:extension   # Package the VSCode extension
+bun run build:webview     # Build the Svelte webview bundle
 ```
 
 ### Testing
@@ -62,7 +87,7 @@ make coverage
 make coverage-html
 ```
 
-### Web Development (Vite + Svelte 5)
+### Web Development (Astro + Svelte 5)
 
 ```bash
 # Navigate to web directory
@@ -71,14 +96,20 @@ cd web
 # Install dependencies
 npm install
 
-# Start development server (hot reload)
+# Start dev server (hot reload) — runs `astro dev`
 npm run dev
 
-# Build for production
+# Production build — runs `astro build`, output in web/dist/
 npm run build
 
 # Preview production build
 npm run preview
+
+# Type-check (astro check + svelte-check)
+npm run check
+
+# Run Vitest component tests
+npm test
 ```
 
 ### Performance Benchmarks
@@ -132,36 +163,60 @@ func Convert(input []byte, from, to string) ([]byte, error)
 
 ```
 cmd/
-├── cli/           # Cobra CLI application
-└── wasm/          # WASM export entry point
+├── cli/                 # Cobra CLI (primary user-facing binary)
+├── wasm/                # WASM export entry point for web + VSCode webview
+├── np3tool/             # Helper binary bundled into the VSCode extension
+├── debug_curve/         # Dev tool for tone-curve investigation
+├── test_curve/          # Ad-hoc curve test harness
+└── test_compensation/   # Ad-hoc exposure-compensation test harness
 
 internal/
-├── converter/     # Core conversion engine (single source of truth)
-├── formats/       # Format parsers/generators
-│   ├── np3/       # Nikon binary format
-│   └── xmp/       # Adobe Lightroom XML
-├── models/        # UniversalRecipe data structures
-├── inspect/       # Parameter inspection and diff tools
-├── lut/           # LUT table handling
-└── testutil/      # Test utilities
+├── converter/     # Core conversion engine — Convert(), round-trip tests, benchmarks
+├── formats/       # Format parsers/generators (one package per format)
+│   ├── np3/       # Nikon Picture Control (binary) — primary target
+│   ├── xmp/       # Adobe Lightroom (XML, crs: namespace)
+├── models/        # UniversalRecipe + parameter definitions, builders, validation, warnings
+├── inspect/       # Parameter inspection and diff tools (used by `recipe inspect`)
+├── lut/           # LUT table handling (tone curves, color grading)
+├── verify/        # Validation helpers for conversion correctness
+├── apperr/        # Application error types (wraps conversion errors)
+├── utils/         # Shared low-level helpers
+└── testutil/      # Test helpers for fixture loading
 
-web/               # Vite + Svelte 5 frontend
+web/               # Astro + Svelte 5 frontend (Tailwind 4)
 ├── src/
-│   ├── App.svelte         # Main application component
-│   ├── app.css            # Global styles
+│   ├── pages/
+│   │   └── index.astro           # Main page (SSG)
+│   ├── layouts/
+│   │   └── Layout.astro          # Root layout with SEO meta
+│   ├── components/               # Mixed .astro + .svelte
+│   │   ├── NavBar.astro
+│   │   ├── Footer.astro
+│   │   ├── Explainer.astro
+│   │   ├── FAQ.astro
+│   │   ├── AuroraBackground.svelte
+│   │   ├── ConversionCard.svelte # Main upload/convert flow
+│   │   ├── CurveEditor.svelte    # Tone curves editor
+│   │   └── EditorView.svelte     # Metadata editing modal
 │   ├── lib/
-│   │   ├── components/    # Svelte components (16 files)
-│   │   ├── stores.js      # Svelte stores (state management)
-│   │   ├── wasm.js        # WASM initialization
-│   │   ├── converter.js   # WASM conversion wrapper
-│   │   ├── format-detector.js
-│   │   ├── parameter-extractor.js
-│   │   ├── svg-logic.js   # Preview filter logic
-│   │   └── preview-logic.js
-│   └── main.js            # Entry point
-├── public/                # Static assets (WASM binary)
-├── vite.config.js         # Vite configuration
-└── svelte.config.js       # Svelte configuration
+│   │   ├── wasm.svelte.ts        # WASM initialization (runes)
+│   │   ├── converter.svelte.ts   # WASM conversion wrapper
+│   │   ├── stores.svelte.ts      # State (nanostores + runes)
+│   │   ├── shared-stores.ts
+│   │   ├── format-detector.ts
+│   │   ├── parameter-counter.ts
+│   │   ├── image-analysis.js
+│   │   ├── image-loader.ts
+│   │   ├── preview-logic.js
+│   │   └── utils.ts              # clsx / tailwind-merge helpers
+│   ├── styles/                   # Tailwind 4 + theme tokens
+│   └── __tests__/                # Vitest component tests
+├── public/                       # Static assets (WASM binary)
+├── remotion/                     # Remotion project for OG images/video
+├── astro.config.mjs              # Astro config (sitemap, Svelte, Tailwind)
+├── svelte.config.js
+├── vitest.config.ts
+└── wrangler.jsonc                # Cloudflare Pages config
 
 docs/              # Core documentation
 ├── architecture.md
@@ -169,9 +224,15 @@ docs/              # Core documentation
 ├── np3-format-specification.md
 └── parameter-mapping.md
 
-extension/         # VSCode extension (work in progress)
-webview/           # Webview UI for VSCode extension
-packages/          # Shared packages
+extension/         # VSCode extension (@recipe/extension) — custom .np3 editor
+├── src/           # TypeScript extension host code
+└── bin/np3tool    # Bundled Go helper (built via `bun run build:go`)
+
+webview/           # @recipe/webview — Svelte 5 UI for the VSCode custom editor
+packages/
+└── ui/            # @recipe/ui — shared Svelte 5 + Tailwind 4 component library
+
+testdata/          # Top-level fixtures (nksc/, np3/, visual-regression/)
 ```
 
 ### Format Package Pattern
@@ -199,11 +260,13 @@ internal/formats/{format}/
 The NP3 (Nikon Picture Control) format is a proprietary binary format analyzed through clean-room methods for interoperability.
 
 **Critical implementation notes:**
-- Magic bytes: "NCP" (0x4E, 0x43, 0x50)
-- Fixed size: 1024 bytes
-- Parameters stored at fixed byte offsets (documented in `docs/np3-format-specification.md`)
-- Uses signed byte normalization (128 = zero point, ±127 = ±100%)
-- Exact offset mapping for 48 parameters
+- Magic bytes: "NCP" (0x4E, 0x43, 0x50) at offset 0
+- **Variable size**: 392 / 466 / 480 / 978–1,140 bytes (see variants below). Minimum accepted: 300 bytes.
+- Parameters stored at fixed byte offsets (see `internal/formats/np3/offsets.go`, documented in `docs/np3-format-specification.md`)
+- Uses signed byte normalization (0x80 = zero point, ±0x7F ≈ ±100%)
+- **Dual-mode extraction** (`internal/formats/np3/parse.go`):
+  1. Exact offset extraction — 56 parameters at known byte positions (primary, ~100% on 480-byte files)
+  2. Heuristic fallback — scans raw bytes when exact extraction fails (~95% on variants)
 
 **Key files:**
 - `internal/formats/np3/parse.go` - Binary parsing logic
@@ -213,39 +276,58 @@ The NP3 (Nikon Picture Control) format is a proprietary binary format analyzed t
 
 ### XMP Format
 
-**XMP (Adobe Lightroom CC):**
-- XML format with `crs:` namespace for adjustments
-- Uses ElementTree for parsing
-- Full parameter support (50+ fields)
+**XMP (Adobe Lightroom / Lightroom Classic):**
+- XML sidecar format with `crs:` namespace for camera-raw adjustments
+- Parsed with Go's `encoding/xml` (stdlib) — no external dependencies
+- Full parameter support (50+ fields including tone curves, HSL, color grading, split-toning)
 
-### Web Frontend (Vite + Svelte 5)
+### Web Frontend (Astro + Svelte 5)
 
 **Stack details:**
-- **Framework**: Svelte 5.43.8 (latest stable with runes)
-- **Build Tool**: Vite 7.2.4
-- **Styling**: Vanilla CSS with CSS variables
-- **State Management**: Svelte stores (`web/src/lib/stores.js`)
+- **Meta-framework**: Astro 6 (SSG) — `src/pages/index.astro` is the single page
+- **Islands**: Svelte 5.53+ components with runes (`$state`, `$derived`, `$effect`)
+- **Styling**: Tailwind CSS 4 via `@tailwindcss/vite`, plus `bits-ui` primitives
+- **State**: `nanostores` + Svelte 5 runes (`*.svelte.ts` files in `src/lib/`)
+- **Icons**: `@lucide/svelte`
+- **Testing**: Vitest + `@testing-library/svelte` (jsdom)
 
 **Key Components:**
-- `App.svelte` - Root component with WASM initialization
-- `UploadZone.svelte` - Drag-and-drop file upload
-- `FileList.svelte` / `FileCard.svelte` - File management
-- `ActionPanel.svelte` - Conversion controls
-- `PreviewModal.svelte` - Preset preview with adjustable parameters
-- `SVGFilters.svelte` - CSS-based preset preview filters
-- `Histogram.svelte` - Image histogram visualization
+- `ConversionCard.svelte` - Upload, detect, convert, download flow
+- `EditorView.svelte` - Glassmorphism modal for editing NP3 name/description + tone curves
+- `CurveEditor.svelte` - Visual tone curves editor
+- `AuroraBackground.svelte` - Animated background
+- `NavBar.astro` / `Footer.astro` / `Explainer.astro` / `FAQ.astro` - Static sections
 
 **WASM Integration:**
-- `wasm.js` - Initializes Go WASM module
-- `converter.js` - Wraps WASM conversion functions
+- `lib/wasm.svelte.ts` - Loads `/recipe.wasm` and initializes the Go runtime
+- `lib/converter.svelte.ts` - Wraps exported WASM functions
 - Exports: `convert()`, `generate()`, `extractFullRecipe()`
-- Event: `wasmReady` fired when module is ready
+- WASM binary served from `web/public/recipe.wasm`
 
-**CSS Architecture:**
-- Glassmorphism design system
-- CSS custom properties for theming
-- Mobile-responsive grid layouts
-- `app.css` contains all global styles
+**Tailwind / design system:**
+- Tailwind 4 theme tokens (e.g. `text-foreground`, `text-interactive`, `glass-regular`) defined in `src/styles/`
+- Use `clsx` + `tailwind-merge` (`lib/utils.ts`) for conditional classes
+- Glassmorphism utilities for cards/modals
+- Shared primitives live in `@recipe/ui` (`packages/ui/src/`) — prefer importing from there before inlining new components
+
+### VSCode Extension
+
+**Goal:** open `.np3` files inside VSCode with a visual editor (custom editor with `viewType: "recipe.np3Editor"`).
+
+**Architecture:**
+- **Extension host** (`extension/src/`, TypeScript) — registers the custom editor, shells out to `np3tool` for any native-only operations, and hosts the webview.
+- **Webview** (`webview/src/`, Svelte 5) — the UI the user sees inside the editor tab. Built with Vite into a static bundle the extension loads.
+- **Native helper** (`extension/bin/np3tool`, built from `cmd/np3tool/`) — used when WASM isn't sufficient.
+- **WASM** (`extension/dist/webview/recipe.wasm`) — same engine as the website, wired into the webview for fast in-process conversion.
+
+**Typical dev loop:**
+```bash
+bun install
+bun run build        # Builds np3tool + WASM + webview + extension once
+# Then "Run Extension" from VSCode's Run & Debug panel
+```
+
+The webview consumes `@recipe/ui` for shared components — changes to `packages/ui` affect both the website and the extension.
 
 ### Error Handling Pattern
 
@@ -276,7 +358,7 @@ type ConversionError struct {
 
 ### WASM Implementation
 
-**Go 1.24+ with `go:wasmexport` directive:**
+**Go 1.25+ with `go:wasmexport` directive** (entry point: `cmd/wasm/main.go`):
 
 ```go
 //go:wasmexport convertPreset
@@ -285,9 +367,10 @@ func convertPreset(inputPtr, inputLen uint32, srcFormat, dstFormat string) (uint
 
 **Key details:**
 - Direct memory access (zero reflection overhead)
-- Returns (outputPtr, outputLen, errorMsg) tuple
-- Binary size: 4.0 MB stripped, 1.13 MB gzipped
-- Target: <100ms conversions (actual: 0.003-0.079ms)
+- Returns `(outputPtr, outputLen, errorMsg)` tuple
+- Binary size: ~4.0 MB stripped, ~1.13 MB gzipped (built with `-ldflags="-s -w"`)
+- Target: <100ms conversions (actual: 0.003–0.079 ms)
+- Consumed by **both** the public website (`web/public/recipe.wasm`) and the VSCode extension webview (`extension/dist/webview/recipe.wasm`) — same binary, different `wasm_exec.js` copies
 
 ## Important Constraints
 
@@ -305,13 +388,13 @@ NP3 has a **critical limitation**: You can use EITHER tone curve OR basic tone p
 
 When converting XMP → NP3, we use direct parameter mapping instead of generating custom tone curves:
 
-| XMP Parameter | NP3 Parameter | Byte Offset | Range |
-|---------------|---------------|-------------|-------|
-| `crs:Contrast2012` | Contrast | 0x110 | -100 to +100 |
-| `crs:Highlights2012` | Highlights | 0x11A | -100 to +100 |
-| `crs:Shadows2012` | Shadows | 0x124 | -100 to +100 |
-| `crs:Whites2012` | White Level | 0x12E | -100 to +100 |
-| `crs:Blacks2012` | Black Level | 0x138 | -100 to +100 |
+| XMP Parameter        | NP3 Parameter | Byte Offset | Range        |
+| -------------------- | ------------- | ----------- | ------------ |
+| `crs:Contrast2012`   | Contrast      | 0x110       | -100 to +100 |
+| `crs:Highlights2012` | Highlights    | 0x11A       | -100 to +100 |
+| `crs:Shadows2012`    | Shadows       | 0x124       | -100 to +100 |
+| `crs:Whites2012`     | White Level   | 0x12E       | -100 to +100 |
+| `crs:Blacks2012`     | Black Level   | 0x138       | -100 to +100 |
 
 **What Gets Lost in XMP → NP3 Conversion:**
 - XMP Parametric Curve Sliders (`ToneCurveShadows`, `ToneCurveDarks`, `ToneCurveLights`, `ToneCurveHighlights`)
@@ -367,9 +450,9 @@ When converting XMP → NP3, we use direct parameter mapping instead of generati
 
 **Automatic deployment on push to main:**
 1. GitHub Actions builds WASM binary (`.github/workflows/deploy-pages.yml`)
-2. Builds Vite+Svelte production bundle
-3. Deploys `web/dist/` to Cloudflare Pages
-4. Live at https://recipe.pages.dev in 3-5 minutes
+2. Builds Astro production bundle (`astro build`)
+3. Deploys `web/dist/` to Cloudflare Pages (config in `web/wrangler.jsonc`)
+4. Live at https://recipe.shuttercoach.app in 3-5 minutes
 
 **Manual deployment:**
 ```bash
@@ -405,6 +488,8 @@ git push origin v2.x.x
 - `docs/np3-format-specification.md` - NP3 binary format details
 - `docs/parameter-mapping.md` - Cross-format parameter mapping
 - `docs/known-conversion-limitations.md` - Format-specific limitations
+- `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `SECURITY.md` at repo root
+- Per-workspace READMEs: `web/README.md`, `extension/README.md`, `webview/README.md`
 
 ## Legal and Compliance
 
@@ -420,20 +505,30 @@ git push origin v2.x.x
 
 ### Common Tasks
 
-| Task | Command |
-|------|---------|
-| Run tests | `go test ./...` |
-| Build WASM | `make wasm` |
-| Start web dev server | `cd web && npm run dev` |
-| Check NP3 parsing | `go test ./internal/formats/np3/` |
-| View coverage | `make coverage-html` |
+| Task                    | Command                                 |
+| ----------------------- | --------------------------------------- |
+| Install JS deps         | `bun install` (from repo root)          |
+| Run Go tests            | `go test ./...`                         |
+| Run all JS/Svelte tests | `bun run --filter '*' test`             |
+| Lint JS/TS/Svelte       | `bun run lint`                          |
+| Build WASM (web)        | `make wasm` or `bun run build:wasm-web` |
+| Build WASM (extension)  | `bun run build:wasm-ext`                |
+| Build VSCode extension  | `bun run build:extension`               |
+| Start web dev server    | `cd web && npm run dev`                 |
+| Check NP3 parsing       | `go test ./internal/formats/np3/`       |
+| View Go coverage        | `make coverage-html`                    |
 
 ### Important Files by Task
 
-| Task | Files |
-|------|-------|
-| Add new parameter | `internal/models/recipe.go`, all format parsers |
-| Fix NP3 parsing | `internal/formats/np3/parse.go`, `offsets.go` |
-| Web UI changes | `web/src/lib/components/*.svelte`, `web/src/app.css` |
-| WASM exports | `cmd/wasm/main.go`, `web/src/lib/wasm.js` |
-| Preview filters | `web/src/lib/svg-logic.js`, `SVGFilters.svelte` |
+| Task                | Files                                                                                                                       |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Add a new parameter | `internal/models/recipe.go`, `internal/models/parameter_definitions.go`, each `internal/formats/*/parse.go` + `generate.go` |
+| Fix NP3 parsing     | `internal/formats/np3/parse.go`, `internal/formats/np3/offsets.go`                                                          |
+| Add a new format    | New package under `internal/formats/<name>/`, then update `internal/converter/converter.go`                                 |
+| CLI command changes | `cmd/cli/` (`root.go`, `convert.go`, `batch.go`, `inspect.go`, `diff.go`, `format.go`)                                      |
+| Web UI changes      | `web/src/components/*.{svelte,astro}`, `web/src/styles/`, `packages/ui/src/`                                                |
+| VSCode extension    | `extension/src/`, `webview/src/`                                                                                            |
+| Shared components   | `packages/ui/src/` (consumed by web + webview)                                                                              |
+| WASM exports        | `cmd/wasm/main.go`, `web/src/lib/wasm.svelte.ts`                                                                            |
+| Preview filters     | `web/src/lib/preview-logic.js`, `web/src/lib/image-analysis.js`                                                             |
+| Error types         | `internal/converter/error.go`, `internal/apperr/`                                                                           |
