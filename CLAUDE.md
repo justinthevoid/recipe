@@ -90,26 +90,26 @@ make coverage-html
 ### Web Development (Astro + Svelte 5)
 
 ```bash
+# Install once from the repo root (bun workspaces)
+bun install
+
 # Navigate to web directory
 cd web
 
-# Install dependencies
-npm install
-
 # Start dev server (hot reload) — runs `astro dev`
-npm run dev
+bun run dev
 
 # Production build — runs `astro build`, output in web/dist/
-npm run build
+bun run build
 
 # Preview production build
-npm run preview
+bun run preview
 
 # Type-check (astro check + svelte-check)
-npm run check
+bun run check
 
 # Run Vitest component tests
-npm test
+bun test
 ```
 
 ### Performance Benchmarks
@@ -460,7 +460,7 @@ When converting XMP → NP3, we use direct parameter mapping instead of generati
 GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o web/public/recipe.wasm cmd/wasm/main.go
 
 # Build web frontend
-cd web && npm run build
+cd web && bun run build
 
 # Deploy via Wrangler
 wrangler pages deploy web/dist --project-name recipe
@@ -514,7 +514,7 @@ git push origin v2.x.x
 | Build WASM (web)        | `make wasm` or `bun run build:wasm-web` |
 | Build WASM (extension)  | `bun run build:wasm-ext`                |
 | Build VSCode extension  | `bun run build:extension`               |
-| Start web dev server    | `cd web && npm run dev`                 |
+| Start web dev server    | `cd web && bun run dev`                 |
 | Check NP3 parsing       | `go test ./internal/formats/np3/`       |
 | View Go coverage        | `make coverage-html`                    |
 

@@ -48,6 +48,11 @@ extension/dist/
 # === Dependencies ===
 node_modules/
 
+# === Lockfiles (bun.lock at repo root is authoritative) ===
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
 # === Coverage & Profiling ===
 coverage/
 coverage*.html
