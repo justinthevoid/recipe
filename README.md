@@ -36,6 +36,22 @@ make cli
 ./recipe batch *.xmp --to np3
 ```
 
+### Tone curve options (NP3 ↔ XMP)
+
+NP3 and Lightroom render tone curves differently. Two opt-in flags help bridge the gap:
+
+```bash
+# Flatten an NP3 tone curve into approximate basic parameters
+# (Contrast / Highlights / Shadows / Whites / Blacks) in the output XMP.
+./recipe convert preset.np3 --to xmp --flatten-curves
+
+# Pre-bake a monotonic-cubic spline into the XMP tone curve so Lightroom's
+# linear-segment renderer approximates NX Studio's smooth-spline shape.
+./recipe convert preset.np3 --to xmp --densify-curves
+```
+
+Both flags are off by default, apply only to NP3→XMP, and are mutually exclusive (flatten wins when both are set). The same toggles are available in the web UI.
+
 ## Building from Source
 
 Requires Go 1.25.1+ and Node.js 18+.
