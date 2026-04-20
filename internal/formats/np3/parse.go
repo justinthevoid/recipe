@@ -1125,8 +1125,10 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 	// Set points offset based on BI0 location
 	pointsOffset := OffsetToneCurvePoints // Default fallback
 	if bi0Offset >= 0 {
-		// BI0 structure found - points start at BI0+11
-		pointsOffset = bi0Offset + 11
+		// BI0 structure found - points start at BI0+12 (BI0+10..11 are padding;
+		// see offsets.go:211 for the documented layout). The trailing pair written
+		// by NX Studio is a (0,0) terminator that the garbage-filter below drops.
+		pointsOffset = bi0Offset + 12
 
 		// Sync point count from BI0 header (BI0+9)
 		if len(data) > bi0Offset+9 {
@@ -1138,7 +1140,7 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 	} else if len(data) > OffsetBI0Marker+3 && data[OffsetBI0Marker] == 'B' && data[OffsetBI0Marker+1] == 'I' && data[OffsetBI0Marker+2] == '0' {
 		// Fallback: check fixed offset 409 (for files without description)
 		bi0Offset = OffsetBI0Marker
-		pointsOffset = OffsetBI0Marker + 11
+		pointsOffset = OffsetBI0Marker + 12
 
 		if len(data) > OffsetBI0Marker+9 {
 			bi0Count := int(data[OffsetBI0Marker+9])
@@ -1185,9 +1187,9 @@ func extractToneCurve(data []byte, params *np3Parameters) {
 	// Location varies by file format:
 	//   - Extended KOLORA 1100+ bytes: 'BI0' marker + 0x41 (typically 0x26E)
 
-	// NOTE: Raw LUT logic disabled. We confirmed the Control Points (offset 405)
-	// are the standard and correct source when interpreted as (Output, Input).
-	// The Raw LUT had conflicting/inverted data.
+	// NOTE: Raw LUT logic disabled. Control Points (BI0+12 onwards) are the
+	// standard and correct source, read as (Input, Output) byte pairs per the
+	// BI0 layout documented in offsets.go. The Raw LUT had conflicting data.
 	/*
 		// Raw LUT Logic disabled to prioritize Control Points
 	*/

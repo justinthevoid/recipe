@@ -927,3 +927,104 @@ func TestCameraCalibrationMapping(t *testing.T) {
 	t.Logf("Red.Hue: %d (expected %d)", parsed.Red.Hue, expectedRedHue)
 	t.Logf("Blue.Hue: %d (expected %d)", parsed.Blue.Hue, expectedBlueHue)
 }
+
+// TestParseBI0CurveOffset pins the BI0 control-point offset convention.
+// The BI0 header reserves BI0+10..11 for padding and stores control points
+// starting at BI0+12 (see offsets.go:211). A previous bug read points from
+// BI0+11, producing an inverted fog-lift curve in NP3→XMP output.
+func TestParseBI0CurveOffset(t *testing.T) {
+	data, err := os.ReadFile("testdata/bi0-curve-offset.np3")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+
+	recipe, err := Parse(data)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+
+	if len(recipe.PointCurve) < 2 {
+		t.Fatalf("expected at least 2 control points, got %d", len(recipe.PointCurve))
+	}
+
+	// First real point must NOT be the (0, 24) fog-lift artifact produced by
+	// the old BI0+11 read. With BI0+12, the fixture's first point is (24, 4).
+	first := recipe.PointCurve[0]
+	if first.Input == 0 {
+		t.Errorf("first point has Input=0; expected non-zero Input after BI0+12 fix. Got (%d, %d)",
+			first.Input, first.Output)
+	}
+	if first.Input != 24 || first.Output != 4 {
+		t.Errorf("first point = (%d, %d); expected (24, 4)", first.Input, first.Output)
+	}
+
+	// Last real point must be the (255, 255) white-point endpoint.
+	last := recipe.PointCurve[len(recipe.PointCurve)-1]
+	if last.Input != 255 || last.Output != 255 {
+		t.Errorf("last point = (%d, %d); expected (255, 255)", last.Input, last.Output)
+	}
+
+	// Inputs must be strictly monotonically increasing (a valid tone curve).
+	for i := 1; i < len(recipe.PointCurve); i++ {
+		if recipe.PointCurve[i].Input <= recipe.PointCurve[i-1].Input {
+			t.Errorf("non-monotonic inputs at index %d: %d then %d",
+				i, recipe.PointCurve[i-1].Input, recipe.PointCurve[i].Input)
+		}
+	}
+}
+
+// TestRoundTripBI0Curve verifies parse↔generate symmetry for the BI0
+// control-point region. Writing a curve and re-parsing must reproduce
+// the original control-point list.
+func TestRoundTripBI0Curve(t *testing.T) {
+	data, err := os.ReadFile("testdata/bi0-curve-offset.np3")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+
+	original, err := Parse(data)
+	if err != nil {
+		t.Fatalf("parse original: %v", err)
+	}
+	if len(original.PointCurve) == 0 {
+		t.Fatal("fixture has no PointCurve — cannot round-trip")
+	}
+
+	regenerated, err := Generate(original)
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+
+	reparsed, err := Parse(regenerated)
+	if err != nil {
+		t.Fatalf("parse regenerated: %v", err)
+	}
+
+	if len(reparsed.PointCurve) != len(original.PointCurve) {
+		t.Fatalf("point count mismatch: original=%d round-tripped=%d",
+			len(original.PointCurve), len(reparsed.PointCurve))
+	}
+
+	for i, want := range original.PointCurve {
+		got := reparsed.PointCurve[i]
+		if got.Input != want.Input || got.Output != want.Output {
+			t.Errorf("point %d: got (%d, %d), want (%d, %d)",
+				i, got.Input, got.Output, want.Input, want.Output)
+		}
+	}
+
+	// Byte-identity check on the BI0 control-point region, to catch any
+	// off-by-one regression that escapes the semantic check above.
+	origBI0 := bytes.Index(data, []byte("BI0"))
+	newBI0 := bytes.Index(regenerated, []byte("BI0"))
+	if origBI0 < 0 || newBI0 < 0 {
+		t.Fatalf("BI0 marker missing: orig=%d new=%d", origBI0, newBI0)
+	}
+	pointRegionLen := len(original.PointCurve) * 2
+	origRegion := data[origBI0+12 : origBI0+12+pointRegionLen]
+	newRegion := regenerated[newBI0+12 : newBI0+12+pointRegionLen]
+	if !bytes.Equal(origRegion, newRegion) {
+		t.Errorf("BI0+12 control-point bytes differ\n  orig: %x\n  new:  %x",
+			origRegion, newRegion)
+	}
+}

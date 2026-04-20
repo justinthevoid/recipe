@@ -1256,13 +1256,14 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 		}
 		data[bi0+9] = uint8(pointCount)
 
-		// Padding at BI0+10 (1 byte only)
+		// Padding at BI0+10..11 (2 bytes). Control points start at BI0+12,
+		// per the layout documented in offsets.go:211.
 		data[bi0+10] = 0x00
-		// Note: Working files show data starting at BI0+11 (Offset 420)
+		data[bi0+11] = 0x00
 
-		// Write control points at BI0+11 onwards (X,Y pairs as single bytes)
+		// Write control points at BI0+12 onwards (X,Y pairs as single bytes)
 		for i := 0; i < len(params.toneCurvePoints) && i < pointCount; i++ {
-			offset := bi0 + 11 + (i * 2)
+			offset := bi0 + 12 + (i * 2)
 			if len(data) > offset+1 {
 				data[offset] = params.toneCurvePoints[i].value1   // X (input)
 				data[offset+1] = params.toneCurvePoints[i].value2 // Y (output)
@@ -1270,7 +1271,7 @@ func writeToneCurve(data []byte, params *np3Parameters) {
 		}
 
 		// Padding after control points
-		lastPointOffset := bi0 + 11 + (pointCount * 2)
+		lastPointOffset := bi0 + 12 + (pointCount * 2)
 		for i := lastPointOffset; i < lastPointOffset+4 && i < len(data); i++ {
 			data[i] = 0x00
 		}
